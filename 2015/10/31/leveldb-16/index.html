@@ -1,0 +1,1119 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="leveldb,version,version_edit,version_set," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="今天这篇文章主要讲解我之前很恐惧的leveldb版本控制，version,version_edit和version_set，主要原因吧，还是这三个是紧密联系在一起的，代码量大。这篇文章讲下我自己对版本控制的一知半解，也算自我总结。
+version_edit版本编辑
+version_edit这个类主要是两个版本之间的差量。形象点说，就是当前版本+version_edit即可成为新的版本，versio">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leveldb源码分析之version、version_edit和version_set">
+<meta property="og:url" content="http://luodw.cc/2015/10/31/leveldb-16/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="今天这篇文章主要讲解我之前很恐惧的leveldb版本控制，version,version_edit和version_set，主要原因吧，还是这三个是紧密联系在一起的，代码量大。这篇文章讲下我自己对版本控制的一知半解，也算自我总结。
+version_edit版本编辑
+version_edit这个类主要是两个版本之间的差量。形象点说，就是当前版本+version_edit即可成为新的版本，versio">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_023.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="leveldb源码分析之version、version_edit和version_set">
+<meta name="twitter:description" content="今天这篇文章主要讲解我之前很恐惧的leveldb版本控制，version,version_edit和version_set，主要原因吧，还是这三个是紧密联系在一起的，代码量大。这篇文章讲下我自己对版本控制的一知半解，也算自我总结。
+version_edit版本编辑
+version_edit这个类主要是两个版本之间的差量。形象点说，就是当前版本+version_edit即可成为新的版本，versio">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_023.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/31/leveldb-16/"/>
+
+
+  <title> leveldb源码分析之version、version_edit和version_set | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                leveldb源码分析之version、version_edit和version_set
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-31T16:39:54+08:00" content="2015-10-31">
+              2015-10-31
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/31/leveldb-16/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/31/leveldb-16/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/31/leveldb-16/" class="leancloud_visitors" data-flag-title="leveldb源码分析之version、version_edit和version_set">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>今天这篇文章主要讲解我之前很恐惧的leveldb版本控制，version,version_edit和version_set，主要原因吧，还是这三个是紧密联系在一起的，代码量大。这篇文章讲下我自己对版本控制的一知半解，也算自我总结。</p>
+<h1>version_edit版本编辑</h1>
+<p>version_edit这个类主要是两个版本之间的差量。形象点说，就是当前版本+version_edit即可成为新的版本，version0+version_edit=version1。对于leveldb来说，一个版本包括所有数据文件，log文件，manifest_file，current文件，LOG文件和LOCK文件，而文件是由文件编号来标识的，所以对于一个版本来说，会变化的变量有log文件编号，序列号，文件编号，所以version_edt主要就是来操作这个变量以及文件的增删，定义如下,先列出成员变量:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">private</span>:</div><div class="line"> <span class="keyword">friend</span> <span class="keyword">class</span> VersionSet;</div><div class="line"> <span class="comment">//定义删除文件集合，&lt;层次，文件编号&gt;</span></div><div class="line"> <span class="keyword">typedef</span> <span class="built_in">std</span>::<span class="built_in">set</span>&lt; <span class="built_in">std</span>::pair&lt;<span class="keyword">int</span>, <span class="keyword">uint64_t</span>&gt; &gt; DeletedFileSet;</div><div class="line"></div><div class="line"> <span class="built_in">std</span>::<span class="built_in">string</span> comparator_;<span class="comment">//比较器名称</span></div><div class="line"> <span class="keyword">uint64_t</span> log_number_;<span class="comment">//日志文件编号</span></div><div class="line"> <span class="keyword">uint64_t</span> prev_log_number_;<span class="comment">//上一个日志文件编号</span></div><div class="line"> <span class="keyword">uint64_t</span> next_file_number_;<span class="comment">//下一个文件编号</span></div><div class="line"> SequenceNumber last_sequence_;<span class="comment">//上一个序列号</span></div><div class="line"> <span class="keyword">bool</span> has_comparator_;<span class="comment">//是否有比较器</span></div><div class="line"> <span class="keyword">bool</span> has_log_number_;</div><div class="line"> <span class="keyword">bool</span> has_prev_log_number_;</div><div class="line"> <span class="keyword">bool</span> has_next_file_number_;</div><div class="line"> <span class="keyword">bool</span> has_last_sequence_;</div><div class="line"> <span class="comment">//压缩点&lt;层次，InternalKey键&gt;</span></div><div class="line"> <span class="built_in">std</span>::<span class="built_in">vector</span>&lt; <span class="built_in">std</span>::pair&lt;<span class="keyword">int</span>, InternalKey&gt; &gt; compact_pointers_;</div><div class="line"> <span class="comment">//删除文件集合</span></div><div class="line"> DeletedFileSet deleted_files_;</div><div class="line"> <span class="comment">//新添加的文件集合</span></div><div class="line"> <span class="built_in">std</span>::<span class="built_in">vector</span>&lt; <span class="built_in">std</span>::pair&lt;<span class="keyword">int</span>, FileMetaData&gt; &gt; new_files_;</div></pre></td></tr></table></figure></p>
+<p>这个version_edit保存了版本可能会变化的变量，这个类提供的接口包括设置这些变量的接口set方法，以及将上述成员序列化和反序列化的方法。当version_edit序列化时，图片来自博客<a href="http://blog.csdn.net/sparkliang/article/details/8776583" target="_blank" rel="external">sparkliang的专栏</a>格式如下:<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_023.png" alt="manifest文件格式">;</p>
+<p>图中的数字表示为:
+<figure class="highlight crystal"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">enum</span> <span class="title">Tag</span> &#123;</span></div><div class="line">  kComparator           = <span class="number">1</span>,</div><div class="line">  kLogNumber            = <span class="number">2</span>,</div><div class="line">  kNextFileNumber       = <span class="number">3</span>,</div><div class="line">  kLastSequence         = <span class="number">4</span>,</div><div class="line">  kCompactPointer       = <span class="number">5</span>,</div><div class="line">  kDeletedFile          = <span class="number">6</span>,</div><div class="line">  kNewFile              = <span class="number">7</span>,</div><div class="line">  <span class="regexp">//</span> <span class="number">8</span> was used <span class="keyword">for</span> large value refs</div><div class="line">  kPrevLogNumber        = <span class="number">9</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>因为version_edit序列化之后，会保存在manifest文件中，所以这张图既是version_edit序列化为字符串时的格式，也是manifest文件格式。</p>
+<p>接下来看下如何序列化这个version_edit:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> VersionEdit::EncodeTo(<span class="built_in">std</span>::<span class="built_in">string</span>* dst) <span class="keyword">const</span> &#123;</div><div class="line">  <span class="comment">//将比较器的标识和名称放入序列化字符串中</span></div><div class="line">  <span class="keyword">if</span> (has_comparator_) &#123;</div><div class="line">    PutVarint32(dst, kComparator);</div><div class="line">    PutLengthPrefixedSlice(dst, comparator_);</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//将日志文件编号的标识和名称放入序列化字符串中</span></div><div class="line">  <span class="keyword">if</span> (has_log_number_) &#123;</div><div class="line">    PutVarint32(dst, kLogNumber);</div><div class="line">    PutVarint64(dst, log_number_);</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//将前一个日志的标识和名称放入序列化字符串中</span></div><div class="line">  <span class="keyword">if</span> (has_prev_log_number_) &#123;</div><div class="line">    PutVarint32(dst, kPrevLogNumber);</div><div class="line">    PutVarint64(dst, prev_log_number_);</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//将下一个文件的标识和名称放入序列化字符串中</span></div><div class="line">  <span class="keyword">if</span> (has_next_file_number_) &#123;</div><div class="line">    PutVarint32(dst, kNextFileNumber);</div><div class="line">    PutVarint64(dst, next_file_number_);</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//将上一个序列号的标识和名称放入序列化字符串中</span></div><div class="line">  <span class="keyword">if</span> (has_last_sequence_) &#123;</div><div class="line">    PutVarint32(dst, kLastSequence);</div><div class="line">    PutVarint64(dst, last_sequence_);</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//将每个压缩点的标识，层次和InternalKey放入序列化字符串</span></div><div class="line">  <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; compact_pointers_.size(); i++) &#123;</div><div class="line">    PutVarint32(dst, kCompactPointer);</div><div class="line">    PutVarint32(dst, compact_pointers_[i].first);  <span class="comment">// level</span></div><div class="line">    PutLengthPrefixedSlice(dst, compact_pointers_[i].second.Encode());</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//将每个删除文件的标识,层次，文件编号放入序列化字符串中</span></div><div class="line">  <span class="keyword">for</span> (DeletedFileSet::const_iterator iter = deleted_files_.begin();</div><div class="line">       iter != deleted_files_.end();</div><div class="line">       ++iter) &#123;</div><div class="line">    PutVarint32(dst, kDeletedFile);</div><div class="line">    PutVarint32(dst, iter-&gt;first);   <span class="comment">// level</span></div><div class="line">    PutVarint64(dst, iter-&gt;second);  <span class="comment">// file number</span></div><div class="line">  &#125;</div><div class="line">  <span class="comment">//将增加的字符串的标识以及f属性添加进序列化字符串中</span></div><div class="line">  <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; new_files_.size(); i++) &#123;</div><div class="line">    <span class="keyword">const</span> FileMetaData&amp; f = new_files_[i].second;</div><div class="line">    PutVarint32(dst, kNewFile);</div><div class="line">    PutVarint32(dst, new_files_[i].first);  <span class="comment">// level</span></div><div class="line">    PutVarint64(dst, f.number);</div><div class="line">    PutVarint64(dst, f.file_size);</div><div class="line">    PutLengthPrefixedSlice(dst, f.smallest.Encode());</div><div class="line">    PutLengthPrefixedSlice(dst, f.largest.Encode());</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>上述这个函数就是将version_edit序列化成字符串，然后存入manifest文件中，接下来看下，如何反序列化，将manifest反序列化为version_edit。
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div></pre></td><td class="code"><pre><div class="line">Status VersionEdit::DecodeFrom(<span class="keyword">const</span> Slice&amp; src) &#123;</div><div class="line">  Clear();<span class="comment">//先清空原有数据</span></div><div class="line">  Slice input = src;</div><div class="line">  <span class="keyword">const</span> <span class="keyword">char</span>* msg = NULL;</div><div class="line">  uint32_t tag;</div><div class="line"></div><div class="line">  <span class="comment">// 为了解析，临时定义的存储变量</span></div><div class="line">  <span class="keyword">int</span> level;</div><div class="line">  uint64_t number;</div><div class="line">  FileMetaData f;</div><div class="line">  Slice str;</div><div class="line">  InternalKey key;</div><div class="line"></div><div class="line">  <span class="keyword">while</span> (msg == NULL &amp;&amp; GetVarint32(&amp;input, &amp;tag)) &#123;</div><div class="line">    <span class="keyword">switch</span> (tag) &#123;<span class="comment">//根据tag，也就是标识，解析不同的变量</span></div><div class="line">      <span class="keyword">case</span> kComparator:</div><div class="line">        <span class="keyword">if</span> (GetLengthPrefixedSlice(&amp;input, &amp;str)) &#123;</div><div class="line">          comparator_ = str.ToString();</div><div class="line">          has_comparator_ = <span class="keyword">true</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          msg = <span class="string">"comparator name"</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kLogNumber:</div><div class="line">        <span class="keyword">if</span> (GetVarint64(&amp;input, &amp;log_number_)) &#123;</div><div class="line">          has_log_number_ = <span class="keyword">true</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          msg = <span class="string">"log number"</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kPrevLogNumber:</div><div class="line">        <span class="keyword">if</span> (GetVarint64(&amp;input, &amp;prev_log_number_)) &#123;</div><div class="line">          has_prev_log_number_ = <span class="keyword">true</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          msg = <span class="string">"previous log number"</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kNextFileNumber:</div><div class="line">        <span class="keyword">if</span> (GetVarint64(&amp;input, &amp;next_file_number_)) &#123;</div><div class="line">          has_next_file_number_ = <span class="keyword">true</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          msg = <span class="string">"next file number"</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kLastSequence:</div><div class="line">        <span class="keyword">if</span> (GetVarint64(&amp;input, &amp;last_sequence_)) &#123;</div><div class="line">          has_last_sequence_ = <span class="keyword">true</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          msg = <span class="string">"last sequence number"</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kCompactPointer:</div><div class="line">        <span class="keyword">if</span> (GetLevel(&amp;input, &amp;level) &amp;&amp;</div><div class="line">            GetInternalKey(&amp;input, &amp;key)) &#123;</div><div class="line">          compact_pointers_.push_back(std::make_pair(level, key));</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          msg = <span class="string">"compaction pointer"</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kDeletedFile:</div><div class="line">        <span class="keyword">if</span> (GetLevel(&amp;input, &amp;level) &amp;&amp;</div><div class="line">            GetVarint64(&amp;input, &amp;number)) &#123;</div><div class="line">          deleted_files_.insert(std::make_pair(level, number));</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          msg = <span class="string">"deleted file"</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kNewFile:</div><div class="line">        <span class="keyword">if</span> (GetLevel(&amp;input, &amp;level) &amp;&amp;</div><div class="line">            GetVarint64(&amp;input, &amp;f.number) &amp;&amp;</div><div class="line">            GetVarint64(&amp;input, &amp;f.file_size) &amp;&amp;</div><div class="line">            GetInternalKey(&amp;input, &amp;f.smallest) &amp;&amp;</div><div class="line">            GetInternalKey(&amp;input, &amp;f.largest)) &#123;</div><div class="line">          new_files_.push_back(std::make_pair(level, f));</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          msg = <span class="string">"new-file entry"</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">default</span>:</div><div class="line">        msg = <span class="string">"unknown tag"</span>;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="keyword">if</span> (msg == NULL &amp;&amp; !input.empty()) &#123;</div><div class="line">    msg = <span class="string">"invalid tag"</span>;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  Status result;</div><div class="line">  <span class="keyword">if</span> (msg != NULL) &#123;</div><div class="line">    result = Status::Corruption(<span class="string">"VersionEdit"</span>, msg);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> result;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数也很简单，就是根据不同的标识，解析出不同的变量，最后再判断有没出错，如果没出错，则返回空的status，错误，则返回错误状态。</p>
+<h1>Version版本类</h1>
+<p>这个类主要功能，首先是提供了在当前版本搜索键值的Get方法，其次是为上层调用提供了收集当前版本所有文件的迭代器，最后是为合并文件提供了判断键值范围与文件是否有交集的辅助函数。</p>
+<p>接下来先看下Version提供的收集文件迭代器的方法,对于第0层，直接从Table_cache中获取即可，因为当初每campaction时，都将文件添加进table_cache缓存；对于大于第0层的文件，创建是两层迭代器，后面分析，为了分析两层迭代器，需要先介绍下第一层迭代器，也就是迭代某一层文件的迭代器
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">class</span> Version::LevelFileNumIterator : <span class="keyword">public</span> Iterator &#123;</div><div class="line"> <span class="keyword">public</span>:</div><div class="line">  LevelFileNumIterator(<span class="keyword">const</span> InternalKeyComparator&amp; icmp,</div><div class="line">                       <span class="keyword">const</span> <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;FileMetaData*&gt;* flist)</div><div class="line">      : icmp_(icmp),<span class="comment">//比较器</span></div><div class="line">        flist_(flist),<span class="comment">//某一层文件集合</span></div><div class="line">        index_(flist-&gt;size()) &#123; <span class="comment">//某一层文件的编号，等于文件个数时，即为无效 </span></div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="keyword">virtual</span> <span class="keyword">bool</span> <span class="title">Valid</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> index_ &lt; flist_-&gt;size();</div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Seek</span><span class="params">(<span class="keyword">const</span> Slice&amp; target)</span> </span>&#123;</div><div class="line">    <span class="comment">//在这层查找键值大于等于target的文件索引</span></div><div class="line">    index_ = FindFile(icmp_, *flist_, target);</div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">SeekToFirst</span><span class="params">()</span> </span>&#123; index_ = <span class="number">0</span>; &#125;</div><div class="line">  <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">SeekToLast</span><span class="params">()</span> </span>&#123;</div><div class="line">    index_ = flist_-&gt;empty() ? <span class="number">0</span> : flist_-&gt;size() - <span class="number">1</span>;</div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Next</span><span class="params">()</span> </span>&#123;</div><div class="line">    assert(Valid());</div><div class="line">    index_++;</div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">Prev</span><span class="params">()</span> </span>&#123;</div><div class="line">    assert(Valid());</div><div class="line">    <span class="keyword">if</span> (index_ == <span class="number">0</span>) &#123;</div><div class="line">      index_ = flist_-&gt;size();  <span class="comment">// Marks as invalid</span></div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      index_--;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  <span class="function">Slice <span class="title">key</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123;</div><div class="line">    assert(Valid());</div><div class="line">    <span class="comment">//返回大于等于target文件的最大键值</span></div><div class="line">    <span class="keyword">return</span> (*flist_)[index_]-&gt;largest.Encode();</div><div class="line">  &#125;</div><div class="line">  <span class="function">Slice <span class="title">value</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123;</div><div class="line">    assert(Valid());<span class="comment">//返回这个文件的文件编号和大小封装成的字符串</span></div><div class="line">    EncodeFixed64(value_buf_, (*flist_)[index_]-&gt;number);</div><div class="line">    EncodeFixed64(value_buf_+<span class="number">8</span>, (*flist_)[index_]-&gt;file_size);</div><div class="line">    <span class="keyword">return</span> Slice(value_buf_, <span class="keyword">sizeof</span>(value_buf_));</div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="keyword">virtual</span> Status <span class="title">status</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123; <span class="keyword">return</span> Status::OK(); &#125;</div><div class="line"> <span class="keyword">private</span>:</div><div class="line">  <span class="keyword">const</span> InternalKeyComparator icmp_;</div><div class="line">  <span class="keyword">const</span> <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;FileMetaData*&gt;* <span class="keyword">const</span> flist_;</div><div class="line">  <span class="keyword">uint32_t</span> index_;</div><div class="line"></div><div class="line">  <span class="comment">// Backing store for value().  Holds the file number and size.</span></div><div class="line">  <span class="keyword">mutable</span> <span class="keyword">char</span> value_buf_[<span class="number">16</span>];</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>上述这个迭代器就是迭代某一层内所有的文件，第二层迭代器就是迭代某一层某一个文件的迭代器，和Table的双层迭代器有点像，Table双层迭代器是首先迭代文件块，然后块内迭代器。下面是Version提供添加所有文件迭代器的接口
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">void Version::AddIterators(const ReadOptions&amp; options,</div><div class="line">                           std::vector&lt;Iterator*&gt;* iters) &#123;</div><div class="line">  <span class="comment">// Merge all level zero files together since they may overlap</span></div><div class="line">  <span class="keyword">for</span> (size_t i = <span class="number">0</span>; i &lt; files_[<span class="number">0</span>].size(); i++) &#123;</div><div class="line">    <span class="function"><span class="title">iters</span>-&gt;</span>push_back(</div><div class="line">        <span class="function"><span class="title">vset_</span>-&gt;</span><span class="function"><span class="title">table_cache_</span>-&gt;</span>NewIterator(</div><div class="line">            <span class="function"><span class="title">options</span>, files_[0][i]-&gt;</span><span class="function"><span class="title">number</span>, files_[0][i]-&gt;</span>file_size));</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// For levels &gt; 0, we can use a concatenating iterator that sequentially</span></div><div class="line">  <span class="comment">// walks through the non-overlapping files in the level, opening them</span></div><div class="line">  <span class="comment">// lazily.</span></div><div class="line">  <span class="keyword">for</span> (int level = <span class="number">1</span>; level &lt; config::kNumLevels; level++) &#123;</div><div class="line">    <span class="keyword">if</span> (!files_[level].empty()) &#123;</div><div class="line">      <span class="function"><span class="title">iters</span>-&gt;</span>push_back(NewConcatenatingIterator(options, level));</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>好，接来看下创建两层迭代器的方法NewConcatenatingIterator
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">Iterator* Version::NewConcatenatingIterator(<span class="keyword">const</span> ReadOptions&amp; options,</div><div class="line">                                            <span class="keyword">int</span> level) <span class="keyword">const</span> &#123;</div><div class="line">  <span class="keyword">return</span> NewTwoLevelIterator(</div><div class="line">      <span class="keyword">new</span> LevelFileNumIterator(vset_-&gt;icmp_, &amp;files_[level]),</div><div class="line">      &amp;GetFileIterator, vset_-&gt;table_cache_, options);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">//传入的函数指针，就是为了将文件元数据添加进Table_cache</span></div><div class="line"><span class="function"><span class="keyword">static</span> Iterator* <span class="title">GetFileIterator</span><span class="params">(<span class="keyword">void</span>* arg,</span></span></div><div class="line">                                 <span class="keyword">const</span> ReadOptions&amp; options,</div><div class="line">                                 <span class="keyword">const</span> Slice&amp; file_value) &#123;</div><div class="line">  TableCache* cache = <span class="keyword">reinterpret_cast</span>&lt;TableCache*&gt;(arg);</div><div class="line">  <span class="keyword">if</span> (file_value.size() != <span class="number">16</span>) &#123;</div><div class="line">    <span class="keyword">return</span> NewErrorIterator(</div><div class="line">        Status::Corruption(<span class="string">"FileReader invoked with unexpected value"</span>));</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">return</span> cache-&gt;NewIterator(options,</div><div class="line">                              DecodeFixed64(file_value.data()),</div><div class="line">                              DecodeFixed64(file_value.data() + <span class="number">8</span>));</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个两层迭代器不分析了，因为之前在Table_cache有分析过。内部调用大概通过LevelFileNumIterator先迭代到具体的文件，然后再调用GetFileIterator回调函数创建创建这个文件的Table_cache迭代器，并添加进Table_cache。</p>
+<p>leveldb这个两层迭代器设计非常巧妙，因为刚生成这两层迭代器时，迭代器不会将任何文件载入内存，而是当查询某个键值时，才会把具体的文件元数据添加进Table_cache，这中用法叫做open-lazily,即推迟打开文件。</p>
+<p>接下来，看下Get函数，就是根据提供的键值，查询对应的value。原理如下:</p>
+<ol>
+<li>对于第0层文件，因为这些文件有可能相交，所以要迭代所有文件，把和查询键值有交集的文件添加进一个临时的集合中。</li>
+<li>对于第1层以及以上文件，因为这些文件不相交，所以只要二分查找文件即可。</li>
+<li>根据找到的文件，调用table_cache-&gt;Get方法获取具体的value值。对于第0层文件，因为获取到查询的文件不止一个，所以跟新状态保存的是第一个查找到的文件。</li>
+<li>将找到的值存入传进的参数。</li>
+</ol>
+<p>代码偏长，我将重要片段贴出来:
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">Saver saver;</div><div class="line">saver.state = kNotFound;</div><div class="line">saver.ucmp = ucmp;</div><div class="line">saver.user_key = user_key;</div><div class="line">saver.value = value;</div><div class="line"><span class="function"><span class="title">s</span> = vset_-&gt;</span><span class="function"><span class="title">table_cache_</span>-&gt;</span>G<span class="function"><span class="title">et</span>(options, f-&gt;</span><span class="function"><span class="title">number</span>, f-&gt;</span>file_size,</div><div class="line">                             ikey, &amp;saver, SaveValue);</div></pre></td></tr></table></figure></p>
+<p>这个Saver是定义的一个结构体，用于保存Get函数内部得到的值。我们来看下这个回调函数，也就是用于保存value值的函数:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">SaveValue</span><span class="params">(<span class="keyword">void</span>* arg, <span class="keyword">const</span> Slice&amp; ikey, <span class="keyword">const</span> Slice&amp; v)</span> </span>&#123;</div><div class="line">  Saver* s = <span class="keyword">reinterpret_cast</span>&lt;Saver*&gt;(arg);</div><div class="line">  ParsedInternalKey parsed_key;</div><div class="line">  <span class="keyword">if</span> (!ParseInternalKey(ikey, &amp;parsed_key)) &#123;</div><div class="line">    s-&gt;state = kCorrupt;</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">if</span> (s-&gt;ucmp-&gt;Compare(parsed_key.user_key, s-&gt;user_key) == <span class="number">0</span>) &#123;</div><div class="line">      s-&gt;state = (parsed_key.type == kTypeValue) ? kFound : kDeleted;</div><div class="line">      <span class="keyword">if</span> (s-&gt;state == kFound) &#123;</div><div class="line">        s-&gt;value-&gt;assign(v.data(), v.size());</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数是在Table::InternalGet函数中调用，此时传进函数的v已经是查找到的value值，根据键值对的类型，设置不同的state状态，如果是kDeleted，则value值为空，如果是kFound，将v赋值给value。第一次看这源码可能有个抑或，因为没有给version-&gt;Get函数传递的value赋值，version-&gt;Get函数返回时，可以从Value中获取值？这是因为value是一个指针，saver.value=value是指针赋值，也就是说这两个指针指向同一个地方，所以一个赋值，也就是对另一个赋值了。</p>
+<p>Version其他函数都是和Campaction相关的，暂时不说了。接下来看下Version_set。</p>
+<h1>Version_set版本集合类</h1>
+<p>Version_set这个类不只是简单的Version集合，还操作着和版本变化的一些函数，例如将version_edit应用到新的版本，将新版本设为当前版本等等。</p>
+<p>先来看下成员变量:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">Env* <span class="keyword">const</span> env_;<span class="comment">//操作系统封装</span></div><div class="line"><span class="keyword">const</span> <span class="built_in">std</span>::<span class="built_in">string</span> dbname_;<span class="comment">//数据库名称</span></div><div class="line"><span class="keyword">const</span> Options* <span class="keyword">const</span> options_;<span class="comment">//选项配置</span></div><div class="line">TableCache* <span class="keyword">const</span> table_cache_;<span class="comment">//用于version调用get时调用</span></div><div class="line"><span class="keyword">const</span> InternalKeyComparator icmp_;<span class="comment">//以下6个都是版本可变的</span></div><div class="line"><span class="keyword">uint64_t</span> next_file_number_;</div><div class="line"><span class="keyword">uint64_t</span> manifest_file_number_;</div><div class="line"><span class="keyword">uint64_t</span> last_sequence_;</div><div class="line"><span class="keyword">uint64_t</span> log_number_;</div><div class="line"><span class="keyword">uint64_t</span> prev_log_number_;  <span class="comment">// 0 or backing store for memtable being compacted</span></div><div class="line"></div><div class="line"><span class="comment">// Opened lazily</span></div><div class="line">WritableFile* descriptor_file_;<span class="comment">//manifest文件</span></div><div class="line"><span class="built_in">log</span>::Writer* descriptor_log_;<span class="comment">//将Version_edit写进manifest</span></div><div class="line">Version dummy_versions_;  <span class="comment">// 环形双向链表的表头</span></div><div class="line">Version* current_;        <span class="comment">//当前版本界定 == dummy_versions_.prev_</span></div><div class="line"></div><div class="line"><span class="comment">// 每一层下次compaction的键值，空值或者一个有效的InternalKey</span></div><div class="line"><span class="built_in">std</span>::<span class="built_in">string</span> compact_pointer_[config::kNumLevels];</div></pre></td></tr></table></figure></p>
+<h2>Builder类</h2>
+<p>接下来先来看下Version_set的内部类Builder，这个类用于将manifest文件内容添加进当前版本，并将当前版本添加进版本链表，然后成员变量如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">class</span> VersionSet::Builder &#123;</div><div class="line"> <span class="keyword">private</span>:</div><div class="line">  <span class="comment">// Helper to sort by v-&gt;files_[file_number].smallest</span></div><div class="line">  <span class="keyword">struct</span> BySmallestKey &#123;</div><div class="line">    <span class="keyword">const</span> InternalKeyComparator* internal_comparator;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">bool</span> <span class="title">operator</span><span class="params">()</span><span class="params">(FileMetaData* f1, FileMetaData* f2)</span> <span class="keyword">const</span> </span>&#123;</div><div class="line">      <span class="keyword">int</span> r = internal_comparator-&gt;Compare(f1-&gt;smallest, f2-&gt;smallest);</div><div class="line">      <span class="keyword">if</span> (r != <span class="number">0</span>) &#123;</div><div class="line">        <span class="keyword">return</span> (r &lt; <span class="number">0</span>);</div><div class="line">      &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="comment">// Break ties by file number</span></div><div class="line">        <span class="keyword">return</span> (f1-&gt;number &lt; f2-&gt;number);</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">  &#125;;</div><div class="line"><span class="comment">//定义一个用于排序文件元数据的函数对象，先是按最小键值排序，如果最小键值相等，就按文件编号从小到大排序。</span></div><div class="line"></div><div class="line">  <span class="keyword">typedef</span> <span class="built_in">std</span>::<span class="built_in">set</span>&lt;FileMetaData*, BySmallestKey&gt; FileSet;</div><div class="line">  <span class="comment">//定义文件集合类型，集合从小到大排序</span></div><div class="line">  <span class="keyword">struct</span> LevelState &#123;</div><div class="line">    <span class="built_in">std</span>::<span class="built_in">set</span>&lt;<span class="keyword">uint64_t</span>&gt; deleted_files;</div><div class="line">    FileSet* added_files;</div><div class="line">  &#125;;</div><div class="line"></div><div class="line">  VersionSet* vset_;<span class="comment">//所属的版本链表</span></div><div class="line">  Version* base_;<span class="comment">//当前版本</span></div><div class="line">  <span class="comment">//每一层文件状态，添加或删除文件</span></div><div class="line">  LevelState levels_[config::kNumLevels];</div></pre></td></tr></table></figure></p>
+<p>当打开一个已存在的数据库时，此时需要将磁盘的文件信息恢复到一个版本，也就是将manifest内的信息包装成Version_edit，并应用到当前版本，这时就需要调用Builder-&gt;Apply方法，这方法先是将edit里的信息解析到Builder中，接着再调用Builder-&gt;Saveto保存到当前版本中。先来看下Builder-&gt;Apply方法
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line">void Apply(VersionEdit* edit) &#123;</div><div class="line">    <span class="comment">// 将每层compaction节点添加进version_set</span></div><div class="line">    <span class="function"><span class="title">for</span> (size_t i = 0; i &lt; edit-&gt;</span>compact_pointers_.size(); i++) &#123;</div><div class="line">      <span class="function"><span class="title">const</span> int level = edit-&gt;</span>compact_pointers_[i].first;</div><div class="line">      <span class="function"><span class="title">vset_</span>-&gt;</span>compact_pointer_[level] =</div><div class="line">          <span class="function"><span class="title">edit</span>-&gt;</span>compact_pointers_[i].second.Encode().ToString();</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 将删除文件添加进Builder</span></div><div class="line">    <span class="function"><span class="title">const</span> VersionEdit::DeletedFileSet&amp; del = edit-&gt;</span>deleted_files_;</div><div class="line">    <span class="keyword">for</span> (VersionEdit::DeletedFileSet::const_iterator iter = del.begin();</div><div class="line">         iter != del.end();</div><div class="line">         ++iter) &#123;</div><div class="line">      <span class="function"><span class="title">const</span> int level = iter-&gt;</span>first;</div><div class="line">      <span class="function"><span class="title">const</span> uint64_t number = iter-&gt;</span>second;</div><div class="line">      levels_[level].deleted_files.insert(number);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 将增加的文件添加进Builder</span></div><div class="line">    <span class="function"><span class="title">for</span> (size_t i = 0; i &lt; edit-&gt;</span>new_files_.size(); i++) &#123;</div><div class="line">      <span class="function"><span class="title">const</span> int level = edit-&gt;</span>new_files_[i].first;</div><div class="line">      F<span class="function"><span class="title">ileMetaData</span>* f = new FileMetaData(edit-&gt;</span>new_files_[i].second);</div><div class="line">      <span class="function"><span class="title">f</span>-&gt;</span>refs = <span class="number">1</span>;</div><div class="line">      <span class="function"><span class="title">f</span>-&gt;</span><span class="function"><span class="title">allowed_seeks</span> = (f-&gt;</span>file_size / <span class="number">16384</span>);</div><div class="line">      <span class="function"><span class="title">if</span> (f-&gt;</span><span class="function"><span class="title">allowed_seeks</span> &lt; 100) f-&gt;</span>allowed_seeks = <span class="number">100</span>;</div><div class="line"></div><div class="line">      <span class="function"><span class="title">levels_</span>[level].deleted_files.erase(f-&gt;</span>number);</div><div class="line">      <span class="function"><span class="title">levels_</span>[level].added_files-&gt;</span>insert(f);</div><div class="line">    &#125;</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>f-&gt;allowed_seeks 这个是当文件被查询几次之后，需要进行compaction，源码中有注释为何这样计算该值。接来下，看下如何把edit的信息应用到当前版本。</p>
+<p>将edit应用到当前版本调用的函数是SaveTo。该函数将上一版本所有文件和新添加的文件按比较器定义的比较方法排序，存储到新版本中。如果是已经在删除文件集合中，则不添加进新版本中。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">for</span> (<span class="keyword">int</span> level = <span class="number">0</span>; level &lt; config::kNumLevels; level++) &#123;</div><div class="line">    <span class="comment">// 将新添加的文件和上个版本的文件合并</span></div><div class="line">    <span class="comment">// 删除掉deleted集合中的文件，把结果保存在新版本v中</span></div><div class="line">    <span class="keyword">const</span> <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;FileMetaData*&gt;&amp; base_files = base_-&gt;files_[level];</div><div class="line">    <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;FileMetaData*&gt;::const_iterator base_iter = base_files.begin();</div><div class="line">    <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;FileMetaData*&gt;::const_iterator base_end = base_files.end();</div><div class="line">    <span class="keyword">const</span> FileSet* added = levels_[level].added_files;</div><div class="line">    v-&gt;files_[level].reserve(base_files.size() + added-&gt;size());</div><div class="line">    <span class="keyword">for</span> (FileSet::const_iterator added_iter = added-&gt;begin();</div><div class="line">         added_iter != added-&gt;end();</div><div class="line">         ++added_iter) &#123;</div><div class="line">      <span class="comment">// 这个循环是将比新添加的文件“小“的文件先添加进新版本中</span></div><div class="line">      <span class="keyword">for</span> (<span class="built_in">std</span>::<span class="built_in">vector</span>&lt;FileMetaData*&gt;::const_iterator bpos</div><div class="line">               = <span class="built_in">std</span>::upper_bound(base_iter, base_end, *added_iter, cmp);</div><div class="line">           base_iter != bpos;</div><div class="line">           ++base_iter) &#123;</div><div class="line">        MaybeAddFile(v, level, *base_iter);</div><div class="line">      &#125;</div><div class="line">      <span class="comment">//将新添加文件添加进新版本中</span></div><div class="line">      MaybeAddFile(v, level, *added_iter);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 添加其他文件，其实也就是比新添加文件”大“的文件</span></div><div class="line">    <span class="keyword">for</span> (; base_iter != base_end; ++base_iter) &#123;</div><div class="line">      MaybeAddFile(v, level, *base_iter);</div><div class="line">    &#125;</div></pre></td></tr></table></figure></p>
+<p>删除deleted集合中文件的操作就在MaybeAddFile，这函数名字起的很好，可能添加，因为如果在deleted集合中，则不添加，源码如下；
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">void MaybeAddFile(Version* v, int level, FileMetaData* f) &#123;</div><div class="line">  <span class="function"><span class="title">if</span> (levels_[level].deleted_files.count(f-&gt;</span>number) &gt; <span class="number">0</span>) &#123;</div><div class="line">    <span class="comment">// 如果文件f在deleted集合中，则啥都不做。</span></div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="function"><span class="title">std</span>::vector&lt;FileMetaData*&gt;* files = &amp;v-&gt;</span>files_[level];</div><div class="line">    <span class="function"><span class="title">if</span> (level &gt; 0 &amp;&amp; !files-&gt;</span>empty()) &#123;</div><div class="line">      <span class="comment">// 如果是大于0层的文件，新添加的文件不能和集合中已存在的文件有交集</span></div><div class="line">      <span class="function"><span class="title">assert</span>(vset_-&gt;</span><span class="function"><span class="title">icmp_</span>.Compare((*files)[files-&gt;</span><span class="function"><span class="title">size</span>()-1]-&gt;</span>largest,</div><div class="line">                                  <span class="function"><span class="title">f</span>-&gt;</span>smallest) &lt; <span class="number">0</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="function"><span class="title">f</span>-&gt;</span>refs++;<span class="comment">//文件引用加1</span></div><div class="line">    <span class="function"><span class="title">files</span>-&gt;</span>push_back(f);<span class="comment">//添加文件</span></div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2>Recover函数</h2>
+<p>介绍完上述Builder类的成员函数之后，我们来看Recover函数，也就是当打开一个已存在的数据库时，将manifest内的edit信息应用到新建的版本中，然后日志文件恢复就留给dbimpl-&gt;Recover函数实现。</p>
+<p>VersionSet-&gt;Recover方法实现原理如下，</p>
+<ol>
+<li>先从Current文件读取目前正在使用的manifest文件；</li>
+<li>从manifest文件读取数据，并反序列化为Version_set类；</li>
+<li>调用builder.Apply方法，将editcompaction点，增加文件集合，删除文件集合放进builder中，并从将edit内各个文件编号赋值给Version_set相应的变量；</li>
+<li>新建一个版本v，将builder中信息应用到这个版本中，然后再将这个版本添加进版本链表中，并设置为当前版本。</li>
+<li>最后更新Version_set内的文件编号。</li>
+</ol>
+<p>代码偏长，不黏贴了；</p>
+<h2>LogAndApply函数</h2>
+<p>这个函数主要是将edit信息写进manifest文件中，并应用到新版本中。经常在文件合并之后,会出现文件文件添加删除情况,所以需要保存日志以及新生成一个新版.</p>
+<p>这个函数原理如下:</p>
+<ol>
+<li>将version_set内的文件内的文件编号保存进edit;</li>
+<li>新建一个Version,然后调用Builder-&gt;apply和Builder-&gt;SaveTo方法将edit应用到新版本中.</li>
+<li>将edit写进manifest文件中,并更新Current文件,指向最新manifest.</li>
+<li>将新版本添加到版本链表中,并设置为当前链表.</li>
+</ol>
+<p>先看下前两步源码:
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="title">if</span> (edit-&gt;</span>has_log_number_) &#123;</div><div class="line">   <span class="function"><span class="title">assert</span>(edit-&gt;</span>log_number_ &gt;= log_number_);</div><div class="line">   <span class="function"><span class="title">assert</span>(edit-&gt;</span>log_number_ &lt; next_file_number_);</div><div class="line"> &#125; <span class="keyword">else</span> &#123;</div><div class="line">   <span class="function"><span class="title">edit</span>-&gt;</span>SetLogNumber(log_number_);</div><div class="line"> &#125;</div><div class="line"></div><div class="line"> <span class="function"><span class="title">if</span> (!edit-&gt;</span>has_prev_log_number_) &#123;</div><div class="line">   <span class="function"><span class="title">edit</span>-&gt;</span>SetPrevLogNumber(prev_log_number_);</div><div class="line"> &#125;</div><div class="line"></div><div class="line"> <span class="function"><span class="title">edit</span>-&gt;</span>SetNextFile(next_file_number_);</div><div class="line"> <span class="function"><span class="title">edit</span>-&gt;</span>SetLastSequence(last_sequence_);</div><div class="line"></div><div class="line"> Version* v = new Version(this);</div><div class="line"> &#123;</div><div class="line">   Builder builder(this, current_);</div><div class="line">   builder.Apply(edit);</div><div class="line">   builder.SaveTo(v);</div><div class="line"> &#125;</div><div class="line"> Finalize(v);<span class="comment">//这个函数主要是用来更新每一层文件合并分数.</span></div></pre></td></tr></table></figure></p>
+<p>源码很简单,设置文件编号,将edit应用到新版本中.3,4步代码很简单,就不黏贴出来了.</p>
+<p>Version_set类主要功能包括调用当前版本的Get方法和添加迭代器方法,以及从磁盘manifest文件恢复当新版本中,将edit信息写进manifest并应用到当前版本中,其他就和合并相关了,暂时不叙述~</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/leveldb/" rel="tag">#leveldb</a>
+          
+            <a href="/tags/version/" rel="tag">#version</a>
+          
+            <a href="/tags/version-edit/" rel="tag">#version_edit</a>
+          
+            <a href="/tags/version-set/" rel="tag">#version_set</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/31/leveldb-15/" rel="next" title="leveldb源码分析之快照SnapShots">
+                <i class="fa fa-chevron-left"></i> leveldb源码分析之快照SnapShots
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/11/01/leveldb-17/" rel="prev" title="leveldb源码分析之leveldb执行过程">
+                leveldb源码分析之leveldb执行过程 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/31/leveldb-16/"
+     data-title="leveldb源码分析之version、version_edit和version_set"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/31/leveldb-16/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/31/leveldb-16/"
+           data-title="leveldb源码分析之version、version_edit和version_set" data-url="http://luodw.cc/2015/10/31/leveldb-16/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">version_edit版本编辑</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">Version版本类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">Version_set版本集合类</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.1.</span> <span class="nav-text">Builder类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.2.</span> <span class="nav-text">Recover函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.3.</span> <span class="nav-text">LogAndApply函数</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

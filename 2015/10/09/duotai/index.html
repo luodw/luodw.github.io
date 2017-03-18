@@ -1,0 +1,1098 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="C/C++,多态," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="对C++有一定了解的人，都知道虚函数机制是实现C++多态重要条件。但是，不知道大家有没想过一个问题，提出问题之前，我先说说我对C++指针的理解。
+C++指针
+
+C++中某种类型的指针表示内存中某一个地址以及其大小。
+
+关键点有两个：
+
+某一个地址：即指针的值
+大小：指针的类型限定了指针能表示的大小。
+
+例如char *指针，它在内存中就表示一个字节的大小。int *指针，在内存中就表示4个字节的大">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++多态实现原理">
+<meta property="og:url" content="http://luodw.cc/2015/10/09/duotai/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="对C++有一定了解的人，都知道虚函数机制是实现C++多态重要条件。但是，不知道大家有没想过一个问题，提出问题之前，我先说说我对C++指针的理解。
+C++指针
+
+C++中某种类型的指针表示内存中某一个地址以及其大小。
+
+关键点有两个：
+
+某一个地址：即指针的值
+大小：指针的类型限定了指针能表示的大小。
+
+例如char *指针，它在内存中就表示一个字节的大小。int *指针，在内存中就表示4个字节的大">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="C++多态实现原理">
+<meta name="twitter:description" content="对C++有一定了解的人，都知道虚函数机制是实现C++多态重要条件。但是，不知道大家有没想过一个问题，提出问题之前，我先说说我对C++指针的理解。
+C++指针
+
+C++中某种类型的指针表示内存中某一个地址以及其大小。
+
+关键点有两个：
+
+某一个地址：即指针的值
+大小：指针的类型限定了指针能表示的大小。
+
+例如char *指针，它在内存中就表示一个字节的大小。int *指针，在内存中就表示4个字节的大">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/09/duotai/"/>
+
+
+  <title> C++多态实现原理 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                C++多态实现原理
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-09T21:34:04+08:00" content="2015-10-09">
+              2015-10-09
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/C-C/" itemprop="url" rel="index">
+                    <span itemprop="name">C/C++</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/09/duotai/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/09/duotai/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/09/duotai/" class="leancloud_visitors" data-flag-title="C++多态实现原理">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>对C++有一定了解的人，都知道虚函数机制是实现C++多态重要条件。但是，不知道大家有没想过一个问题，提出问题之前，我先说说我对C++指针的理解。</p>
+<h3>C++指针</h3>
+<blockquote>
+<p>C++中某种类型的指针表示内存中某一个地址以及其大小。</p>
+</blockquote>
+<p>关键点有两个：</p>
+<ol>
+<li>某一个地址：即指针的值</li>
+<li>大小：指针的类型限定了指针能表示的大小。</li>
+</ol>
+<p>例如char *指针，它在内存中就表示一个字节的大小。int *指针，在内存中就表示4个字节的大小。
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">struct test</div><div class="line">&#123;</div><div class="line">	char a<span class="comment">;</span></div><div class="line">	int b<span class="comment">;</span></div><div class="line">&#125;<span class="comment">;</span></div></pre></td></tr></table></figure></p>
+<p>struct test*型指针就表示8个字节的大小，因为还有a之后要填充3个字节，为了内存对齐</p>
+<p>但是对于由父类的指针指向子类的对象时，就会出现字段切割。例如：
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">class</span> <span class="selector-tag">A</span></div><div class="line">&#123;</div><div class="line"><span class="attribute">public</span>:</div><div class="line">	int a;</div><div class="line">&#125;;</div><div class="line"><span class="selector-tag">class</span> <span class="selector-tag">B</span><span class="selector-pseudo">:public</span> <span class="selector-tag">A</span></div><div class="line">&#123;</div><div class="line"><span class="attribute">public</span>:</div><div class="line">	int b;</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>如果A *ap=new B;这行代码首先在堆中申请一块sizeof(B)=8字节大小的内存，然后把内存地址赋给ap。但是ap的类型是A，sizeof(A)=4,所以ap只能表示B对象的前四个字节，这就出现内存切割了。</p>
+<p>对于学习C/C++的工程师，一定要好好理解指针表示的意义，才能很好的掌握好C/C++这门语言。</p>
+<h3>C++多态原理</h3>
+<p>编写以下测试代码：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></div><div class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</div><div class="line"></div><div class="line"><span class="keyword">class</span> A</div><div class="line">&#123;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">	A()&#123;&#125;</div><div class="line">	<span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">a1</span><span class="params">()</span></span>=<span class="number">0</span>;</div><div class="line">	<span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">a2</span><span class="params">()</span></span>=<span class="number">0</span>;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="keyword">class</span> B:<span class="keyword">public</span> A</div><div class="line">&#123;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">	<span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">a1</span><span class="params">()</span></span></div><div class="line">	&#123;</div><div class="line">		<span class="comment">//cout&lt;&lt;sizeof(*this)&lt;&lt;endl;</span></div><div class="line">		a=<span class="number">1</span>;</div><div class="line">	&#125;</div><div class="line">	<span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">a2</span><span class="params">()</span></span></div><div class="line">	&#123;</div><div class="line">		<span class="built_in">cout</span>&lt;&lt;a&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">	&#125;</div><div class="line"><span class="keyword">private</span>:</div><div class="line">	<span class="keyword">int</span> a;</div><div class="line">&#125;;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></div><div class="line">&#123;</div><div class="line">	A* a=<span class="keyword">new</span> B();</div><div class="line">	a-&gt;a1();</div><div class="line">	a-&gt;a2();</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>A* a=new B();这行代码，大家都知道是指针a指向堆中12（虚函数表指针8字节+a4字节）字节大小的B对象。但是a是A类型的指针，只能表示8(虚函数表指针)个字节，那么在调用a-&gt;a1()函数时，是怎么设置a值的了？因为a并不能取到8字节外的值。</p>
+<blockquote>
+<p>某个对象在调用自己的非static成员函数时，会将这个对象的指针作为this传进成员函数，这样才能操作这个对象的成员。</p>
+</blockquote>
+<p>为了上述答案，我又看了这个小程序的反汇编代码，如下：
+main函数调用a1的反汇编代码：
+<figure class="highlight cos"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="number">29</span>		a-&gt;a1()<span class="comment">;</span></div><div class="line">   <span class="number">0</span>x00000000004009cd &lt;+<span class="number">48</span>&gt;:	mov    -<span class="number">0</span>x18(<span class="built_in">%rbp</span>),<span class="built_in">%rax</span><span class="comment">//将a放入rax寄存器</span></div><div class="line">   <span class="number">0</span>x00000000004009d1 &lt;+<span class="number">52</span>&gt;:	mov    (<span class="built_in">%rax</span>),<span class="built_in">%rax</span><span class="comment">//虚函数表地址放入rax</span></div><div class="line">   <span class="number">0</span>x00000000004009d4 &lt;+<span class="number">55</span>&gt;:	mov    (<span class="built_in">%rax</span>),<span class="built_in">%rax</span><span class="comment">//a1函数地址放入rax</span></div><div class="line">   <span class="number">0</span>x00000000004009d7 &lt;+<span class="number">58</span>&gt;:	mov    -<span class="number">0</span>x18(<span class="built_in">%rbp</span>),<span class="built_in">%rdx</span>在把a放入rdx</div><div class="line">   <span class="number">0</span>x00000000004009db &lt;+<span class="number">62</span>&gt;:	mov    <span class="built_in">%rdx</span>,<span class="built_in">%rdi</span><span class="comment">//把a放入rdi，rdi寄存器在调用函数时，作为传入参数只用，这句代码，其实就是成员函数传入this</span></div><div class="line">---Type &lt;<span class="keyword">return</span>&gt; to <span class="keyword">continue</span>, or <span class="keyword">q</span> &lt;<span class="keyword">return</span>&gt; to <span class="keyword">quit</span>---</div><div class="line">   <span class="number">0</span>x00000000004009de &lt;+<span class="number">65</span>&gt;:	callq  *<span class="built_in">%rax</span><span class="comment">//调用a1函数</span></div></pre></td></tr></table></figure></p>
+<p>这是进入a1函数的反汇编代码：
+<figure class="highlight mel"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">(gdb) b <span class="number">17</span><span class="comment">//先进入a1函数</span></div><div class="line">Breakpoint <span class="number">1</span> at <span class="number">0x400a74</span>: <span class="keyword">file</span> duotai.cc, line <span class="number">17.</span></div><div class="line">(gdb) r</div><div class="line">Starting program: /home/charles/mydir/paper_project/duotai </div><div class="line"></div><div class="line">Breakpoint <span class="number">1</span>, B::a1 (this=<span class="number">0x603010</span>) at duotai.cc:<span class="number">17</span></div><div class="line"><span class="number">17</span>			a=<span class="number">1</span>;</div><div class="line">(gdb) disas<span class="comment">//查看a1函数的反汇编代码</span></div><div class="line">Dump of assembler code <span class="keyword">for</span> function B::a1():</div><div class="line">   <span class="number">0x0000000000400a6c</span> &lt;+<span class="number">0</span>&gt;:	push   %rbp</div><div class="line">   <span class="number">0x0000000000400a6d</span> &lt;+<span class="number">1</span>&gt;:	mov    %rsp,%rbp</div><div class="line">   <span class="number">0x0000000000400a70</span> &lt;+<span class="number">4</span>&gt;:	mov    %rdi,<span class="number">-0x8</span>(%rbp)<span class="comment">//rdi就是main函数传进来的参数，也就是this指针</span></div><div class="line">=&gt; <span class="number">0x0000000000400a74</span> &lt;+<span class="number">8</span>&gt;:	mov    <span class="number">-0x8</span>(%rbp),%rax<span class="comment">//this放入rax</span></div><div class="line">   <span class="number">0x0000000000400a78</span> &lt;+<span class="number">12</span>&gt;:	movl   $0x1,<span class="number">0x8</span>(%rax)<span class="comment">//将1存入this指针+8字节偏移量的位置，这句代码就是a=1</span></div><div class="line">   <span class="number">0x0000000000400a7f</span> &lt;+<span class="number">19</span>&gt;:	pop    %rbp</div><div class="line">   <span class="number">0x0000000000400a80</span> &lt;+<span class="number">20</span>&gt;:	retq   </div><div class="line">End of assembler dump.</div></pre></td></tr></table></figure></p>
+<p>从反汇编代码，我们知道，在调用a1函数时，传入的是a指针，而且在设置a时，直接将a指针+8.这样就可以操作B的成员了。但是a是A类型的指针，在a1里面怎么就知道可以+8来操作B成员a了。</p>
+<p>后来我就加了注释那句，在B成员函数里面输出this指针都是等于16(8字节虚函数表指针+4字节a+4字节填充)。说明编译器做了如下规定：</p>
+<blockquote>
+<p>不管是父类还是子类，只要是调用子类的成员方法，在子类成员方法里面，都把传入的this指针的大小设为子类对象的大小。</p>
+</blockquote>
+<p>这样就可以解释之前的问题了。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C-C/" rel="tag">#C/C++</a>
+          
+            <a href="/tags/多态/" rel="tag">#多态</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/08/Cplus3/" rel="next" title="C++对象模型之内存布局三">
+                <i class="fa fa-chevron-left"></i> C++对象模型之内存布局三
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/10/ptr/" rel="prev" title="C++成员变量指针和成员函数指针">
+                C++成员变量指针和成员函数指针 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/09/duotai/"
+     data-title="C++多态实现原理"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/09/duotai/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/09/duotai/"
+           data-title="C++多态实现原理" data-url="http://luodw.cc/2015/10/09/duotai/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">C++指针</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">C++多态原理</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

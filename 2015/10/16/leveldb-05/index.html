@@ -1,0 +1,1077 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="leveldb,skiplist," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="leveldb在内存中存储数据的区域称为memtable，这个memtable底层是用跳跃链表skiplist来实现的。redis也采用跳跃链表来实现有序链表。
+skiplist的效率可以和平衡树媲美，平均O(logN)，最坏O(N)的查询效率，但是用skiplist实现比平衡树实现简单，所以很多程序用跳跃链表来代替平衡树。
+leveldb是支持多线程操作的，但是skiplist并没有使用linu">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leveldb源码分析之Skiplist">
+<meta property="og:url" content="http://luodw.cc/2015/10/16/leveldb-05/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="leveldb在内存中存储数据的区域称为memtable，这个memtable底层是用跳跃链表skiplist来实现的。redis也采用跳跃链表来实现有序链表。
+skiplist的效率可以和平衡树媲美，平均O(logN)，最坏O(N)的查询效率，但是用skiplist实现比平衡树实现简单，所以很多程序用跳跃链表来代替平衡树。
+leveldb是支持多线程操作的，但是skiplist并没有使用linu">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--skiplist.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="leveldb源码分析之Skiplist">
+<meta name="twitter:description" content="leveldb在内存中存储数据的区域称为memtable，这个memtable底层是用跳跃链表skiplist来实现的。redis也采用跳跃链表来实现有序链表。
+skiplist的效率可以和平衡树媲美，平均O(logN)，最坏O(N)的查询效率，但是用skiplist实现比平衡树实现简单，所以很多程序用跳跃链表来代替平衡树。
+leveldb是支持多线程操作的，但是skiplist并没有使用linu">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--skiplist.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/16/leveldb-05/"/>
+
+
+  <title> leveldb源码分析之Skiplist | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                leveldb源码分析之Skiplist
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-16T19:35:20+08:00" content="2015-10-16">
+              2015-10-16
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/16/leveldb-05/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/16/leveldb-05/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/16/leveldb-05/" class="leancloud_visitors" data-flag-title="leveldb源码分析之Skiplist">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>leveldb在内存中存储数据的区域称为memtable，这个memtable底层是用跳跃链表skiplist来实现的。redis也采用跳跃链表来实现有序链表。</p>
+<p>skiplist的效率可以和平衡树媲美，平均O(logN)，最坏O(N)的查询效率，但是用skiplist实现比平衡树实现简单，所以很多程序用跳跃链表来代替平衡树。</p>
+<p>leveldb是支持多线程操作的，但是skiplist并没有使用linux下锁，信号量来实现同步控制，据说是因为锁机制导致某个线程占有资源，其他线程阻塞的情况，导致系统资源利用率降低。所以leveldb采用的是<strong>内存屏障</strong>来实现同步机制。有时间要好好研究下内存屏障的知识，挺有比格的。</p>
+<p>先看下skiplist链表的模型图：
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/luodw--skiplist.jpg" alt="Skiplist模型图"></p>
+<h2>内存屏障</h2>
+<p>leveldb实现的skiplist看起来有点复杂，主要是用到泛型类以及内存屏障。我们先来看下内存屏障AtomicPointer类，即原子类操作：
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">class</span> AtomicPointer &#123;</div><div class="line"> <span class="keyword">private</span>:</div><div class="line">  <span class="keyword">void</span>* rep_;<span class="comment">//原子指针</span></div><div class="line"> <span class="keyword">public</span>:</div><div class="line">  AtomicPointer() &#123; &#125;</div><div class="line">  <span class="keyword">explicit</span> AtomicPointer(<span class="keyword">void</span>* p) : rep_(p) &#123;&#125;</div><div class="line">  <span class="keyword">inline</span> <span class="keyword">void</span>* NoBarrier_Load() <span class="keyword">const</span> &#123; <span class="built_in">return</span> rep_; &#125;<span class="comment">//无需同步获取数据</span></div><div class="line">  <span class="keyword">inline</span> <span class="keyword">void</span> NoBarrier_Store(<span class="keyword">void</span>* v) &#123; rep_ = v; &#125;<span class="comment">//无需同步设置数据</span></div><div class="line">  <span class="keyword">inline</span> <span class="keyword">void</span>* Acquire_Load() <span class="keyword">const</span> &#123;</div><div class="line">    <span class="keyword">void</span>* result = rep_;</div><div class="line">    MemoryBarrier();<span class="comment">//先设置result的值，然后检查rep_是否有变化，如果有变化，</span></div><div class="line"><span class="comment">//则result重新从内存中获取数据。可以保持数据最新</span></div><div class="line">    <span class="built_in">return</span> result;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">inline</span> <span class="keyword">void</span> Release_Store(<span class="keyword">void</span>* v) &#123;</div><div class="line">    MemoryBarrier();<span class="comment">//先更新rep_的值，然后再设置为v.</span></div><div class="line">    rep_ = v;</div><div class="line">  &#125;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">inline</span> <span class="keyword">void</span> MemoryBarrier() &#123;</div><div class="line">  <span class="comment">// See http://gcc.gnu.org/ml/gcc/2003-04/msg01180.html for a discussion on</span></div><div class="line">  <span class="comment">// this idiom. Also see http://en.wikipedia.org/wiki/Memory_ordering.</span></div><div class="line">  __asm__ __volatile__(<span class="string">""</span> : : : <span class="string">"memory"</span>);<span class="comment">//这句话表示当内存的中的数据被修改时，</span></div><div class="line"><span class="comment">//其他处理器上的寄存器和cache上这个变量的副本都将失效，必须从内存中重新获取。</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>内存屏障主要用处就是保证内存数据和处理器寄存器和缓存数据一致性。因为当某个处理器上改变某个变量x时，那么其他处理器上的x的副本都必须失效，否则将会读取错误值。</p>
+<h2>skiplist节点</h2>
+<p>接下来，我们看下skiplist节点源代码：
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">struct</span> SkipList&lt;Key,Comparator&gt;::Node &#123;</div><div class="line">  <span class="keyword">explicit</span> Node(<span class="keyword">const</span> Key&amp; k) : key(k) &#123; &#125;</div><div class="line"></div><div class="line">  Key <span class="keyword">const</span> key;</div><div class="line"></div><div class="line">  <span class="comment">// Accessors/mutators for links.  Wrapped in methods so we can</span></div><div class="line">  <span class="comment">// add the appropriate barriers as necessary.</span></div><div class="line">  Node* Next(<span class="keyword">int</span> n) &#123;</div><div class="line">    assert(n &gt;= <span class="number">0</span>);</div><div class="line">    <span class="comment">// Use an 'acquire load' so that we observe a fully initialized</span></div><div class="line">    <span class="comment">// version of the returned Node.</span></div><div class="line">    <span class="built_in">return</span> <span class="keyword">reinterpret_cast</span>&lt;Node*&gt;(next_[n].Acquire_Load());</div><div class="line">  &#125;<span class="comment">//获取当前节点的下一个节点</span></div><div class="line"></div><div class="line">  <span class="keyword">void</span> SetNext(<span class="keyword">int</span> n, Node* x) &#123;</div><div class="line">    assert(n &gt;= <span class="number">0</span>);</div><div class="line">    <span class="comment">// Use a 'release store' so that anybody who reads through this</span></div><div class="line">    <span class="comment">// pointer observes a fully initialized version of the inserted node.</span></div><div class="line">    next_[n].Release_Store(x);<span class="comment">//设置当前节点的下个节点。</span></div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// No-barrier variants that can be safely used in a few locations.</span></div><div class="line">  Node* NoBarrier_Next(<span class="keyword">int</span> n) &#123;</div><div class="line">    assert(n &gt;= <span class="number">0</span>);</div><div class="line">    <span class="built_in">return</span> <span class="keyword">reinterpret_cast</span>&lt;Node*&gt;(next_[n].NoBarrier_Load());</div><div class="line">  &#125;<span class="comment">//无需内存屏障的查找下一个节点</span></div><div class="line"></div><div class="line">  <span class="keyword">void</span> NoBarrier_SetNext(<span class="keyword">int</span> n, Node* x) &#123;</div><div class="line">    assert(n &gt;= <span class="number">0</span>);</div><div class="line">    next_[n].NoBarrier_Store(x);</div><div class="line">  &#125;无需内存屏障的设置下一个节点</div><div class="line"></div><div class="line"> <span class="keyword">private</span>:</div><div class="line">  <span class="comment">// Array of length equal to the node height.  next_[0] is lowest level link.</span></div><div class="line">  port::AtomicPointer next_[<span class="number">1</span>];<span class="comment">//节点的层数。</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>这是skiplist节点类，可以查找下一个节点，可以设置下一个节点。nect_[1]是一个很优秀的设计。只定义数组第一个节点，然后分配内存时，分配（高度-1）个数组类型的内存。其实就是动态分配内存。否则一开始用数组分配大数组，易造成内存浪费。</p>
+<h2>skiplist实现</h2>
+<p>skiplist成员变量有：
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">  <span class="class"><span class="keyword">enum</span> &#123;</span> kMaxHeight = <span class="number">12</span> &#125;;<span class="comment">//定义skiplist链表最高节点</span></div><div class="line"><span class="comment">// Immutable after construction</span></div><div class="line">Comparator <span class="keyword">const</span> compare_;<span class="comment">//比较器有最顶层的options通过一层一层传递下来，用于///链表排序</span></div><div class="line">Arena* <span class="keyword">const</span> arena_;    <span class="comment">// leveldb内存池，从memtable传过来</span></div><div class="line"></div><div class="line">Node* <span class="keyword">const</span> head_;<span class="comment">//skiplist头节点</span></div><div class="line"></div><div class="line"><span class="comment">// Modified only by Insert().  Read racily by readers, but stale</span></div><div class="line"><span class="comment">// values are ok.</span></div><div class="line">port::AtomicPointer max_height_;   <span class="comment">// skiplist目前的最高高度</span></div><div class="line">  <span class="comment">// Read/written only by Insert().</span></div><div class="line">Random rnd_;<span class="comment">//随机类，用于随机化一个节点高度</span></div></pre></td></tr></table></figure></p>
+<p>enum{kMaxHeight = 12}也是很优秀设计，《efficetive C++》有一个章节有讲到尽量不要使用宏定义定义常量，取代的办法是const常量和enum类型。</p>
+<p>skiplist构造函数如下;
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line">SkipList&lt;Key,Comparator&gt;::SkipList(Comparator cmp, Arena* arena)</div><div class="line">    : compare_(cmp),</div><div class="line">      arena_(arena),</div><div class="line">      head_(NewNode(<span class="number">0</span> <span class="comment">/* any key will do */</span>, kMaxHeight)),</div><div class="line">      max_height_(<span class="keyword">reinterpret_cast</span>&lt;<span class="keyword">void</span>*&gt;(<span class="number">1</span>)),</div><div class="line">      rnd_(<span class="number">0xdeadbeef</span>) &#123;</div><div class="line">  <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; kMaxHeight; i++) &#123;</div><div class="line">    head_-&gt;SetNext(i, <span class="literal">NULL</span>);</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>cmp和arena_都是调用者传进来，head_头指针key初始化为0,高度为链表高度上限。max_height_初始化为1.for循环将头节点的前一个节点都设为NULL。</p>
+<p>分配一个新节点的源码如下：
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">typename</span> SkipList&lt;Key,Comparator&gt;::Node*</div><div class="line">SkipList&lt;Key,Comparator&gt;::NewNode(<span class="keyword">const</span> Key&amp; key, <span class="keyword">int</span> <span class="built_in">height</span>) &#123;</div><div class="line">  <span class="keyword">char</span>* mem = arena_-&gt;AllocateAligned(</div><div class="line">      <span class="keyword">sizeof</span>(Node) + <span class="keyword">sizeof</span>(port::AtomicPointer) * (<span class="built_in">height</span> - <span class="number">1</span>));<span class="comment">//从内存池里面分配</span></div><div class="line"><span class="comment">//足够的内存，用于存储新节点。</span></div><div class="line">  <span class="built_in">return</span> <span class="keyword">new</span> (mem) Node(key);<span class="comment">//返回这个节点。</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>接来看下skiplist插入一个新节点的代码，思想是，在插入高度为height的节点时，首先要找到这个节点height个前节点，然后插入就和普通的链表插入一样。
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">void</span> SkipList&lt;Key,Comparator&gt;::Insert(<span class="keyword">const</span> Key&amp; key) &#123;</div><div class="line">  Node* prev[kMaxHeight];<span class="comment">//kMaxHeight个前节点，因为高度还未知，所以先设为最大值</span></div><div class="line">  Node* x = FindGreaterOrEqual(key, prev);<span class="comment">//查找key值节点前GetMaxHeight()个前节点。</span></div><div class="line"></div><div class="line">  assert(x == NULL || !Equal(key, x-&gt;key));</div><div class="line"></div><div class="line">  <span class="keyword">int</span> <span class="built_in">height</span> = RandomHeight();<span class="comment">//随机化一个节点高度</span></div><div class="line">  <span class="built_in">if</span> (<span class="built_in">height</span> &gt; GetMaxHeight()) &#123;<span class="comment">//如果当前节点的高度大于最高节点，则高出部分的的前节</span></div><div class="line"><span class="comment">//点都是头节点。</span></div><div class="line">    <span class="built_in">for</span> (<span class="keyword">int</span> i = GetMaxHeight(); i &lt; <span class="built_in">height</span>; i++) &#123;</div><div class="line">      prev[i] = head_;</div><div class="line">    &#125;</div><div class="line">    max_height_.NoBarrier_Store(<span class="keyword">reinterpret_cast</span>&lt;<span class="keyword">void</span>*&gt;(<span class="built_in">height</span>));</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  x = NewNode(key, <span class="built_in">height</span>);<span class="comment">//新建节点</span></div><div class="line">  <span class="built_in">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="built_in">height</span>; i++) &#123;</div><div class="line">    x-&gt;NoBarrier_SetNext(i, prev[i]-&gt;NoBarrier_Next(i))<span class="comment">//设立当前节点的后节点;</span></div><div class="line">    prev[i]-&gt;SetNext(i, x);<span class="comment">//设立当前节点的前节点。</span></div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>插入节点逻辑其实和单链表类似，只是查找前后节点麻烦点，需要找到不止一个。接下来是判断链表是否含有某个key值的接口：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">bool</span> SkipList&lt;Key,Comparator&gt;::Contains(<span class="keyword">const</span> Key&amp; key) <span class="keyword">const</span> &#123;</div><div class="line">  Node* x = FindGreaterOrEqual(key, <span class="literal">NULL</span>);<span class="comment">//返回第0层上个节点</span></div><div class="line">  <span class="keyword">if</span> (x != <span class="literal">NULL</span> &amp;&amp; Equal(key, x-&gt;key)) &#123;<span class="comment">//如果x不为NULL,且key值与x的key值相等，则说明key在链表中。</span></div><div class="line">    <span class="keyword">return</span> <span class="literal">true</span>;</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">return</span> <span class="literal">false</span>;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>链表是没有删除接口的，但是有删除功能。因为当我们插入数据时，key的形式为key:value，当删除数据时，则插入key:deleted类似删除的标记，等到Compaction再删除。</p>
+<h2>skiplist迭代器</h2>
+<p>leveldb用的最多的就是迭代器了，最后我们来分析链表迭代器，分析迭代器，为看STL源码也积累基础。声明如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">class</span> Iterator &#123;</div><div class="line">   <span class="keyword">public</span>:</div><div class="line">    <span class="comment">// Initialize an iterator over the specified list.</span></div><div class="line">    <span class="comment">// The returned iterator is not valid.</span></div><div class="line">    <span class="function"><span class="keyword">explicit</span> <span class="title">Iterator</span><span class="params">(<span class="keyword">const</span> SkipList* <span class="built_in">list</span>)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">// Returns true iff the iterator is positioned at a valid node.</span></div><div class="line">    <span class="function"><span class="keyword">bool</span> <span class="title">Valid</span><span class="params">()</span> <span class="keyword">const</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">// Returns the key at the current position.</span></div><div class="line">    <span class="comment">// REQUIRES: Valid()</span></div><div class="line">    <span class="function"><span class="keyword">const</span> Key&amp; <span class="title">key</span><span class="params">()</span> <span class="keyword">const</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">// Advances to the next position.</span></div><div class="line">    <span class="comment">// REQUIRES: Valid()</span></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">Next</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">// Advances to the previous position.</span></div><div class="line">    <span class="comment">// REQUIRES: Valid()</span></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">Prev</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">// Advance to the first entry with a key &gt;= target</span></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">Seek</span><span class="params">(<span class="keyword">const</span> Key&amp; target)</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">// Position at the first entry in list.</span></div><div class="line">    <span class="comment">// Final state of iterator is Valid() iff list is not empty.</span></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">SeekToFirst</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">    <span class="comment">// Position at the last entry in list.</span></div><div class="line">    <span class="comment">// Final state of iterator is Valid() iff list is not empty.</span></div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">SeekToLast</span><span class="params">()</span></span>;</div><div class="line"></div><div class="line">   <span class="keyword">private</span>:</div><div class="line">    <span class="keyword">const</span> SkipList* list_;<span class="comment">//迭代器迭代的跳跃链表</span></div><div class="line">    Node* node_;<span class="comment">//指向当前的节点</span></div><div class="line">    <span class="comment">// Intentionally copyable</span></div><div class="line">  &#125;;</div></pre></td></tr></table></figure></p>
+<p>迭代器的成员变量有，需要遍历的链表，以及指向当前节点的节点指针。</p>
+<p>链表迭代器构造函数如下
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">inline</span> SkipList&lt;Key,Comparator&gt;::Iterator::Iterator(<span class="keyword">const</span> SkipList* <span class="built_in">list</span>) &#123;</div><div class="line">  list_ = <span class="built_in">list</span>;</div><div class="line">  node_ = <span class="literal">NULL</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>迭代器具体实现代码如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">inline</span> <span class="keyword">bool</span> SkipList&lt;Key,Comparator&gt;::Iterator::Valid() <span class="keyword">const</span> &#123;</div><div class="line">  <span class="keyword">return</span> node_ != <span class="literal">NULL</span>;</div><div class="line">&#125;<span class="comment">//判断迭代器当前节点是否有效</span></div><div class="line"></div><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">inline</span> <span class="keyword">const</span> Key&amp; SkipList&lt;Key,Comparator&gt;::Iterator::key() <span class="keyword">const</span> &#123;</div><div class="line">  assert(Valid());</div><div class="line">  <span class="keyword">return</span> node_-&gt;key;</div><div class="line">&#125;<span class="comment">//返回当前节点的key值</span></div><div class="line"></div><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">inline</span> <span class="keyword">void</span> SkipList&lt;Key,Comparator&gt;::Iterator::Next() &#123;</div><div class="line">  assert(Valid());</div><div class="line">  node_ = node_-&gt;Next(<span class="number">0</span>);</div><div class="line">&#125;<span class="comment">//跳跃链表的第0层就是单链表，所以可以直接指向下一个节点</span></div><div class="line"></div><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">inline</span> <span class="keyword">void</span> SkipList&lt;Key,Comparator&gt;::Iterator::Prev() &#123;</div><div class="line">  <span class="comment">// Instead of using explicit "prev" links, we just search for the</span></div><div class="line">  <span class="comment">// last node that falls before key.</span></div><div class="line">  assert(Valid());</div><div class="line">  node_ = list_-&gt;FindLessThan(node_-&gt;key);</div><div class="line">  <span class="keyword">if</span> (node_ == list_-&gt;head_) &#123;</div><div class="line">    node_ = <span class="literal">NULL</span>;</div><div class="line">  &#125;</div><div class="line">&#125;<span class="comment">//查找当前节点的上一个节点。</span></div><div class="line"></div><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">inline</span> <span class="keyword">void</span> SkipList&lt;Key,Comparator&gt;::Iterator::Seek(<span class="keyword">const</span> Key&amp; target) &#123;</div><div class="line">  node_ = list_-&gt;FindGreaterOrEqual(target, <span class="literal">NULL</span>);</div><div class="line">&#125;<span class="comment">//查找某个特定的key值的节点。</span></div><div class="line"></div><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">inline</span> <span class="keyword">void</span> SkipList&lt;Key,Comparator&gt;::Iterator::SeekToFirst() &#123;</div><div class="line">  node_ = list_-&gt;head_-&gt;Next(<span class="number">0</span>);</div><div class="line">&#125;<span class="comment">//查找第一个节点</span></div><div class="line"></div><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Key, <span class="keyword">class</span> Comparator&gt;</div><div class="line"><span class="keyword">inline</span> <span class="keyword">void</span> SkipList&lt;Key,Comparator&gt;::Iterator::SeekToLast() &#123;</div><div class="line">  node_ = list_-&gt;FindLast();</div><div class="line">  <span class="keyword">if</span> (node_ == list_-&gt;head_) &#123;</div><div class="line">    node_ = <span class="literal">NULL</span>;</div><div class="line">  &#125;</div><div class="line">&#125;<span class="comment">//最后一个节点</span></div></pre></td></tr></table></figure></p>
+<p>还有一些函数我并没有列出，都是这些主函数的辅助函数，很简单，都能看懂。至此，跳跃链表就这样分析结束，下一篇，介绍memtable。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/leveldb/" rel="tag">#leveldb</a>
+          
+            <a href="/tags/skiplist/" rel="tag">#skiplist</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/15/leveldb-04/" rel="next" title="leveldb源码分析之内存池Arena">
+                <i class="fa fa-chevron-left"></i> leveldb源码分析之内存池Arena
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/17/leveldb-06/" rel="prev" title="leveldb源码分析之memtable">
+                leveldb源码分析之memtable <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/16/leveldb-05/"
+     data-title="leveldb源码分析之Skiplist"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/16/leveldb-05/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/16/leveldb-05/"
+           data-title="leveldb源码分析之Skiplist" data-url="http://luodw.cc/2015/10/16/leveldb-05/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">内存屏障</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">skiplist节点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">skiplist实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">skiplist迭代器</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

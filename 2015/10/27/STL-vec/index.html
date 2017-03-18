@@ -1,0 +1,1104 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="C++,STL,vector," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="C++标准模板库在日程编程应用非常的广泛，之前看到一篇大牛文章说，用C++开发，尽量用容器类+迭代器来代替数组+指针，因为数组+指针容易越界，或者内存泄露，相反，容器类和+迭代器都有国外大神将底层封装好，使用安全简单。而且标准模板库再一定程度上可以提高我们编程效率，假如要对一个结构体数组排序，写一个比较函数或者仿函数，调用sort函数即可。换做是c语言，还需自己写排序函数。。。
+vector是有序">
+<meta property="og:type" content="article">
+<meta property="og:title" content="STL源码分析之vector">
+<meta property="og:url" content="http://luodw.cc/2015/10/27/STL-vec/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="C++标准模板库在日程编程应用非常的广泛，之前看到一篇大牛文章说，用C++开发，尽量用容器类+迭代器来代替数组+指针，因为数组+指针容易越界，或者内存泄露，相反，容器类和+迭代器都有国外大神将底层封装好，使用安全简单。而且标准模板库再一定程度上可以提高我们编程效率，假如要对一个结构体数组排序，写一个比较函数或者仿函数，调用sort函数即可。换做是c语言，还需自己写排序函数。。。
+vector是有序">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.121Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="STL源码分析之vector">
+<meta name="twitter:description" content="C++标准模板库在日程编程应用非常的广泛，之前看到一篇大牛文章说，用C++开发，尽量用容器类+迭代器来代替数组+指针，因为数组+指针容易越界，或者内存泄露，相反，容器类和+迭代器都有国外大神将底层封装好，使用安全简单。而且标准模板库再一定程度上可以提高我们编程效率，假如要对一个结构体数组排序，写一个比较函数或者仿函数，调用sort函数即可。换做是c语言，还需自己写排序函数。。。
+vector是有序">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/27/STL-vec/"/>
+
+
+  <title> STL源码分析之vector | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                STL源码分析之vector
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-27T19:00:14+08:00" content="2015-10-27">
+              2015-10-27
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/STL/" itemprop="url" rel="index">
+                    <span itemprop="name">STL</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/27/STL-vec/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/27/STL-vec/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/27/STL-vec/" class="leancloud_visitors" data-flag-title="STL源码分析之vector">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>C++标准模板库在日程编程应用非常的广泛，之前看到一篇大牛文章说，用C++开发，尽量用容器类+迭代器来代替数组+指针，因为数组+指针容易越界，或者内存泄露，相反，容器类和+迭代器都有国外大神将底层封装好，使用安全简单。而且标准模板库再一定程度上可以提高我们编程效率，假如要对一个结构体数组排序，写一个比较函数或者仿函数，调用sort函数即可。换做是c语言，还需自己写排序函数。。。</p>
+<p>vector是有序容器里使用最广泛的容器。今天想分析下vector这个容器的实现，看这个文章之前，需要好好理解typetraits和iterator_traits，这两个是就是著名的特性萃取器，一个是萃取类型，一个是萃取迭代器类型。由于这两个东西很繁琐，就不写了，在代码中有用到地方，会有注释。</p>
+<p>对了，再这篇文章之前，还需要把我之前<a href="http://luodw.github.io/2015/10/26/Calloc/#more" target="_blank" rel="external">内存池和配置器</a>文章看看，因为底层是用这个分配内存。</p>
+<h1>构造函数</h1>
+<p>先介绍vector这个模板类的成员变量:
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//这不能算是成员变量，只能算内嵌类型，用于分配内存</span></div><div class="line">typedef simple_alloc&lt;value_type, Alloc&gt; data_allocator;</div><div class="line"><span class="comment">//表示目前使用空间的头</span></div><div class="line"><span class="keyword">iterator</span> start;</div><div class="line"><span class="comment">//表示目前使用空间的尾</span></div><div class="line"><span class="keyword">iterator</span> finish;</div><div class="line"><span class="comment">//表示目前可用空间的尾</span></div><div class="line"><span class="keyword">iterator</span> end_of_storage;</div></pre></td></tr></table></figure></p>
+<p>finish表示下一个存储数据的位置，也就是说vector数组是存储在[start,end)里面的，而end_of_storage是可用的空间的尾，也就是说在finish和end_of_storage之间还可以存储数据，如果有容量的话。</p>
+<p>好接下来是构造函数，首先是默认构造函数:
+<figure class="highlight excel"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">//默认构造函数，迭代器都初始化为０，此时没有内存空间</div><div class="line">vector() <span class="symbol">:</span> start(<span class="number">0</span>), finish(<span class="number">0</span>), end_of_storage(<span class="number">0</span>) &#123;&#125;</div><div class="line">//用<span class="built_in">n</span>个数类初始化vector</div><div class="line">  vector(size_type <span class="built_in">n</span>, const <span class="built_in">T</span>&amp; <span class="built_in">value</span>) &#123; fill_initialize(<span class="built_in">n</span>, <span class="built_in">value</span>); &#125;</div><div class="line">  vector(<span class="built_in">int</span> <span class="built_in">n</span>, const <span class="built_in">T</span>&amp; <span class="built_in">value</span>) &#123; fill_initialize(<span class="built_in">n</span>, <span class="built_in">value</span>); &#125;</div><div class="line">  vector(long <span class="built_in">n</span>, const <span class="built_in">T</span>&amp; <span class="built_in">value</span>) &#123; fill_initialize(<span class="built_in">n</span>, <span class="built_in">value</span>); &#125;</div><div class="line">  explicit vector(size_type <span class="built_in">n</span>) &#123; fill_initialize(<span class="built_in">n</span>, <span class="built_in">T</span>()); &#125;</div></pre></td></tr></table></figure></p>
+<p>这四个函数都调用了fill_initialize(size_type n, const T&amp; value) 这个函数，这个函数先调用allocate_and_fill这个函数分配内醋，并且填充数据。先看下fill_initialize函数:
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">fill_initialize</span>(<span class="params">size_type n, <span class="keyword">const</span> T&amp; <span class="keyword">value</span></span>) </span>&#123;</div><div class="line">   start = allocate_and_fill(n, <span class="keyword">value</span>);<span class="comment">//分配内存，并且填充数据</span></div><div class="line">   finish = start + n;<span class="comment">//finish向后移动n个类型单位</span></div><div class="line">   end_of_storage = finish;<span class="comment">//可用空间和已使用空间相等</span></div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>接来下看下allocate_and_fill这个函数:
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="function">iterator <span class="title">allocate_and_fill</span><span class="params">(size_type n, <span class="keyword">const</span> T&amp; x)</span> </span>&#123;</div><div class="line">  iterator result = data_allocator::allocate(n);<span class="comment">//先调用配置器，分配内存</span></div><div class="line">  __STL_TRY &#123;</div><div class="line">    uninitialized_fill_n(result, n, x);<span class="comment">//这个函数用来向内存填充数据</span></div><div class="line">    <span class="keyword">return</span> result;<span class="comment">//返回内存首地址</span></div><div class="line">  &#125;</div><div class="line">  __STL_UNWIND(data_allocator::deallocate(result, n))//出现错误删除分配的内存;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数要说明几点:</p>
+<ol>
+<li>n是类型大小内存单元个数，作为data_allocator::allocate(n)这个函数的参数，并不是就分配n个字节，因为在allocate函数内部是如下调用的:
+<figure class="highlight excel"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">static <span class="built_in">T</span> *allocate(size_t <span class="built_in">n</span>)  </div><div class="line">       &#123; return <span class="number">0</span> == <span class="built_in">n</span>? <span class="number">0</span> <span class="symbol">:</span> (<span class="built_in">T</span>*) All<span class="symbol">oc:</span><span class="symbol">:al</span>locate(<span class="built_in">n</span> * sizeof (<span class="built_in">T</span>)); &#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>所以分配到的内存是n个sizeof(T)大小的内存。</p>
+<ol start="2">
+<li>这个函数uninitialized_fill_n是内处处理函数，在 stl_uninitialized.h这个文件中，这个文件还包含了好几个类似函数。</li>
+<li>如果一块内存单元赋值错误，那么会删除所有内存，就是类似&quot;commit and rollback&quot;回滚的功能。</li>
+</ol>
+<p>接下看下 uninitialized_fill_n这个函数:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> ForwardIterator, <span class="keyword">class</span> Size, <span class="keyword">class</span> T&gt;</div><div class="line"><span class="function"><span class="keyword">inline</span> ForwardIterator <span class="title">uninitialized_fill_n</span><span class="params">(ForwardIterator first, Size n,</span></span></div><div class="line">                                            <span class="keyword">const</span> T&amp; x) &#123;</div><div class="line">  <span class="keyword">return</span> __uninitialized_fill_n(first, n, x, value_type(first));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数根据这个vector的数据类型，调用不同的函数:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> ForwardIterator, <span class="keyword">class</span> Size, <span class="keyword">class</span> T, <span class="keyword">class</span> T1&gt;</div><div class="line"><span class="keyword">inline</span> ForwardIterator __uninitialized_fill_n(ForwardIterator first, Size n,</div><div class="line">                                              <span class="keyword">const</span> T&amp; x, T1*) &#123;</div><div class="line">  <span class="keyword">typedef</span> <span class="keyword">typename</span> __type_traits&lt;T1&gt;::is_POD_type is_POD;</div><div class="line">  <span class="keyword">return</span> __uninitialized_fill_n_aux(first, n, x, is_POD());</div><div class="line">                                    </div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>先判断这个数据类型是否是POD，POD是plain old data的简称，表示c语言的基础数据类型，int ,long,double等等，还有c语言的struct接口。如果是POD类型，直接用fill_n函数填充内存即可；如果不是POD类型，就需要调用构造函数来初始化内存，代码如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> ForwardIterator, <span class="keyword">class</span> Size, <span class="keyword">class</span> T&gt;</div><div class="line"><span class="keyword">inline</span> ForwardIterator</div><div class="line">__uninitialized_fill_n_aux(ForwardIterator first, Size n,</div><div class="line">                           <span class="keyword">const</span> T&amp; x, __true_type) &#123;</div><div class="line">  <span class="keyword">return</span> fill_n(first, n, x);<span class="comment">//类似int类型，直接用fill_n填充即可</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> ForwardIterator, <span class="keyword">class</span> Size, <span class="keyword">class</span> T&gt;</div><div class="line">ForwardIterator</div><div class="line">__uninitialized_fill_n_aux(ForwardIterator first, Size n,</div><div class="line">                           <span class="keyword">const</span> T&amp; x, __false_type) &#123;</div><div class="line">  ForwardIterator cur = first;</div><div class="line">  __STL_TRY &#123;</div><div class="line">    <span class="keyword">for</span> ( ; n &gt; <span class="number">0</span>; --n, ++cur)</div><div class="line">      construct(&amp;*cur, x);<span class="comment">//调用构造函数，这里用的是placement new来构造</span></div><div class="line">    <span class="keyword">return</span> cur;</div><div class="line">  &#125;</div><div class="line">  __STL_UNWIND(destroy(first, cur));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这里的构造函数调用是placement new，代码如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T1, <span class="keyword">class</span> T2&gt;</div><div class="line"><span class="function"><span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">construct</span><span class="params">(T1* p, <span class="keyword">const</span> T2&amp; value)</span> </span>&#123;</div><div class="line">  <span class="keyword">new</span> (p) T1(value);  <span class="comment">//将value值构造在内存p的位置</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>到此为止，构造函数已构造完毕，接下来看下复制构造函数
+<figure class="highlight llvm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">vector(const vector&lt;T, Alloc&gt;&amp; <span class="keyword">x</span>) &#123;</div><div class="line">  start = allocate_and_copy(<span class="keyword">x</span>.<span class="keyword">end</span>() - <span class="keyword">x</span>.<span class="keyword">begin</span>(), <span class="keyword">x</span>.<span class="keyword">begin</span>(), <span class="keyword">x</span>.<span class="keyword">end</span>())<span class="comment">;</span></div><div class="line">  finish = start + (<span class="keyword">x</span>.<span class="keyword">end</span>() - <span class="keyword">x</span>.<span class="keyword">begin</span>())<span class="comment">;</span></div><div class="line">  end_of_storage = finish<span class="comment">;</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>先调用allocate_and_copy函数分配内存，以及复制数据,该函数如下；
+<figure class="highlight nimrod"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;class <span class="type">ForwardIterator</span>&gt;</div><div class="line"><span class="keyword">iterator</span> allocate_and_copy(size_type n,</div><div class="line">                           <span class="type">ForwardIterator</span> first, <span class="type">ForwardIterator</span> last) &#123;</div><div class="line">  <span class="keyword">iterator</span> <span class="literal">result</span> = data_allocator::allocate(n);//分配内存</div><div class="line">  __STL_TRY &#123;</div><div class="line">    uninitialized_copy(first, last, <span class="literal">result</span>);//复制函数</div><div class="line">    <span class="keyword">return</span> <span class="literal">result</span>;</div><div class="line">  &#125;</div><div class="line"> &#125;</div><div class="line">  __STL_UNWIND(data_allocator::deallocate(<span class="literal">result</span>, n));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>接下来，看下uninitialized_copy这个函数；
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">template &lt;<span class="built_in">class</span> InputIterator, <span class="built_in">class</span> ForwardIterator&gt;</div><div class="line">inline ForwardIterator</div><div class="line">  uninitialized_copy(InputIterator <span class="keyword">first</span>, InputIterator <span class="keyword">last</span>,</div><div class="line">                     ForwardIterator <span class="literal">result</span>) &#123;</div><div class="line"><span class="built_in">  return</span> __uninitialized_copy(<span class="keyword">first</span>, <span class="keyword">last</span>, <span class="literal">result</span>, value_type(<span class="literal">result</span>));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>根据值的类型，调用不同的函数。也是区分是否为POD，调用不同的复制函数，这里不再讲述。</p>
+<h1>析构函数</h1>
+<p>这里构造函数暂时讲这么多，接来下，看下析构函数，析构函数很简单，先析构[start,finidh)，然后再把内存还给系统或内存池，来看下代码:
+<figure class="highlight gcode"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">~vector<span class="comment">()</span> &#123; </div><div class="line">  destroy<span class="comment">(start, finish)</span>;  <span class="comment">//析构start到finish之间的数据</span></div><div class="line">  deallocate<span class="comment">()</span>;  <span class="comment">// 释放内存</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>destroy函数根据数据类型，如果是POD，则什么都不做，如果不是POD，则需要调用析构函数一个一个的析构。deallocate函数如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">deallocate</span><span class="params">()</span> </span>&#123;</div><div class="line">  <span class="keyword">if</span> (start) data_allocator::deallocate(start, end_of_storage - start);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数回收[start,end_of_storage)之间的内存，如果是大于128b，则还给系统，如果小于128b，则还给内存池，后面可以继续使用。</p>
+<h1>一些常用函数</h1>
+<h2>push_back函数</h2>
+<p>当创建一个空的vector时，此时空间为0，所以需要分配１个内存；当空间不够，且此时空间大小不为空时，分配原有空间的一倍，用于后续使用。来看下代码:
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">push_back</span>(<span class="params"><span class="keyword">const</span> T&amp; x</span>) </span>&#123;</div><div class="line">  <span class="keyword">if</span> (finish != end_of_storage) &#123;</div><div class="line">    construct(finish, x);    <span class="comment">//当还有空间时，直接在finish赋值，然后finish向后移动一个单位</span></div><div class="line">    ++finish;</div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="keyword">else</span></span></div><div class="line">    <span class="title">insert_aux</span>(<span class="params">end(</span>), x);<span class="comment">//内存不够时，调用分配函数，并赋值</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>来看下insert_aux()函数:
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line">template &lt;<span class="class"><span class="keyword">class</span> <span class="title">T</span>, <span class="title">class</span> <span class="title">Alloc</span>&gt;</span></div><div class="line"><span class="title">void</span> <span class="title">vector</span>&lt;<span class="title">T</span>, <span class="title">Alloc</span>&gt;::<span class="title">insert_aux</span>(<span class="title">iterator</span> <span class="title">position</span>, <span class="title">const</span> <span class="title">T</span>&amp; <span class="title">x</span>) &#123;</div><div class="line">  <span class="keyword">if</span> (finish != end_of_storage) &#123;</div><div class="line">    construct(finish, *(finish - <span class="number">1</span>));</div><div class="line">    ++finish;</div><div class="line">    T x_copy = x;</div><div class="line">    copy_backward(position, finish - <span class="number">2</span>, finish - <span class="number">1</span>);<span class="comment">//把position到finish-2都向后移动一个单位，将position空间留出来</span></div><div class="line">    *position = x_copy;<span class="comment">//给这个空间赋值</span></div><div class="line">  &#125;</div><div class="line">  <span class="keyword">else</span> &#123;</div><div class="line">    const size_type old_size = size();</div><div class="line">    const size_type len = old_size != <span class="number">0</span> ? <span class="number">2</span> * old_size : <span class="type">1</span>;<span class="comment">//设置新长度</span></div><div class="line">    iterator <span class="keyword">new</span><span class="type">_start</span> = data_allocator:<span class="type"></span>:allocate(len);<span class="comment">//分配新空间</span></div><div class="line">    iterator <span class="keyword">new</span><span class="type">_finish</span> = <span class="keyword">new</span><span class="type">_start</span>;<span class="comment">//finish和start一样</span></div><div class="line">    __STL_TRY &#123;</div><div class="line">      <span class="comment">//将[start,position)赋值到new_start</span></div><div class="line">      <span class="keyword">new</span><span class="type">_finish</span> = uninitialized_copy(start, position, <span class="keyword">new</span><span class="type">_start</span>);</div><div class="line">      <span class="comment">//将x放置在new_finish处</span></div><div class="line">      construct(<span class="keyword">new</span><span class="type">_finish</span>, x);</div><div class="line">      ++<span class="keyword">new</span><span class="type">_finish</span>;<span class="comment">//new_finish向后移动一个单位</span></div><div class="line">      <span class="comment">//将[position,finish)赋值到new_finish</span></div><div class="line">      <span class="keyword">new</span><span class="type">_finish</span> = uninitialized_copy(position, finish, <span class="keyword">new</span><span class="type">_finish</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line"><span class="meta">#       ifdef  __STL_USE_EXCEPTIONS </span></div><div class="line">    <span class="keyword">catch</span>(...) &#123;</div><div class="line">      destroy(<span class="keyword">new</span><span class="type">_start</span>, <span class="keyword">new</span><span class="type">_finish</span>); </div><div class="line">      data_allocator:<span class="type"></span>:deallocate(<span class="keyword">new</span><span class="type">_start</span>, len);</div><div class="line">      <span class="keyword">throw</span>;<span class="comment">//错误删除分配空间</span></div><div class="line">    &#125;</div><div class="line"><span class="meta">#       endif /* __STL_USE_EXCEPTIONS */</span></div><div class="line">    destroy(begin(), end());<span class="comment">//析构原空间数据</span></div><div class="line">    deallocate();<span class="comment">//释放原内存</span></div><div class="line">    start = <span class="keyword">new</span><span class="type">_start</span>;<span class="comment">//更新start值</span></div><div class="line">    finish = <span class="keyword">new</span><span class="type">_finish</span>;<span class="comment">//更新finish值</span></div><div class="line">    end_of_storage = <span class="keyword">new</span><span class="type">_start</span> + len;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p>根据这个函数，可以得到在使用vector过程中一个非常重要的注意点。因为没增加一个元素时，都有可能重新分配内存，那么原先的迭代器就将失效了，因为指向的内存已经被析构了。所以vector有添加数据时，一定要重新定义迭代器。</p>
+</blockquote>
+<h2>一些小函数</h2>
+<p><figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">iterator <span class="built_in">begin</span>() &#123; <span class="built_in">return</span> start; &#125;<span class="comment">//初始迭代器</span></div><div class="line">const_iterator <span class="built_in">begin</span>() <span class="keyword">const</span> &#123; <span class="built_in">return</span> start; &#125;<span class="comment">//const迭代器</span></div><div class="line">iterator <span class="built_in">end</span>() &#123; <span class="built_in">return</span> finish; &#125;<span class="comment">//末端迭代器</span></div><div class="line">const_iterator <span class="built_in">end</span>() <span class="keyword">const</span> &#123; <span class="built_in">return</span> finish; &#125;</div><div class="line">reverse_iterator rbegin() &#123; <span class="built_in">return</span> reverse_iterator(<span class="built_in">end</span>()); &#125;<span class="comment">//逆向迭代器</span></div><div class="line">const_reverse_iterator rbegin() <span class="keyword">const</span> &#123; </div><div class="line">  <span class="built_in">return</span> const_reverse_iterator(<span class="built_in">end</span>()); </div><div class="line">&#125;</div><div class="line">reverse_iterator rend() &#123; <span class="built_in">return</span> reverse_iterator(<span class="built_in">begin</span>()); &#125;<span class="comment">//逆向迭代器</span></div><div class="line">const_reverse_iterator rend() <span class="keyword">const</span> &#123; </div><div class="line">  <span class="built_in">return</span> const_reverse_iterator(<span class="built_in">begin</span>()); </div><div class="line">&#125;</div><div class="line">size_type <span class="built_in">size</span>() <span class="keyword">const</span> &#123; <span class="built_in">return</span> size_type(<span class="built_in">end</span>() - <span class="built_in">begin</span>()); &#125;<span class="comment">//vector元素个数</span></div><div class="line">size_type max_size() <span class="keyword">const</span> &#123; <span class="built_in">return</span> size_type(<span class="number">-1</span>) / <span class="keyword">sizeof</span>(T); &#125;<span class="comment">//vector最多可以容纳元素个数</span></div><div class="line"><span class="comment">//vector容量</span></div><div class="line">size_type capacity() <span class="keyword">const</span> &#123; <span class="built_in">return</span> size_type(end_of_storage - <span class="built_in">begin</span>()); &#125;</div><div class="line"><span class="keyword">bool</span> empty() <span class="keyword">const</span> &#123; <span class="built_in">return</span> <span class="built_in">begin</span>() == <span class="built_in">end</span>(); &#125;</div><div class="line">reference <span class="keyword">operator</span>[](size_type n) &#123; <span class="built_in">return</span> *(<span class="built_in">begin</span>() + n); &#125;</div><div class="line">const_reference <span class="keyword">operator</span>[](size_type n) <span class="keyword">const</span> &#123; <span class="built_in">return</span> *(<span class="built_in">begin</span>() + n); &#125;</div></pre></td></tr></table></figure></p>
+<p>这些小函数，最重要要区分size()和capacity()函数，前者是vector已有的元素数量，后者是这个vector总共可以存储的元素数量。</p>
+<h1>erase函数</h1>
+<p>这个函数有一个注意点，所以这里讲解下:
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">iterator erase(iterator <span class="built_in">position</span>) &#123;</div><div class="line">  <span class="keyword">if</span> (<span class="built_in">position</span> + <span class="number">1</span> != end())</div><div class="line">    <span class="built_in">copy</span>(<span class="built_in">position</span> + <span class="number">1</span>, finish, <span class="built_in">position</span>);//将[<span class="built_in">position</span>+<span class="number">1</span>,finish)向前移动一个单位</div><div class="line">  --finish;</div><div class="line">  destroy(finish);//析构最后一个元素</div><div class="line">  <span class="built_in">return</span> <span class="built_in">position</span>;//返回擦除位置的迭代器</div><div class="line">&#125;</div><div class="line">iterator erase(iterator <span class="built_in">first</span>, iterator <span class="built_in">last</span>) &#123;//擦除一段元素</div><div class="line">  iterator i = <span class="built_in">copy</span>(<span class="built_in">last</span>, finish, <span class="built_in">first</span>);//将[<span class="built_in">last</span>,finish)向前移动<span class="built_in">last</span>-<span class="built_in">first</span>个单位</div><div class="line">  destroy(i, finish);//析构i到finish之间的元素，但是还可以用</div><div class="line">  finish = finish - (<span class="built_in">last</span> - <span class="built_in">first</span>);//更新finish</div><div class="line">  <span class="built_in">return</span> <span class="built_in">first</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数需要注意的是，当删除一段元素时，size()大小是会变化的，但是capacity()是不变的。</p>
+<p>其他函数就不一一介绍了。接下来总结下:</p>
+<ol>
+<li>在看vector函数之前，一定要弄懂内存池，配置器和特性萃取，否则看不懂vector源码。</li>
+<li>当向vector一个元素时，此时的迭代器是不安全的，需要重新定义。</li>
+<li>当调用erase函数时，size()函数会变化，capacity不会花生变化。</li>
+</ol>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag">#C++</a>
+          
+            <a href="/tags/STL/" rel="tag">#STL</a>
+          
+            <a href="/tags/vector/" rel="tag">#vector</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/26/Calloc/" rel="next" title="C++STL内存池和空间配置器">
+                <i class="fa fa-chevron-left"></i> C++STL内存池和空间配置器
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/28/STL-list/" rel="prev" title="STL源码分析之list">
+                STL源码分析之list <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/27/STL-vec/"
+     data-title="STL源码分析之vector"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/27/STL-vec/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/27/STL-vec/"
+           data-title="STL源码分析之vector" data-url="http://luodw.cc/2015/10/27/STL-vec/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">构造函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">析构函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">一些常用函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.1.</span> <span class="nav-text">push_back函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.2.</span> <span class="nav-text">一些小函数</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">erase函数</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

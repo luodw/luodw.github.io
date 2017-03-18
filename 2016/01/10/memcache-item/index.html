@@ -1,0 +1,1083 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="memcache,item," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="上篇文章分析了memcache的内存管理模块，作为一个内存数据库，内存的管理是至关重要的，例如内存的分配，内存的回收，内存重复利用等等。有了内存之后，这篇文章主要分析下item的一些操作。item.c文件还有几个和维护LRU队列的线程函数相关，最后在统一整理。
+item定义
+
+先来看下item是如何定义的，在memcached.h文件中
+123456789101112131415161718192">
+<meta property="og:type" content="article">
+<meta property="og:title" content="memcache源码分析之item">
+<meta property="og:url" content="http://luodw.cc/2016/01/10/memcache-item/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="上篇文章分析了memcache的内存管理模块，作为一个内存数据库，内存的管理是至关重要的，例如内存的分配，内存的回收，内存重复利用等等。有了内存之后，这篇文章主要分析下item的一些操作。item.c文件还有几个和维护LRU队列的线程函数相关，最后在统一整理。
+item定义
+
+先来看下item是如何定义的，在memcached.h文件中
+123456789101112131415161718192">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/%E9%80%89%E5%8C%BA_052.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="memcache源码分析之item">
+<meta name="twitter:description" content="上篇文章分析了memcache的内存管理模块，作为一个内存数据库，内存的管理是至关重要的，例如内存的分配，内存的回收，内存重复利用等等。有了内存之后，这篇文章主要分析下item的一些操作。item.c文件还有几个和维护LRU队列的线程函数相关，最后在统一整理。
+item定义
+
+先来看下item是如何定义的，在memcached.h文件中
+123456789101112131415161718192">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/%E9%80%89%E5%8C%BA_052.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/01/10/memcache-item/"/>
+
+
+  <title> memcache源码分析之item | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                memcache源码分析之item
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-01-10T12:43:06+08:00" content="2016-01-10">
+              2016-01-10
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/memcache/" itemprop="url" rel="index">
+                    <span itemprop="name">memcache</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/01/10/memcache-item/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/01/10/memcache-item/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/01/10/memcache-item/" class="leancloud_visitors" data-flag-title="memcache源码分析之item">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>上篇文章分析了memcache的内存管理模块，作为一个内存数据库，内存的管理是至关重要的，例如内存的分配，内存的回收，内存重复利用等等。有了内存之后，这篇文章主要分析下item的一些操作。item.c文件还有几个和维护LRU队列的线程函数相关，最后在统一整理。</p>
+<h1>item定义</h1>
+<hr>
+<p>先来看下item是如何定义的，在memcached.h文件中
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> _stritem &#123;</div><div class="line">    <span class="comment">/* 受LRU locks保护 */</span></div><div class="line">    <span class="keyword">struct</span> _stritem *next;<span class="comment">//LRU队列的下一个item</span></div><div class="line">    <span class="keyword">struct</span> _stritem *prev;<span class="comment">//LRU队列的前一个item</span></div><div class="line">    <span class="comment">/* 剩下其他的受item lock保护 */</span></div><div class="line">    <span class="keyword">struct</span> _stritem *h_next;    <span class="comment">/* 哈希链中的下一个item */</span></div><div class="line">    <span class="keyword">rel_time_t</span>      time;       <span class="comment">/* 上一次访问的时间 */</span></div><div class="line">    <span class="keyword">rel_time_t</span>      exptime;    <span class="comment">/* 过期时间 */</span></div><div class="line">    <span class="keyword">int</span>             nbytes;     <span class="comment">/* 数据的大小 */</span></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">short</span>  refcount;   <span class="comment">/* 这个item引用的次数 */</span></div><div class="line">    <span class="keyword">uint8_t</span>         nsuffix;    <span class="comment">/* flag和val_lenth的长度 */</span></div><div class="line">    <span class="keyword">uint8_t</span>         it_flags;   <span class="comment">/* ITEM_*标识 */</span></div><div class="line">    <span class="keyword">uint8_t</span>         slabs_clsid;<span class="comment">/* 位于哪个slabclass中 */</span></div><div class="line">    <span class="keyword">uint8_t</span>         nkey;       <span class="comment">/* key的长度*/</span></div><div class="line">    <span class="keyword">union</span> &#123;</div><div class="line">        <span class="keyword">uint64_t</span> cas;</div><div class="line">        <span class="keyword">char</span> end;</div><div class="line">    &#125; data[];</div><div class="line">    <span class="comment">/* if it_flags &amp; ITEM_CAS we have 8 bytes CAS */</span></div><div class="line">    <span class="comment">/* then null-terminated key */</span></div><div class="line">    <span class="comment">/* then " flags length\r\n" (no terminating null) */</span></div><div class="line">    <span class="comment">/* then data with terminating \r\n (no terminating null; it's binary!) */</span></div><div class="line">&#125; item;</div></pre></td></tr></table></figure></p>
+<p>其他都很好理解，关键是最后那个union data[]。当初在看STL源码的时候，内存分配器也有用到这中结构。这可以理解为柔性数组。因为data[]数组并没有显示指出数组的大小，所以这个数组是不分配内存的，但是data指针始终指向nkey属性的下一个地址。当需要nbytes字节内存时，直接在data上分配内存即可。可以看下我之前文章<a href="http://luodw.cc/2015/10/22/Cplus6/">柔性数组</a>。最后英文注释的意思是如果设置了cas验证，则data指向的内容为CAS（8bytes)+key+&quot;flags length\r\n&quot;+data\r\n 。下图是这个item的示意图，图片来自网络:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/%E9%80%89%E5%8C%BA_052.png" alt="item示意图"></p>
+<h1>items分配内存</h1>
+<hr>
+<p>memcache上任何的键值对，都需要封装成item的形式，然后才存储到slab的管理的内存中。所以当有个set命令到达时，首先要做的是先给这个键值对分配一块chunk来存储这个键值对item。申请内存函数如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> size_t <span class="title">item_make_header</span><span class="params">(<span class="keyword">const</span> <span class="keyword">uint8_t</span> nkey, <span class="keyword">const</span> <span class="keyword">int</span> flags, <span class="keyword">const</span> <span class="keyword">int</span> nbytes,</span></span></div><div class="line">                     <span class="keyword">char</span> *suffix, <span class="keyword">uint8_t</span> *nsuffix) &#123;</div><div class="line">    <span class="comment">/* suffix 是do_item_alloc函数中定义的40字节数组 */</span></div><div class="line">    *nsuffix = (<span class="keyword">uint8_t</span>) <span class="built_in">snprintf</span>(suffix, <span class="number">40</span>, <span class="string">" %d %d\r\n"</span>, flags, nbytes - <span class="number">2</span>);</div><div class="line">    <span class="keyword">return</span> <span class="keyword">sizeof</span>(item) + nkey + *nsuffix + nbytes;</div><div class="line">&#125;<span class="comment">//这个函数先计算出这个item头的长度</span></div><div class="line"><span class="comment">//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++</span></div><div class="line"><span class="function">item *<span class="title">do_item_alloc</span><span class="params">(<span class="keyword">char</span> *key, <span class="keyword">const</span> <span class="keyword">size_t</span> nkey, <span class="keyword">const</span> <span class="keyword">int</span> flags,</span></span></div><div class="line">                    <span class="keyword">const</span> <span class="keyword">rel_time_t</span> exptime, <span class="keyword">const</span> <span class="keyword">int</span> nbytes,</div><div class="line">                    <span class="keyword">const</span> <span class="keyword">uint32_t</span> cur_hv) &#123;</div><div class="line">    <span class="keyword">int</span> i;</div><div class="line">    <span class="keyword">uint8_t</span> nsuffix;</div><div class="line">    item *it = <span class="literal">NULL</span>;</div><div class="line">    <span class="keyword">char</span> suffix[<span class="number">40</span>];</div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> total_chunks;</div><div class="line">    <span class="keyword">size_t</span> ntotal = item_make_header(nkey + <span class="number">1</span>, flags, nbytes, suffix, &amp;nsuffix);</div><div class="line">    <span class="keyword">if</span> (settings.use_cas) &#123;<span class="comment">//如果有使用cas，则还要加上8字节</span></div><div class="line">        ntotal += <span class="keyword">sizeof</span>(<span class="keyword">uint64_t</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> id = slabs_clsid(ntotal);<span class="comment">//选择slabclass</span></div><div class="line">    <span class="keyword">if</span> (id == <span class="number">0</span>)</div><div class="line">        <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</div><div class="line">        <span class="comment">/* Try to reclaim memory first */</span></div><div class="line">        <span class="keyword">if</span> (!settings.lru_maintainer_thread) &#123;</div><div class="line">            lru_pull_tail(id, COLD_LRU, <span class="number">0</span>, <span class="literal">false</span>, cur_hv);</div><div class="line">        &#125;</div><div class="line">        it = slabs_alloc(ntotal, id, &amp;total_chunks);</div><div class="line">        <span class="keyword">if</span> (settings.expirezero_does_not_evict)</div><div class="line">            total_chunks -= noexp_lru_size(id);</div><div class="line">        <span class="keyword">if</span> (it == <span class="literal">NULL</span>) &#123;</div><div class="line">            <span class="keyword">if</span> (settings.lru_maintainer_thread) &#123;</div><div class="line">                lru_pull_tail(id, HOT_LRU, total_chunks, <span class="literal">false</span>, cur_hv);</div><div class="line">                lru_pull_tail(id, WARM_LRU, total_chunks, <span class="literal">false</span>, cur_hv);</div><div class="line">                lru_pull_tail(id, COLD_LRU, total_chunks, <span class="literal">true</span>, cur_hv);</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                lru_pull_tail(id, COLD_LRU, <span class="number">0</span>, <span class="literal">true</span>, cur_hv);</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">break</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    assert(it-&gt;slabs_clsid == <span class="number">0</span>);</div><div class="line">    <span class="comment">//assert(it != heads[id]);</span></div><div class="line"></div><div class="line">    <span class="comment">//初始化item各部分信息</span></div><div class="line">    it-&gt;next = it-&gt;prev = it-&gt;h_next = <span class="number">0</span>;</div><div class="line">    it-&gt;slabs_clsid = id;</div><div class="line">    DEBUG_REFCNT(it, <span class="string">'*'</span>);</div><div class="line">    it-&gt;it_flags = settings.use_cas ? ITEM_CAS : <span class="number">0</span>;</div><div class="line">    it-&gt;nkey = nkey;</div><div class="line">    it-&gt;nbytes = nbytes;</div><div class="line">    <span class="built_in">memcpy</span>(ITEM_key(it), key, nkey);</div><div class="line">    it-&gt;exptime = exptime;</div><div class="line">    <span class="built_in">memcpy</span>(ITEM_suffix(it), suffix, (<span class="keyword">size_t</span>)nsuffix);</div><div class="line">    it-&gt;nsuffix = nsuffix;</div><div class="line">    <span class="keyword">return</span> it;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数主要是为item分配内存使用的，slab可能内存已经使用完了，这时需要从LRU队列中删除item，以至于腾出内存，这之后研究LRU平衡线程时再分析，这里假设分配到内存了。接下来就是初始化分配到的item。这里并没有把value值复制到item中，而是调用这个do_item_alloc函数之后再赋值。</p>
+<h1>item内存回收</h1>
+<hr>
+<p>item内存回收很简单。当某个Item的引用计数变为0时，这时线程会调用item_free函数回收item这块内存，但不是将内存还给系统，而是将内存还给slab。即将这个item插入链表slots中。
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">void</span> <span class="keyword">item_free(item </span>*<span class="keyword">it) </span>&#123;</div><div class="line">    size_t ntotal = <span class="keyword">ITEM_ntotal(it);</span></div><div class="line">    unsigned int clsid<span class="comment">;</span></div><div class="line">    <span class="meta">assert</span>((<span class="keyword">it-&gt;it_flags </span>&amp; <span class="keyword">ITEM_LINKED) </span>== <span class="number">0</span>)<span class="comment">;</span></div><div class="line">    <span class="meta">assert</span>(<span class="keyword">it </span>!= heads[<span class="keyword">it-&gt;slabs_clsid]);</span></div><div class="line">    <span class="meta">assert</span>(<span class="keyword">it </span>!= tails[<span class="keyword">it-&gt;slabs_clsid]);</span></div><div class="line">    <span class="meta">assert</span>(<span class="keyword">it-&gt;refcount </span>== <span class="number">0</span>)<span class="comment">;</span></div><div class="line"></div><div class="line">    <span class="comment">/* so slab size changer can tell later if item is already free or not */</span></div><div class="line">    clsid = <span class="keyword">ITEM_clsid(it);</span></div><div class="line">    DEBUG_REFCNT(<span class="keyword">it, </span><span class="string">'F'</span>)<span class="comment">;</span></div><div class="line">    slabs_free(<span class="keyword">it, </span>ntotal, clsid)<span class="comment">;//slab回收内存</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>item插入和删除LRU队列</h1>
+<hr>
+<p>接来下函数是将item插入和删除LRU队列
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div></pre></td><td class="code"><pre><div class="line">static void do_item_link_q(item *it) &#123; <span class="comment">/* item is the new head */</span></div><div class="line">    item **head, **tail;</div><div class="line">    <span class="function"><span class="title">assert</span>((it-&gt;</span>it_flags &amp; ITEM_SLABBED) == <span class="number">0</span>);</div><div class="line"></div><div class="line">    <span class="function"><span class="title">head</span> = &amp;heads[it-&gt;</span>slabs_clsid];</div><div class="line">    <span class="function"><span class="title">tail</span> = &amp;tails[it-&gt;</span>slabs_clsid];</div><div class="line">    assert(it != *head);</div><div class="line">    assert((*head &amp;&amp; *tail) || (*head == <span class="number">0</span> &amp;&amp; *tail == <span class="number">0</span>));</div><div class="line">    <span class="function"><span class="title">it</span>-&gt;</span>prev = <span class="number">0</span>;</div><div class="line">    <span class="function"><span class="title">it</span>-&gt;</span>next = *head;</div><div class="line">    <span class="function"><span class="title">if</span> (it-&gt;</span><span class="function"><span class="title">next</span>) it-&gt;</span><span class="function"><span class="title">next</span>-&gt;</span>prev = it;</div><div class="line">    *head = it;</div><div class="line">    <span class="keyword">if</span> (*tail == <span class="number">0</span>) *tail = it;</div><div class="line">    <span class="function"><span class="title">sizes</span>[it-&gt;</span>slabs_clsid]++;<span class="comment">//sizes保存这个id的slabclass的Item数量</span></div><div class="line">    return;</div><div class="line">&#125;</div><div class="line"></div><div class="line">static void item_link_q(item *it) &#123;<span class="comment">//插入LRU队列的有锁版本</span></div><div class="line">    <span class="function"><span class="title">pthread_mutex_lock</span>(&amp;lru_locks[it-&gt;</span>slabs_clsid]);</div><div class="line">    do_item_link_q(it);</div><div class="line">    <span class="function"><span class="title">pthread_mutex_unlock</span>(&amp;lru_locks[it-&gt;</span>slabs_clsid]);</div><div class="line">&#125;</div><div class="line"></div><div class="line">static void do_item_unlink_q(item *it) &#123;</div><div class="line">    item **head, **tail;</div><div class="line">    <span class="function"><span class="title">head</span> = &amp;heads[it-&gt;</span>slabs_clsid];</div><div class="line">    <span class="function"><span class="title">tail</span> = &amp;tails[it-&gt;</span>slabs_clsid];</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (*head == it) &#123;</div><div class="line">        <span class="function"><span class="title">assert</span>(it-&gt;</span>prev == <span class="number">0</span>);</div><div class="line">        *<span class="function"><span class="title">head</span> = it-&gt;</span>next;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (*tail == it) &#123;</div><div class="line">        <span class="function"><span class="title">assert</span>(it-&gt;</span>next == <span class="number">0</span>);</div><div class="line">        *<span class="function"><span class="title">tail</span> = it-&gt;</span>prev;</div><div class="line">    &#125;</div><div class="line">    <span class="function"><span class="title">assert</span>(it-&gt;</span>next != it);</div><div class="line">    <span class="function"><span class="title">assert</span>(it-&gt;</span>prev != it);</div><div class="line"></div><div class="line">    <span class="function"><span class="title">if</span> (it-&gt;</span><span class="function"><span class="title">next</span>) it-&gt;</span><span class="function"><span class="title">next</span>-&gt;</span><span class="function"><span class="title">prev</span> = it-&gt;</span>prev;</div><div class="line">    <span class="function"><span class="title">if</span> (it-&gt;</span><span class="function"><span class="title">prev</span>) it-&gt;</span><span class="function"><span class="title">prev</span>-&gt;</span><span class="function"><span class="title">next</span> = it-&gt;</span>next;</div><div class="line">    <span class="function"><span class="title">sizes</span>[it-&gt;</span>slabs_clsid]--;</div><div class="line">    return;</div><div class="line">&#125;</div><div class="line"></div><div class="line">static void item_unlink_q(item *it) &#123;<span class="comment">//LRU删除item有锁版本</span></div><div class="line">    <span class="function"><span class="title">pthread_mutex_lock</span>(&amp;lru_locks[it-&gt;</span>slabs_clsid]);</div><div class="line">    do_item_unlink_q(it);</div><div class="line">    <span class="function"><span class="title">pthread_mutex_unlock</span>(&amp;lru_locks[it-&gt;</span>slabs_clsid]);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这就是链表插入和删除操作，没什么好解释的。</p>
+<h1>item插入和删除LRU和哈希表</h1>
+<hr>
+<p>item插入和删除LRU和哈希表其实就是在一个函数中先调用哈希表的插入函数，然后在调用LRU插入函数。
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div></pre></td><td class="code"><pre><div class="line">int do_item_link(item *it, const uint32_t hv) &#123;</div><div class="line">    MEMCACHED_ITEM_LINK(ITEM_<span class="function"><span class="title">key</span>(it), it-&gt;</span><span class="function"><span class="title">nkey</span>, it-&gt;</span>nbytes);</div><div class="line">    <span class="function"><span class="title">assert</span>((it-&gt;</span>it_flags &amp; (ITEM_LINKED|ITEM_SLABBED)) == <span class="number">0</span>);</div><div class="line">    <span class="function"><span class="title">it</span>-&gt;</span>it_flags |= ITEM_LINKED;<span class="comment">//表示这个item在链表中</span></div><div class="line">    <span class="function"><span class="title">it</span>-&gt;</span><span class="built_in">time</span> = current_time;</div><div class="line"></div><div class="line">    STATS_LOCK();<span class="comment">//更新状态信息</span></div><div class="line">    stats.curr_bytes += ITEM_ntotal(it);</div><div class="line">    stats.curr_items += <span class="number">1</span>;</div><div class="line">    stats.total_items += <span class="number">1</span>;</div><div class="line">    STATS_UNLOCK();</div><div class="line"></div><div class="line">    <span class="comment">/* Allocate a new CAS ID on link. */</span></div><div class="line">    ITEM_set_cas(it, (settings.use_cas) ? get_cas_id() : <span class="number">0</span>);</div><div class="line">    assoc_insert(it, hv);<span class="comment">//哈希表插入</span></div><div class="line">    item_link_q(it);<span class="comment">//LRU链表插入</span></div><div class="line">    <span class="function"><span class="title">refcount_incr</span>(&amp;it-&gt;</span>refcount);<span class="comment">//引用数加1</span></div><div class="line"></div><div class="line">    return <span class="number">1</span>;</div><div class="line">&#125;</div><div class="line"></div><div class="line">void do_item_unlink(item *it, const uint32_t hv) &#123;</div><div class="line">    MEMCACHED_ITEM_UNLINK(ITEM_<span class="function"><span class="title">key</span>(it), it-&gt;</span><span class="function"><span class="title">nkey</span>, it-&gt;</span>nbytes);</div><div class="line">    <span class="function"><span class="title">if</span> ((it-&gt;</span>it_flags &amp; ITEM_LINKED) != <span class="number">0</span>) &#123;</div><div class="line">        <span class="function"><span class="title">it</span>-&gt;</span>it_flags &amp;= ~ITEM_LINKED;<span class="comment">//关闭标识</span></div><div class="line">        STATS_LOCK();</div><div class="line">        stats.curr_bytes -= ITEM_ntotal(it);</div><div class="line">        stats.curr_items -= <span class="number">1</span>;</div><div class="line">        STATS_UNLOCK();</div><div class="line">        <span class="function"><span class="title">assoc_delete</span>(ITEM_key(it), it-&gt;</span>nkey, hv);<span class="comment">//哈希表删除</span></div><div class="line">        item_unlink_q(it);<span class="comment">//LRU链表删除</span></div><div class="line">        do_item_remove(it);<span class="comment">//当it引用数为0时，回收item。</span></div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">void do_item_remove(item *it) &#123;</div><div class="line">    MEMCACHED_ITEM_REMOVE(ITEM_<span class="function"><span class="title">key</span>(it), it-&gt;</span><span class="function"><span class="title">nkey</span>, it-&gt;</span>nbytes);</div><div class="line">    <span class="function"><span class="title">assert</span>((it-&gt;</span>it_flags &amp; ITEM_SLABBED) == <span class="number">0</span>);</div><div class="line">    <span class="function"><span class="title">assert</span>(it-&gt;</span>refcount &gt; <span class="number">0</span>);</div><div class="line"></div><div class="line">    <span class="function"><span class="title">if</span> (refcount_decr(&amp;it-&gt;</span>refcount) == <span class="number">0</span>) &#123;</div><div class="line">        item_free(it);<span class="comment">//先将引用数减1，然后再判断是否为0.</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>item更新替换</h1>
+<hr>
+<p>LRU为最近最少使用策略，所以每次访问LRU列表中的某个item时，需要将这个item移到LRU最新的位置。反应到代码操作上就是先删除这个item,然后再重新插入LRU链表即可
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">void</span> do_item_update(<span class="keyword">item </span>*<span class="keyword">it) </span>&#123;</div><div class="line">    MEMCACHED_ITEM_UPDATE(<span class="keyword">ITEM_key(it), </span><span class="keyword">it-&gt;nkey, </span><span class="keyword">it-&gt;nbytes);</span></div><div class="line">    <span class="meta">if</span> (<span class="keyword">it-&gt;time </span>&lt; current_time - <span class="keyword">ITEM_UPDATE_INTERVAL) </span>&#123;</div><div class="line">        <span class="meta">assert</span>((<span class="keyword">it-&gt;it_flags </span>&amp; <span class="keyword">ITEM_SLABBED) </span>== <span class="number">0</span>)<span class="comment">;</span></div><div class="line"></div><div class="line">        <span class="meta">if</span> ((<span class="keyword">it-&gt;it_flags </span>&amp; <span class="keyword">ITEM_LINKED) </span>!= <span class="number">0</span>) &#123;</div><div class="line">            <span class="keyword">it-&gt;time </span>= current_time<span class="comment">;</span></div><div class="line">            <span class="meta">if</span> (!settings.lru_maintainer_thread) &#123;</div><div class="line">                <span class="keyword">item_unlink_q(it);</span></div><div class="line">                <span class="keyword">item_link_q(it);</span></div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>item的替换意思就是如果有更新键值对，则需要将原先的键值对删除，然后再将最新的键值对插入LRU和哈希表。
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">int</span> do_item_replace(<span class="keyword">item </span>*<span class="keyword">it, </span><span class="keyword">item </span>*new_it, const uint32_t hv) &#123;</div><div class="line">    MEMCACHED_ITEM_REPLACE(<span class="keyword">ITEM_key(it), </span><span class="keyword">it-&gt;nkey, </span><span class="keyword">it-&gt;nbytes,</span></div><div class="line">                           <span class="keyword">ITEM_key(new_it), </span>new_it-&gt;nkey, new_it-&gt;nbytes)<span class="comment">;</span></div><div class="line">    <span class="meta">assert</span>((<span class="keyword">it-&gt;it_flags </span>&amp; <span class="keyword">ITEM_SLABBED) </span>== <span class="number">0</span>)<span class="comment">;</span></div><div class="line"></div><div class="line">    do_item_unlink(<span class="keyword">it, </span>hv)<span class="comment">;</span></div><div class="line">    return do_item_link(new_it, hv)<span class="comment">;</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>item查询</h1>
+<hr>
+<p>memcache采取lazy expiration逻辑，即使用flush命令时，并不是真正的删除Item节点，而是在查询时，再来判断这个item是否有效，如果无效，则要回收item。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div></pre></td><td class="code"><pre><div class="line"><span class="function">item *<span class="title">do_item_get</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *key, <span class="keyword">const</span> <span class="keyword">size_t</span> nkey, <span class="keyword">const</span> <span class="keyword">uint32_t</span> hv)</span> </span>&#123;</div><div class="line">    item *it = assoc_find(key, nkey, hv);</div><div class="line">    <span class="keyword">if</span> (it != <span class="literal">NULL</span>) &#123;</div><div class="line">        refcount_incr(&amp;it-&gt;refcount);<span class="comment">//引用数+1</span></div><div class="line"> &#125;</div><div class="line">    <span class="keyword">int</span> was_found = <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (settings.verbose &gt; <span class="number">2</span>) &#123;</div><div class="line">        <span class="keyword">int</span> ii;</div><div class="line">        <span class="keyword">if</span> (it == <span class="literal">NULL</span>) &#123;</div><div class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"&gt; NOT FOUND "</span>);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"&gt; FOUND KEY "</span>);</div><div class="line">            was_found++;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">for</span> (ii = <span class="number">0</span>; ii &lt; nkey; ++ii) &#123;</div><div class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"%c"</span>, key[ii]);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (it != <span class="literal">NULL</span>) &#123;</div><div class="line">        <span class="keyword">if</span> (is_flushed(it)) &#123;<span class="comment">//判断item是否过期，包括flush时间点过期和cas过期</span></div><div class="line">            do_item_unlink(it, hv);<span class="comment">//过期则从LRU和哈希表中删除</span></div><div class="line">            do_item_remove(it);<span class="comment">//引用数为1时，回收item</span></div><div class="line">            it = <span class="literal">NULL</span>;</div><div class="line">            <span class="keyword">if</span> (was_found) &#123;</div><div class="line">                <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">" -nuked by flush"</span>);</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (it-&gt;exptime != <span class="number">0</span> &amp;&amp; it-&gt;exptime &lt;= current_time) &#123;<span class="comment">//判断item节点是否生命到期</span></div><div class="line">            do_item_unlink(it, hv);</div><div class="line">            do_item_remove(it);</div><div class="line">            it = <span class="literal">NULL</span>;</div><div class="line">            <span class="keyword">if</span> (was_found) &#123;</div><div class="line">                <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">" -nuked by expire"</span>);</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            it-&gt;it_flags |= ITEM_FETCHED|ITEM_ACTIVE;<span class="comment">//这里表示这个节点没有到期，可以正常使用</span></div><div class="line">            DEBUG_REFCNT(it, <span class="string">'+'</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (settings.verbose &gt; <span class="number">2</span>)</div><div class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"\n"</span>);</div><div class="line"></div><div class="line">    <span class="keyword">return</span> it;</div><div class="line">&#125;</div><div class="line"><span class="comment">//下面是更新item过期时间函数</span></div><div class="line"><span class="function">item *<span class="title">do_item_touch</span><span class="params">(<span class="keyword">const</span> <span class="keyword">char</span> *key, <span class="keyword">size_t</span> nkey, <span class="keyword">uint32_t</span> exptime,</span></span></div><div class="line">                    <span class="keyword">const</span> <span class="keyword">uint32_t</span> hv) &#123;</div><div class="line">    item *it = do_item_get(key, nkey, hv);</div><div class="line">    <span class="keyword">if</span> (it != <span class="literal">NULL</span>) &#123;</div><div class="line">        it-&gt;exptime = exptime;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> it;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>item的其他函数和平衡LRU和平衡哈希表相关，之后统一分析。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/memcache/" rel="tag">#memcache</a>
+          
+            <a href="/tags/item/" rel="tag">#item</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/01/09/memcache-slab/" rel="next" title="memcache源码分析之slab内存分配">
+                <i class="fa fa-chevron-left"></i> memcache源码分析之slab内存分配
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/01/11/memcache-startup/" rel="prev" title="memcache启动过程以及线程模型">
+                memcache启动过程以及线程模型 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/01/10/memcache-item/"
+     data-title="memcache源码分析之item"
+     data-content=""
+     data-url="http://luodw.cc/2016/01/10/memcache-item/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/01/10/memcache-item/"
+           data-title="memcache源码分析之item" data-url="http://luodw.cc/2016/01/10/memcache-item/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">item定义</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">items分配内存</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">item内存回收</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">item插入和删除LRU队列</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">item插入和删除LRU和哈希表</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">6.</span> <span class="nav-text">item更新替换</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">7.</span> <span class="nav-text">item查询</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

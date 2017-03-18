@@ -1,0 +1,1099 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="linux," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="linux下ulimit和sysctl设置原理和区别
+在linux下网络编程开发过程中，如果服务器用户量很大，就会开启很多连接，这时可能就会导致服务器进程文件描述符不够的情况。经常，我们会关闭服务器进程，然后在进程中调用setrlimit函数或者ulimit来设置服务器进程描述符的数量。那么ulimit设置原理是怎么样的了？以及sysctl设置原理了？这票文章主要分析下二者的设置原理以及区别。
+u">
+<meta property="og:type" content="article">
+<meta property="og:title" content="linux下资源设置">
+<meta property="og:url" content="http://luodw.cc/2016/02/16/limit/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="linux下ulimit和sysctl设置原理和区别
+在linux下网络编程开发过程中，如果服务器用户量很大，就会开启很多连接，这时可能就会导致服务器进程文件描述符不够的情况。经常，我们会关闭服务器进程，然后在进程中调用setrlimit函数或者ulimit来设置服务器进程描述符的数量。那么ulimit设置原理是怎么样的了？以及sysctl设置原理了？这票文章主要分析下二者的设置原理以及区别。
+u">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="linux下资源设置">
+<meta name="twitter:description" content="linux下ulimit和sysctl设置原理和区别
+在linux下网络编程开发过程中，如果服务器用户量很大，就会开启很多连接，这时可能就会导致服务器进程文件描述符不够的情况。经常，我们会关闭服务器进程，然后在进程中调用setrlimit函数或者ulimit来设置服务器进程描述符的数量。那么ulimit设置原理是怎么样的了？以及sysctl设置原理了？这票文章主要分析下二者的设置原理以及区别。
+u">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/02/16/limit/"/>
+
+
+  <title> linux下资源设置 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                linux下资源设置
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-16T11:07:49+08:00" content="2016-02-16">
+              2016-02-16
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/02/16/limit/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/02/16/limit/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/16/limit/" class="leancloud_visitors" data-flag-title="linux下资源设置">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1>linux下ulimit和sysctl设置原理和区别</h1>
+<p>在linux下网络编程开发过程中，如果服务器用户量很大，就会开启很多连接，这时可能就会导致服务器进程文件描述符不够的情况。经常，我们会关闭服务器进程，然后在进程中调用setrlimit函数或者ulimit来设置服务器进程描述符的数量。那么ulimit设置原理是怎么样的了？以及sysctl设置原理了？这票文章主要分析下二者的设置原理以及区别。</p>
+<h1>ulimit设置</h1>
+<p>在linux下面，每个进程都有一个进程描述符struct_task，该结构体含有大量的属性用来描述一个进程的各个属性，其中有一个属性为struct rlimit rlim[RLIM_NLIMITS];用于描述该进程资源的限定值，其中struct rlimit定义如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> rlimit &#123;</div><div class="line">	<span class="keyword">rlim_t</span> rlim_cur;<span class="comment">//软限制，即某项资源的最大值</span></div><div class="line">	<span class="keyword">rlim_t</span> rlim_max;<span class="comment">//硬限制，即软限制的最大值</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>所以当我们调用setrlimit和ulimit时，主要是设置进程描述符的struct rlimit资源数组。当我们读取资源时，主要是读取/proc/&lt;oid&gt;/limits文件，/proc文件夹为进程或系统的虚拟文件系统，只存在于内存中，是不占用磁盘空间的，可以通过命令ll /来检验，反应系统或进程的属性。/proc/&lt;pid&gt;/limits文件内容如下
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">//资源名称                //软限制             //硬限制             //单位</div><div class="line">Limit                     Soft Limit           Hard Limit           Units     </div><div class="line">Max cpu time              unlimited            unlimited            seconds   </div><div class="line">Max file size             unlimited            unlimited            bytes     </div><div class="line">Max data size             unlimited            unlimited            bytes     </div><div class="line">Max stack size            8388608              unlimited            bytes     </div><div class="line">Max core file size        0                    unlimited            bytes     </div><div class="line">Max resident <span class="keyword">set</span>          <span class="keyword">unlimited</span>            <span class="keyword">unlimited</span>            <span class="keyword">bytes</span>     </div><div class="line"><span class="keyword">Max</span> processes             <span class="number">23235</span>                <span class="number">23235</span>                processes</div><div class="line"><span class="keyword">Max</span> <span class="keyword">open</span> files            <span class="number">1048</span>                 <span class="number">1048</span>                 files     </div><div class="line"><span class="keyword">Max</span> <span class="keyword">locked</span> <span class="keyword">memory</span>         <span class="number">65536</span>                <span class="number">65536</span>                <span class="keyword">bytes</span>     </div><div class="line"><span class="keyword">Max</span> address <span class="keyword">space</span>         <span class="keyword">unlimited</span>            <span class="keyword">unlimited</span>            <span class="keyword">bytes</span>     </div><div class="line"><span class="keyword">Max</span> <span class="keyword">file</span> locks            <span class="keyword">unlimited</span>            <span class="keyword">unlimited</span>            locks     </div><div class="line"><span class="keyword">Max</span> pending signals       <span class="number">23235</span>                <span class="number">23235</span>                signals   </div><div class="line"><span class="keyword">Max</span> msgqueue <span class="keyword">size</span>         <span class="number">819200</span>               <span class="number">819200</span>               <span class="keyword">bytes</span>     </div><div class="line"><span class="keyword">Max</span> nice <span class="keyword">priority</span>         <span class="number">0</span>                    <span class="number">0</span>                    </div><div class="line"><span class="keyword">Max</span> realtime <span class="keyword">priority</span>     <span class="number">0</span>                    <span class="number">0</span>                    </div><div class="line"><span class="keyword">Max</span> realtime <span class="keyword">timeout</span>      <span class="keyword">unlimited</span>            <span class="keyword">unlimited</span>            us</div></pre></td></tr></table></figure></p>
+<p>这和我们运行ulimit -a命令显示出的资源列表大部分是一样的。
+<figure class="highlight tcl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">charles@charles-Aspire<span class="number">-4741</span>:/<span class="keyword">proc</span>/2584$<span class="title"> ulimit</span> -a<span class="title"></span></div><div class="line">core file<span class="title"> size</span>          (blocks, -c) 0<span class="title"></span></div><div class="line">data seg<span class="title"> size</span>           (kbytes, -d)<span class="title"> unlimited</span></div><div class="line">scheduling<span class="title"> priority</span>             (-e) 0<span class="title"></span></div><div class="line">file size               (blocks, -f)<span class="title"> unlimited</span></div><div class="line">pending<span class="title"> signals</span>                 (-i) 23235<span class="title"></span></div><div class="line">max locked<span class="title"> memory</span>       (kbytes, -l) 64<span class="title"></span></div><div class="line">max memory<span class="title"> size</span>         (kbytes, -m)<span class="title"> unlimited</span></div><div class="line">open<span class="title"> files</span>                      (-n) 2048<span class="title"></span></div><div class="line">pipe size            (512<span class="title"> bytes,</span> -p) 8<span class="title"></span></div><div class="line">POSIX message<span class="title"> queues</span>     (bytes, -q) 819200<span class="title"></span></div><div class="line">real-time priority              (-r) 0<span class="title"></span></div><div class="line">stack size              (kbytes, -s) 8192<span class="title"></span></div><div class="line">cpu time               (seconds, -t)<span class="title"> unlimited</span></div><div class="line">max<span class="title"> user</span> processes              (-u) 23235<span class="title"></span></div><div class="line">virtual memory          (kbytes, -v)<span class="title"> unlimited</span></div><div class="line">file<span class="title"> locks</span>                      (-x)<span class="title"> unlimited</span></div></pre></td></tr></table></figure></p>
+<p>所以ulimit设置只是对当前进程有效。那么通过setlimit设置很好解释，因为直接操作进程描述符资源数组即可。但是ulimint命令怎么也会生效了？bash也是一个进程，那么在bash中调用ulimit设置的是bash的资源。那是因为在bash中执行的任何进程都是通过bash-&gt;fork-&gt;exec启动，所以ulimit设置了bash的资源，然后通过继承，传递给了bash中的子进程。所以ulimit对bash会话内的进程有效。</p>
+<h1>sysctl设置</h1>
+<h2>sysctl读取属性</h2>
+<p>对于系统级别的资源，或者说想影响所有进程而不是单个进程时，只能通过sysctl函数或命令来读取设置。我们可以通过sysctl -a读取所有系统级别的资源限制。而sysctl读取的属性主要来自/proc/sys文件下的所有文件:
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">charles@charles-Aspire-4741:/proc/sys$ ll</div><div class="line">总用量 0</div><div class="line">dr-xr-xr-x  <span class="number"> 1 </span>root root<span class="number"> 0 </span> 2月 <span class="number"> 3 </span><span class="number"> 2016 </span>./</div><div class="line">dr-xr-xr-x<span class="number"> 217 </span>root root<span class="number"> 0 </span> 2月 <span class="number"> 3 </span><span class="number"> 2016 </span>../</div><div class="line">dr-xr-xr-x  <span class="number"> 1 </span>root root<span class="number"> 0 </span> 2月 <span class="number"> 2 </span>20:09 abi/</div><div class="line">dr-xr-xr-x  <span class="number"> 1 </span>root root<span class="number"> 0 </span> 2月 <span class="number"> 2 </span>20:09 debug/</div><div class="line">dr-xr-xr-x  <span class="number"> 1 </span>root root<span class="number"> 0 </span> 2月 <span class="number"> 2 </span>20:09 dev/</div><div class="line">dr-xr-xr-x  <span class="number"> 1 </span>root root<span class="number"> 0 </span> 2月 <span class="number"> 2 </span>19:32 fs/</div><div class="line">dr-xr-xr-x  <span class="number"> 1 </span>root root<span class="number"> 0 </span> 2月 <span class="number"> 3 </span><span class="number"> 2016 </span>kernel/</div><div class="line">dr-xr-xr-x  <span class="number"> 1 </span>root root<span class="number"> 0 </span> 2月 <span class="number"> 2 </span>19:32 net/</div><div class="line">dr-xr-xr-x  <span class="number"> 1 </span>root root<span class="number"> 0 </span> 2月 <span class="number"> 2 </span>19:32 vm/</div></pre></td></tr></table></figure></p>
+<p>注意看，该文件是不占用磁盘空间的。在这文件下下，经常使用的是fs,net,vm文件夹下的文件：</p>
+<ol>
+<li>fs中的文件主要是文件系统的一些属性，例如打开文件的最大数量，管道数量的最大值以及epoll的一些设置；</li>
+<li>net是网络的一些属性。例如网络接口wlan0,eth,lo的属性设置，还有tcp选项的设置，例如keepalive</li>
+<li>vm是对虚拟内存的设置，例如redis有设置vm.overcommit_memory属性。</li>
+</ol>
+<p>这个属性设置原理如下：
+vm.overcommit_memory 默认值为0，可以设置为0,1,2，分别代表意思为：</p>
+<ul>
+<li>0:当用户空间请求更多的的内存时，内核尝试估算出剩余可用的内存。如果内存不够，进程可能会崩溃。</li>
+<li>1:当设这个参数值为1时，内核允许超量使用内存直到用完为止，主要用于科学计算;</li>
+<li>2:当设这个参数值为2时，内核会使用一个决不过量使用内存的算法，即系统整个内存地址空间不能超过swap+50%的RAM值，50%参数的设定是在overcommit_ratio中设定。</li>
+</ul>
+<p>vm.overcommit_ratio默认值为50,这个参数值只有在vm.overcommit_memory=2的情况下，这个参数才会生效。</p>
+<p>当我们需要读取某个资源限制时，可以通过如下两个命令进行读取:
+<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">sysctl -<span class="keyword">a</span> | grep <span class="built_in">file</span>-<span class="built_in">max</span></div><div class="line">sysctl fs.<span class="built_in">file</span>-<span class="built_in">max</span></div></pre></td></tr></table></figure></p>
+<p>但是我推荐第二种，因为第一种要先读取/proc/sys下所有文件，然后一个一个过滤，效率很低，而且有些文件是没有权限的，还会报提示。</p>
+<p>第二种写法，其实就是文件夹.属性的形式。例如：
+<figure class="highlight gradle"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//如果要读取文件最大描述符</span></div><div class="line">sysctl fs.<span class="keyword">file</span>-max ----&gt;  文件<span class="regexp">/proc/</span>sys<span class="regexp">/fs/</span><span class="keyword">file</span>-max</div><div class="line"><span class="comment">//读取overcommit_memory值</span></div><div class="line">sysctl vm.overcommit_memory  -----&gt;  文件<span class="regexp">/proc/</span>sys<span class="regexp">/vm/</span>overcommit_memory</div><div class="line"><span class="comment">//读取keepalive_time值</span></div><div class="line">sysctl net.ipv4.tcp_keepalive_time  -----&gt;  文件<span class="regexp">/proc/</span>sys<span class="regexp">/net/i</span>pv4<span class="regexp">/tcp_keepalive_time</span></div></pre></td></tr></table></figure></p>
+<h2>sysctl设置属性</h2>
+<p>如果要设置系统级别的属性，有两种方法：</p>
+<ol>
+<li>设置/proc/sys文件夹下，属性文件的值。这种方法只能在当前系统生效，系统重启，则还原为默认值。</li>
+<li>通过修改/etc/sysctl.conf文件，这样可以永久改变属性值，因为每次开机系统启动后, init 会执行 /etc/rc.d/rc.sysinit,便会使用 /etc/sysctl.conf 的预设值去执行 sysctl</li>
+</ol>
+<p>先来谈谈如何通过修改/proc/sys来设置属性值。
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//通过重定向输出到属性文件中，覆盖原有的值</span></div><div class="line">echo <span class="string">'1'</span> &gt; /proc/sys/net/ipv4/ip_forward</div><div class="line"><span class="comment">//用sysctl命令-w属性，直接对变量写入值</span></div><div class="line">sysctl -w net<span class="selector-class">.ipv4</span><span class="selector-class">.ip_forward</span>=<span class="number">1</span></div></pre></td></tr></table></figure></p>
+<p>net.ipv4.ip_forward用于设置主机是否支持转发数据包，0为不转发，1转发。以上两种方法都可以达到修改属性值的目的，但是重定向的方式需要root权限，因为操作的都是系统文件，以下是结果
+<figure class="highlight elixir"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">root<span class="variable">@charles</span>-Aspire-<span class="number">4741</span><span class="symbol">:/proc/sys</span><span class="comment"># sysctl net.ipv4.ip_forward</span></div><div class="line">net.ipv4.ip_forward = <span class="number">0</span></div><div class="line">root<span class="variable">@charles</span>-Aspire-<span class="number">4741</span><span class="symbol">:/proc/sys</span><span class="comment"># echo '1' &gt; /proc/sys/net/ipv4/ip_forward</span></div><div class="line">root<span class="variable">@charles</span>-Aspire-<span class="number">4741</span><span class="symbol">:/proc/sys</span><span class="comment"># sysctl net.ipv4.ip_forward</span></div><div class="line">net.ipv4.ip_forward = <span class="number">1</span></div><div class="line">root<span class="variable">@charles</span>-Aspire-<span class="number">4741</span><span class="symbol">:/proc/sys</span><span class="comment"># echo '0' &gt; /proc/sys/net/ipv4/ip_forward</span></div><div class="line">root<span class="variable">@charles</span>-Aspire-<span class="number">4741</span><span class="symbol">:/proc/sys</span><span class="comment"># sysctl net.ipv4.ip_forward</span></div><div class="line">net.ipv4.ip_forward = <span class="number">0</span></div><div class="line">root<span class="variable">@charles</span>-Aspire-<span class="number">4741</span><span class="symbol">:/proc/sys</span><span class="comment"># sysctl -w net.ipv4.ip_forward=1</span></div><div class="line">net.ipv4.ip_forward = <span class="number">1</span></div></pre></td></tr></table></figure></p>
+<p>如果想让系统重启之后，配置还生效，则必须通过修改/etc/sysctl.conf文件，打开/etc/sysctl.conf文件，在文件末尾添加
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">net<span class="selector-class">.ipv4</span><span class="selector-class">.ip_forward</span>=<span class="number">1</span></div></pre></td></tr></table></figure></p>
+<p>然后调用sysctl -p命令使/etc/sysctl.conf文件生效，以下是结果
+<figure class="highlight elixir"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">root<span class="variable">@charles</span>-Aspire-<span class="number">4741</span><span class="symbol">:/proc/sys</span><span class="comment"># sysctl net.ipv4.ip_forward</span></div><div class="line">net.ipv4.ip_forward = <span class="number">0</span></div><div class="line">root<span class="variable">@charles</span>-Aspire-<span class="number">4741</span><span class="symbol">:/proc/sys</span><span class="comment"># vim /etc/sysctl.conf</span></div><div class="line">root<span class="variable">@charles</span>-Aspire-<span class="number">4741</span><span class="symbol">:/proc/sys</span><span class="comment"># sysctl -p</span></div><div class="line">net.ipv4.ip_forward = <span class="number">1</span></div></pre></td></tr></table></figure></p>
+<h1>/etc/security/limits.conf设置</h1>
+<p>之前也有说道，ulimit设置是在当前会话有效，如果bash重启之后，则ulimit设置失效。如果要下次重启bash之后设置仍然有效，则需要把设置写进当前用户文件夹下的.profile文件中。但是这也是对当前用户有效，如果要对系统所有用户有效，则需要把ulimit命令写进/etc/profile文件中。但是如果设置了～/.profile文件之后，则/etc/profile文件设置对当前用户为无效。</p>
+<p>linux还提供了对某一用户设置权限，即为/etc/security/limits.conf文件。要使用该文件，则必须保证/etc/pam.d/login中有下面:
+session    required   pam_limits.so</p>
+<p>/etc/security/limits.conf文件格式为:
+<figure class="highlight ada"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">username|@groupname   <span class="keyword">type</span>  <span class="type">item  </span>limit</div></pre></td></tr></table></figure></p>
+<ol>
+<li>username|@groupname 设置需要被限制的用户名，组名前加@与用户名区分开来,*表示所有用户。</li>
+<li>type 类型有soft，hard 和 -，其中soft 指的是当前系统生效的设置值。hard 表明系统中所能设定的最大值。soft 的限制不能比har 限制高。用 - 就表明同时设置了soft 和hard的值</li>
+<li>item 表示要限制的资源,有core,data,nofile等待，具体如文件注释所说:
+<figure class="highlight vala"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">&lt;item&gt; can be one of the following:</div><div class="line"><span class="meta">#        - core - limits the core file size (KB)</span></div><div class="line"><span class="meta">#        - data - max data size (KB)</span></div><div class="line"><span class="meta">#        - fsize - maximum filesize (KB)</span></div><div class="line"><span class="meta">#        - memlock - max locked-in-memory address space (KB)</span></div><div class="line"><span class="meta">#        - nofile - max number of open files</span></div><div class="line"><span class="meta">#        - rss - max resident set size (KB)</span></div><div class="line"><span class="meta">#        - stack - max stack size (KB)</span></div><div class="line"><span class="meta">#        - cpu - max CPU time (MIN)</span></div><div class="line"><span class="meta">#        - nproc - max number of processes</span></div><div class="line"><span class="meta">#        - as - address space limit (KB)</span></div><div class="line"><span class="meta">#        - maxlogins - max number of logins for this user</span></div><div class="line"><span class="meta">#        - maxsyslogins - max number of logins on the system</span></div><div class="line"><span class="meta">#        - priority - the priority to run user process with</span></div><div class="line"><span class="meta">#        - locks - max number of file locks the user can hold</span></div><div class="line"><span class="meta">#        - sigpending - max number of pending signals</span></div><div class="line"><span class="meta">#        - msgqueue - max memory used by POSIX message queues (bytes)</span></div><div class="line"><span class="meta">#        - nice - max nice priority allowed to raise to values: [-20, 19]</span></div><div class="line"><span class="meta">#        - rtprio - max realtime priority</span></div><div class="line"><span class="meta">#        - chroot - change root to directory (Debian-specific)</span></div></pre></td></tr></table></figure></li>
+</ol>
+<p>所以要设置所有用户最大文件描述符，则需要在文件中添加一行
+<figure class="highlight asciidoc"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="bullet">*   </span>soft   nofile   4096</div></pre></td></tr></table></figure></p>
+<p>linux下资源的设置，常用大概就这几个。最关键的还是ulimit命令和sysctl命令，需要好好掌握。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/linux/" rel="tag">#linux</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/02/15/redis-msgpub/" rel="next" title="redis源码分析之广播订阅机制">
+                <i class="fa fa-chevron-left"></i> redis源码分析之广播订阅机制
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/02/17/register/" rel="prev" title="linux寄存器简介">
+                linux寄存器简介 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/02/16/limit/"
+     data-title="linux下资源设置"
+     data-content=""
+     data-url="http://luodw.cc/2016/02/16/limit/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/02/16/limit/"
+           data-title="linux下资源设置" data-url="http://luodw.cc/2016/02/16/limit/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">linux下ulimit和sysctl设置原理和区别</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">ulimit设置</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">sysctl设置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.1.</span> <span class="nav-text">sysctl读取属性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.2.</span> <span class="nav-text">sysctl设置属性</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">/etc/security/limits.conf设置</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

@@ -1,0 +1,1105 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="memcache," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="memcache和数据有关的数据结构有三个slab,lru和哈希表,所以在memcache运行过程中,需要不断维护这三个数据结构,以免降低性能.之前两篇文章,分析维护哈希表的扩容线程和维护slab的平衡线程.今天这篇文章主要分析了维护lru,即清除lru队列中不恰当的item.这部分较难,因为这部分在版本1.2.23版本开始,重写了实现,网上源码分析较少,所以看得有点吃力,今天把知识点好好整理下.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="memcache源码分析之lru维护线程">
+<meta property="og:url" content="http://luodw.cc/2016/01/19/memcache-lru-maintenance/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="memcache和数据有关的数据结构有三个slab,lru和哈希表,所以在memcache运行过程中,需要不断维护这三个数据结构,以免降低性能.之前两篇文章,分析维护哈希表的扩容线程和维护slab的平衡线程.今天这篇文章主要分析了维护lru,即清除lru队列中不恰当的item.这部分较难,因为这部分在版本1.2.23版本开始,重写了实现,网上源码分析较少,所以看得有点吃力,今天把知识点好好整理下.">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_054.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="memcache源码分析之lru维护线程">
+<meta name="twitter:description" content="memcache和数据有关的数据结构有三个slab,lru和哈希表,所以在memcache运行过程中,需要不断维护这三个数据结构,以免降低性能.之前两篇文章,分析维护哈希表的扩容线程和维护slab的平衡线程.今天这篇文章主要分析了维护lru,即清除lru队列中不恰当的item.这部分较难,因为这部分在版本1.2.23版本开始,重写了实现,网上源码分析较少,所以看得有点吃力,今天把知识点好好整理下.">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_054.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/01/19/memcache-lru-maintenance/"/>
+
+
+  <title> memcache源码分析之lru维护线程 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                memcache源码分析之lru维护线程
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-01-19T19:54:09+08:00" content="2016-01-19">
+              2016-01-19
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/memcache/" itemprop="url" rel="index">
+                    <span itemprop="name">memcache</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/01/19/memcache-lru-maintenance/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/01/19/memcache-lru-maintenance/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/01/19/memcache-lru-maintenance/" class="leancloud_visitors" data-flag-title="memcache源码分析之lru维护线程">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>memcache和数据有关的数据结构有三个slab,lru和哈希表,所以在memcache运行过程中,需要不断维护这三个数据结构,以免降低性能.之前两篇文章,分析维护哈希表的扩容线程和维护slab的平衡线程.今天这篇文章主要分析了维护lru,即清除lru队列中不恰当的item.这部分较难,因为这部分在版本1.2.23版本开始,重写了实现,网上源码分析较少,所以看得有点吃力,今天把知识点好好整理下.</p>
+<h1>真实的lru队列</h1>
+<hr>
+<p>直到看了这部分内容,我才真正认识了lru,虽然叫lru,但是这个真正的lru是不一样的,Linux内核和leveldb都有lru缓冲区,这个是按最近最少访问策略来剔除缓存节点,这种模式是,如果某个节点被访问,则先删除,再重新插入,这样就可以移到最新的数据区.但是memcache并不是这样,在do_item_get函数里面即使访问一个节点,也没有更新它的位置.但是memcache有把缓存数据分为hot,warm和cold三种,hot都是最新的数据,当内存不足时,最终删除的是cold数据区.</p>
+<p>我猜测memcache这样设计的理由是:memcache在实际使用中,作为缓存数据库,那么它存储的都是最经常访问的数据,所以它整体就是最热的数据区</p>
+<p>一开始看memcache源码,可能会觉得lru就是和slabclass_t数组一一对应,即有多少个slabclass_t,就有多少个lru队列.但是看到最后才发现原来每一个lru有分为hot,warm,cold三种,如下分析:slabclass_t数组最大为64,即0-63.但是lru数组最大值为255,为啥了?
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">define</span> HOT_LRU 0<span class="comment">//hot数据区</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> WARM_LRU 64<span class="comment">//warm数据区</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> COLD_LRU 128<span class="comment">//cold数据区</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> NOEXP_LRU 192<span class="comment">//没有过期时间数据区</span></span></div><div class="line"><span class="keyword">static</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> lru_type_map[<span class="number">4</span>] = &#123;HOT_LRU, WARM_LRU, COLD_LRU, NOEXP_LRU&#125;;</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> CLEAR_LRU(id) (id &amp; ~(3&lt;&lt;6))<span class="comment">//最原始的数据区,即hot数据区</span></span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> LARGEST_ID POWER_LARGEST<span class="comment">//lru数组最大值256,即0-255</span></span></div></pre></td></tr></table></figure></p>
+<p>因为一个slabclass_t对应三条lru队列,即hot,warm,cold lru.一般函数给出的是slabclass_t的索引id,也就是hot lru的索引,如果要操作warm lru队列,则需要id |= WARM_LRU,如果要操作cold lru,则只需要id |= COLD_LRU.因为id值的范围为[0,63],即最大值63为0011 1111,而64二进制为0100 0000,id | 64,即id+64,128二进制为1000 0000,id | 128 ,即id+128,192二进制为1100 0000,id | 192即id+192.因为id最大值为63,所以lru最大值为255.就是说当hot lru的索引为8时,warm lru索引为72,cold lru索引为136,noexp_lru索引为200.</p>
+<p>当然,</p>
+<ol>
+<li>每次插入数据时,总是插在hot lru队列中,因为最新的数据,在一定程度上就是最热的数据.</li>
+<li>warm lru的数据来源与cold lru,当cold lru的数据被访问活跃时,则被提到warm区;</li>
+<li>hot和warm lru默认各占slabclass_t的32%,可以通过memcached开启时,通过-o设置.cold lru则为剩下的部分.当hot和warm lru超出32%之后,则被踢到cold lru中.</li>
+</ol>
+<h1>memcache惰性删除机制</h1>
+<hr>
+<p>memcache并没有直接删除过期的键值对,而是采取惰性删除的机制.即键值对到期之后,并没有调用item_unlink删除,而是继续占着lru和哈希表,等到如下情况才把item删除:</p>
+<ol>
+<li>当调用do_item_get函数时,先判断获取到的item是否过期,过期则删除,返回null;</li>
+<li>当调用do_item_alloc时,如果从slab不能分到内存,则会进行一次检查是否有过期的item,有则直接用这个过期的item存储目前这个键值对.如果没有,则直接从cold lru尾部删除一个item,供目前这个键值对使用.</li>
+<li>使用maintenance和crawler线程,删除过期的item.</li>
+</ol>
+<p>而键值对过期也有两种情况:</p>
+<ol>
+<li>在插入item时,设定的过期时间到期了;</li>
+<li>调用flush_all命令,会将flush_all命令之前创建的item都标注为过期了.真正实现更新settings.oldest_live,即在这创建,更新的Item都失效.</li>
+</ol>
+<h2>惰性删除之do_item_get</h2>
+<p>之前说到,当memcache调用do_item_get函数获取键值对时,会先判断获取的键值对是否过期,如果是返回null,并删除这个Item,来看下源码:
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div></pre></td><td class="code"><pre><div class="line">item *do_item_get(<span class="name">const</span> char *key, const size_t nkey, const uint32_t hv) &#123;</div><div class="line">    item *it = assoc_find(<span class="name">key</span>, nkey, hv)<span class="comment">;</span></div><div class="line">    if (<span class="name">it</span> != NULL) &#123;</div><div class="line">        refcount_incr(<span class="name">&amp;it-&gt;refcount</span>)<span class="comment">;//找到这个item,这个item引用+1</span></div><div class="line">     &#125;</div><div class="line">    int was_found = <span class="number">0</span><span class="comment">;</span></div><div class="line"></div><div class="line">    if (<span class="name">it</span> != NULL) &#123;//item不为空</div><div class="line">        if (<span class="name">is_flushed</span>(<span class="name">it</span>)) &#123;//这个item是否在flush_all之前,如果是,则删除</div><div class="line">            do_item_unlink(<span class="name">it</span>, hv)<span class="comment">;</span></div><div class="line">            do_item_remove(<span class="name">it</span>)<span class="comment">;</span></div><div class="line">            it = NULL<span class="comment">;</span></div><div class="line">            if (<span class="name">was_found</span>) &#123;</div><div class="line">                fprintf(<span class="name">stderr</span>, <span class="string">" -nuked by flush"</span>)<span class="comment">;</span></div><div class="line">            &#125;</div><div class="line">        //这个item是否过期,过期则删除</div><div class="line">        &#125; else if (<span class="name">it-&gt;exptime</span> != <span class="number">0</span> <span class="symbol">&amp;&amp;</span> it-&gt;exptime &lt;= current_time) &#123;</div><div class="line">            do_item_unlink(<span class="name">it</span>, hv)<span class="comment">;</span></div><div class="line">            do_item_remove(<span class="name">it</span>)<span class="comment">;</span></div><div class="line">            it = NULL<span class="comment">;</span></div><div class="line">            if (<span class="name">was_found</span>) &#123;</div><div class="line">                fprintf(<span class="name">stderr</span>, <span class="string">" -nuked by expire"</span>)<span class="comment">;</span></div><div class="line">            &#125;</div><div class="line">        &#125; else &#123;//如果这个item没有在flush_all之前也没有过期,则标注为活跃item</div><div class="line">        //以及被获取</div><div class="line">            it-&gt;it_flags |= ITEM_FETCHED|ITEM_ACTIVE<span class="comment">;</span></div><div class="line">            DEBUG_REFCNT(<span class="name">it</span>, '+')<span class="comment">;</span></div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    if (<span class="name">settings</span>.verbose &gt; <span class="number">2</span>)</div><div class="line">        fprintf(<span class="name">stderr</span>, <span class="string">"\n"</span>)<span class="comment">;</span></div><div class="line"></div><div class="line">    return it<span class="comment">;</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h2>惰性删除之do_item_alloc</h2>
+<p>当worker线程要插入一个键值对时,需要先分配item内存.但是如果此时slab内存全都已使用完毕,那么这时先检查是否有过期的item,有则将过期的item直接给插入的键值对使用.如果没有,则将cold lru最后一个强制删除,留出空间.
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line">item *do_item_alloc(<span class="keyword">char</span> *key, <span class="keyword">const</span> size_t nkey, <span class="keyword">const</span> <span class="keyword">int</span> flags,</div><div class="line">           <span class="keyword">const</span> rel_time_t exptime, <span class="keyword">const</span> <span class="keyword">int</span> nbytes,</div><div class="line">           <span class="keyword">const</span> uint32_t cur_hv) &#123;</div><div class="line">		<span class="comment">/*</span></div><div class="line">		.........</div><div class="line">		*/</div><div class="line">	 <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</div><div class="line">        <span class="comment">/* Try to reclaim memory first */</span></div><div class="line">        <span class="keyword">if</span> (!settings.lru_maintainer_thread) &#123;</div><div class="line">            <span class="comment">//如果没有开启maintainer线程,则先看下cold lru是否有过期item回收,有则直接重复利用</span></div><div class="line">            lru_pull_tail(<span class="keyword">id</span>, COLD_LRU, <span class="number">0</span>, <span class="literal">false</span>, cur_hv);</div><div class="line">        &#125;</div><div class="line">        it = slabs_alloc(ntotal, <span class="keyword">id</span>, &amp;total_chunks);<span class="comment">//分配内存</span></div><div class="line">        <span class="keyword">if</span> (settings.expirezero_does_not_evict)</div><div class="line">            total_chunks -= noexp_lru_size(<span class="keyword">id</span>);</div><div class="line">        <span class="keyword">if</span> (it == <span class="literal">NULL</span>) &#123;<span class="comment">//分不到内存,如果开启maintainer,则看下hot,warm,cold lru是否有过期item</span></div><div class="line">            <span class="keyword">if</span> (settings.lru_maintainer_thread) &#123;</div><div class="line">                lru_pull_tail(<span class="keyword">id</span>, HOT_LRU, total_chunks, <span class="literal">false</span>, cur_hv);</div><div class="line">                lru_pull_tail(<span class="keyword">id</span>, WARM_LRU, total_chunks, <span class="literal">false</span>, cur_hv);</div><div class="line">                lru_pull_tail(<span class="keyword">id</span>, COLD_LRU, total_chunks, <span class="literal">true</span>, cur_hv);</div><div class="line">            &#125; <span class="keyword">else</span> &#123;<span class="comment">//如果没开启,则强制删除cold lru最后一个item</span></div><div class="line">                lru_pull_tail(<span class="keyword">id</span>, COLD_LRU, <span class="number">0</span>, <span class="literal">true</span>, cur_hv);</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">break</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">		<span class="comment">/*</span></div><div class="line">		..........</div><div class="line">		*/</div></pre></td></tr></table></figure></p>
+<p>当为item分配内存时,先是分析cold lru是否有过期item,有则回收.如果没有过期item,而且开启maintainer线程,则分析hot , warm lru是否有过期item以及直接删除cold lru最后一个item.lru_pull_tail函数用于分析hot,warm,cold lru是否有过期电费item,后面再分析.</p>
+<h1>crawler线程</h1>
+<hr>
+<p>memcache支持手动和自动两种爬虫删除过期item.手动即在客户端中输入命令,自动即开启maintainer线程,接下来先介绍手动方式.当要开启crawler线程,可以通过memcached -o lru_crawler开启也可以在命令行中开启.但是一搬情况是用memcached开启时添加选项memcached -o lru_crawler,lru_maintainer同时开启两个线程,crawler线程开启之后睡眠,等待被唤醒;maintainer线程则不断对lru分析lru和warm使用空间是否已满,满则踢到cold lru.还分析warm和cold lru之间item的交换等等,最后唤醒crawler线程.</p>
+<p>客户端也可以通过命令,指定对哪个lru爬虫;</p>
+<ol>
+<li>lru_crawler &lt;enable|disable&gt; 启动或者停止一个lru爬虫线程;</li>
+<li>lru_crawler crawler&lt;classid,classid,classid | all&gt; 可以用2,3,6这样的列表指定对哪个lru队列进行清楚,也可以对所有队列清楚.</li>
+<li>lru_crawler sleep&lt;microsecond&gt; 由于lru爬虫时会占用锁,影响worker线程正常作业,所以需要时不时休息下,默认是100微妙</li>
+<li>lru_crawler tocrawl &lt;32u&gt; lru可能会有很多item失效,如果一个个去爬虫,则会影响其他worker线程工作,所以就可以用这个这只一次最多爬num个item.</li>
+</ol>
+<h2>crawler线程开启</h2>
+<p>memcached -o lru_crawler或者命令行lru_crawler enable可以调用start_item_crawler_thread开启crawler线程,线程函数为:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> *<span class="title">item_crawler_thread</span><span class="params">(<span class="keyword">void</span> *arg)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> i;</div><div class="line">    <span class="keyword">int</span> crawls_persleep = settings.crawls_persleep;</div><div class="line"></div><div class="line">    pthread_mutex_lock(&amp;lru_crawler_lock);</div><div class="line">    <span class="keyword">if</span> (settings.verbose &gt; <span class="number">2</span>)</div><div class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Starting LRU crawler background thread\n"</span>);</div><div class="line">    <span class="keyword">while</span> (do_run_lru_crawler_thread) &#123;</div><div class="line">    pthread_cond_wait(&amp;lru_crawler_cond, &amp;lru_crawler_lock);</div><div class="line">    <span class="comment">/*</span></div><div class="line">    .........</div><div class="line">    */</div></pre></td></tr></table></figure></p>
+<p>刚开启crawler线程时,先是睡眠,等待被唤醒.我们来假设下客户端命令此时发来爬虫请求,lru_crawler tocrawl 20,lru_crawler crawler 2,4,6即对原始id为2,4,6的lru队列爬虫20个item,此时对9个lru队列爬虫,因为每个原始id都有三个lru队列(hot,warm,cold).lru_crawler tocrawl 20只是简单的settings.lru_crawler_tocrawl属性,lru_crawler crawler命令调用的是lru_crawler_crawl(char *slabs)函数:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">enum</span> crawler_result_type <span class="title">lru_crawler_crawl</span><span class="params">(<span class="keyword">char</span> *slabs)</span> </span>&#123;</div><div class="line">    <span class="keyword">char</span> *b = <span class="literal">NULL</span>;</div><div class="line">    <span class="keyword">uint32_t</span> sid = <span class="number">0</span>;</div><div class="line">    <span class="keyword">int</span> starts = <span class="number">0</span>;</div><div class="line">    <span class="keyword">uint8_t</span> tocrawl[MAX_NUMBER_OF_SLAB_CLASSES];</div><div class="line">    <span class="keyword">if</span> (pthread_mutex_trylock(&amp;lru_crawler_lock) != <span class="number">0</span>) &#123;</div><div class="line">        <span class="keyword">return</span> CRAWLER_RUNNING;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* 初始化tocrawl数组,存储被爬虫lru索引 */</span></div><div class="line">    <span class="built_in">memset</span>(tocrawl, <span class="number">0</span>, <span class="keyword">sizeof</span>(<span class="keyword">uint8_t</span>) * MAX_NUMBER_OF_SLAB_CLASSES);</div><div class="line">    <span class="keyword">if</span> (<span class="built_in">strcmp</span>(slabs, <span class="string">"all"</span>) == <span class="number">0</span>) &#123;<span class="comment">//分析crawler命令后来的参数,如果是all</span></div><div class="line">        <span class="keyword">for</span> (sid = <span class="number">0</span>; sid &lt; MAX_NUMBER_OF_SLAB_CLASSES; sid++) &#123;</div><div class="line">            tocrawl[sid] = <span class="number">1</span>;<span class="comment">//对所有的lru队列爬虫</span></div><div class="line">        &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="keyword">for</span> (<span class="keyword">char</span> *p = strtok_r(slabs, <span class="string">","</span>, &amp;b);<span class="comment">//索引列表</span></div><div class="line">             p != <span class="literal">NULL</span>;</div><div class="line">             p = strtok_r(<span class="literal">NULL</span>, <span class="string">","</span>, &amp;b)) &#123;</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (!safe_strtoul(p, &amp;sid) || sid &lt; POWER_SMALLEST</div><div class="line">                    || sid &gt;= MAX_NUMBER_OF_SLAB_CLASSES<span class="number">-1</span>) &#123;</div><div class="line">                pthread_mutex_unlock(&amp;lru_crawler_lock);</div><div class="line">                <span class="keyword">return</span> CRAWLER_BADCLASS;</div><div class="line">            &#125;</div><div class="line">            tocrawl[sid] = <span class="number">1</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">for</span> (sid = POWER\_SMALLEST; sid &lt; MAX\_NUMBER_OF_SLAB_CLASSES; sid++) &#123;</div><div class="line">        <span class="keyword">if</span> (tocrawl[sid])</div><div class="line">            <span class="comment">//给原始id为sid的三个队列添加爬虫item</span></div><div class="line">            starts += do_lru_crawler_start(sid, settings.lru_crawler_tocrawl);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (starts) &#123;</div><div class="line">        <span class="comment">//唤醒crawler线程</span></div><div class="line">        pthread_cond_signal(&amp;lru_crawler_cond);</div><div class="line">        pthread_mutex_unlock(&amp;lru_crawler_lock);</div><div class="line">        <span class="keyword">return</span> CRAWLER_OK;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        pthread_mutex_unlock(&amp;lru_crawler_lock);</div><div class="line">        <span class="keyword">return</span> CRAWLER_NOTSTARTED;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数先解析出lru_crawler crawler命令之后的参数,然后分别标记哪些lru需要爬虫,调用do_lru_crawler_start函数安装一个爬虫item,然后唤醒crawler线程爬虫.爬虫item和正常的Item长的很像,但是不存储数据,我们看下它的定义</p>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> &#123;</div><div class="line">    <span class="keyword">struct</span> _stritem *next;</div><div class="line">    <span class="keyword">struct</span> _stritem *prev;</div><div class="line">    <span class="keyword">struct</span> \_stritem \*h\_next;    <span class="comment">/* hash chain next */</span></div><div class="line">    <span class="keyword">rel_time_t</span>      time;       <span class="comment">/* least recent access */</span></div><div class="line">    <span class="keyword">rel_time_t</span>      exptime;    <span class="comment">/* expire time */</span></div><div class="line">    <span class="keyword">int</span>             nbytes;     <span class="comment">/* size of data */</span></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">short</span>  refcount;</div><div class="line">    <span class="keyword">uint8_t</span>         nsuffix;    <span class="comment">/* length of flags-and-length string */</span></div><div class="line">    uint8\<span class="keyword">_t</span>         it\_flags;   <span class="comment">/* ITEM_* above */</span></div><div class="line">    uint8\<span class="keyword">_t</span>         slabs_clsid;<span class="comment">/* which slab class we're in */</span></div><div class="line">    <span class="keyword">uint8_t</span>         nkey;       <span class="comment">/* key length, w/terminating null and padding */</span></div><div class="line">    <span class="keyword">uint32_t</span>        remaining;  <span class="comment">/* Max keys to crawl per slab per invocation */</span></div><div class="line">&#125; crawler;</div></pre></td></tr></table></figure></p>
+<p>就最后一个属性和正常item不一样,其他都一样,所以二者指针可以相互转换,不影响属性值.先来思考一个问题,之前有说过可以设置每次对lru爬item的个数,但是lru为一个链表队列,不支持随机存储,每次访问一个Item都必须从head开始,一个一个访问,那么怎么记录哪些item已经访问,哪些没有访问.memcache设计了上述的crawler爬虫item,给每个lru队列尾端安装一个crawler,然后每次访问一个Item时,crawler前进一个位置.下次爬虫时,直接从crawler节点开始,往前走即可.下面图片来自网络,很好解释了crawler爬虫过程:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_054.png" alt="crawler爬虫过程"></p>
+<p>先看下是如何安装爬虫线程
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">do_lru_crawler_start</span><span class="params">(uint32\<span class="keyword">_t</span> id, uint32\<span class="keyword">_t</span> remaining)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> i;</div><div class="line">    <span class="keyword">uint32_t</span> sid;</div><div class="line">    <span class="keyword">uint32_t</span> tocrawl[<span class="number">3</span>];</div><div class="line">    <span class="keyword">int</span> starts = <span class="number">0</span>;</div><div class="line">    <span class="comment">//找到id的三个lru队列,分别安装crawler</span></div><div class="line">    tocrawl[<span class="number">0</span>] = id | HOT_LRU;</div><div class="line">    tocrawl[<span class="number">1</span>] = id | WARM_LRU;</div><div class="line">    tocrawl[<span class="number">2</span>] = id | COLD_LRU;</div><div class="line"></div><div class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">3</span>; i++) &#123;</div><div class="line">        sid = tocrawl[i];</div><div class="line">        pthread_mutex_lock(&amp;lru_locks[sid]);</div><div class="line">        <span class="keyword">if</span> (tails[sid] != <span class="literal">NULL</span>) &#123;</div><div class="line">            <span class="keyword">if</span> (settings.verbose &gt; <span class="number">2</span>)</div><div class="line">                <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Kicking LRU crawler off for LRU %d\n"</span>, sid);</div><div class="line">            crawlers[sid].nbytes = <span class="number">0</span>;</div><div class="line">            crawlers[sid].nkey = <span class="number">0</span>;</div><div class="line">            crawlers[sid].it_flags = <span class="number">1</span>; <span class="comment">/* 表示这个crawler已开启. */</span></div><div class="line">            crawlers[sid].next = <span class="number">0</span>;</div><div class="line">            crawlers[sid].prev = <span class="number">0</span>;</div><div class="line">            crawlers[sid].time = <span class="number">0</span>;</div><div class="line">            crawlers[sid].remaining = remaining;</div><div class="line">            crawlers[sid].slabs_clsid = sid;</div><div class="line">            crawler_link_q((item *)&amp;crawlers[sid]);<span class="comment">//插索引为sid的lru队列的尾端</span></div><div class="line">            crawler_count++;<span class="comment">//本次爬虫的lru个数加1</span></div><div class="line">            starts++;</div><div class="line">        &#125;</div><div class="line">        pthread_mutex_unlock(&amp;lru_locks[sid]);</div><div class="line">    &#125;</div><div class="line">    <span class="comment">/*</span></div><div class="line">     ......................</div><div class="line">    */</div></pre></td></tr></table></figure></p>
+<p>安装好之后,接下来会唤醒crawler线程,线程开始爬虫
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> *<span class="title">item_crawler_thread</span><span class="params">(<span class="keyword">void</span> *arg)</span> </span>&#123;</div><div class="line"><span class="keyword">int</span> i;</div><div class="line">    <span class="keyword">int</span> crawls_persleep = settings.crawls_persleep;</div><div class="line"></div><div class="line">    pthread_mutex_lock(&amp;lru_crawler_lock);</div><div class="line">    <span class="keyword">if</span> (settings.verbose &gt; <span class="number">2</span>)</div><div class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Starting LRU crawler background thread\n"</span>);</div><div class="line">    <span class="keyword">while</span> (do_run_lru_crawler_thread) &#123;</div><div class="line">    pthread_cond_wait(&amp;lru_crawler_cond, &amp;lru_crawler_lock);</div><div class="line"></div><div class="line">    <span class="keyword">while</span> (crawler_count) &#123;</div><div class="line">        item *search = <span class="literal">NULL</span>;</div><div class="line">        <span class="keyword">void</span> *hold_lock = <span class="literal">NULL</span>;</div><div class="line"></div><div class="line">        <span class="keyword">for</span> (i = POWER_SMALLEST; i &lt; LARGEST_ID; i++) &#123;</div><div class="line">            <span class="keyword">if</span> (crawlers[i].it_flags != <span class="number">1</span>) &#123;</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line">            pthread_mutex_lock(&amp;lru_locks[i]);</div><div class="line">            <span class="comment">//crawler\_crawl_q函数返回crawler前一个item,并把crawler向前移动一个位置</span></div><div class="line">            search = crawler_crawl_q((item *)&amp;crawlers[i]);</div><div class="line">            <span class="keyword">if</span> (search == <span class="literal">NULL</span> ||</div><div class="line">                (crawlers[i].remaining &amp;&amp; --crawlers[i].remaining &lt; <span class="number">1</span>)) &#123;</div><div class="line">            <span class="comment">//如果search为空或者remaining(一开始设置为爬item的个数)减到为0.</span></div><div class="line">            <span class="comment">//则说明已爬了一条lru</span></div><div class="line">                <span class="keyword">if</span> (settings.verbose &gt; <span class="number">2</span>)</div><div class="line">                    <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Nothing left to crawl for %d\n"</span>, i);</div><div class="line">                crawlers[i].it_flags = <span class="number">0</span>;<span class="comment">//这个crawler关闭</span></div><div class="line">                crawler_count--;<span class="comment">//爬虫lru个数减1</span></div><div class="line">                crawler_unlink_q((item *)&amp;crawlers[i]);<span class="comment">//删除这个crawler</span></div><div class="line">                pthread_mutex_unlock(&amp;lru_locks[i]);</div><div class="line">                pthread_mutex_lock(&amp;lru_crawler_stats_lock);</div><div class="line">                crawlerstats[CLEAR_LRU(i)].end_time = current_time;</div><div class="line">                crawlerstats[CLEAR_LRU(i)].run_complete = <span class="literal">true</span>;</div><div class="line">                pthread_mutex_unlock(&amp;lru_crawler_stats_lock);</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line">            <span class="keyword">uint32_t</span> hv = hash(ITEM_key(search), search-&gt;nkey);</div><div class="line">            <span class="comment">/* Attempt to hash item lock the "search" item. If locked, no</span></div><div class="line">             * other callers can incr the refcount</div><div class="line">             */</div><div class="line">            <span class="keyword">if</span> ((hold_lock = item_trylock(hv)) == <span class="literal">NULL</span>) &#123;</div><div class="line">                pthread_mutex_unlock(&amp;lru_locks[i]);</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line">            <span class="comment">/* Now see if the item is refcount locked */</span></div><div class="line">            <span class="keyword">if</span> (refcount_incr(&amp;search-&gt;refcount) != <span class="number">2</span>) &#123;</div><div class="line">                refcount_decr(&amp;search-&gt;refcount);</div><div class="line">                <span class="keyword">if</span> (hold_lock)</div><div class="line">                    item_trylock_unlock(hold_lock);</div><div class="line">                pthread_mutex_unlock(&amp;lru_locks[i]);</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">/* Frees the item or decrements the refcount. */</span></div><div class="line">            <span class="comment">/* Interface for this could improve: do the free/decr here</span></div><div class="line">             * instead? */</div><div class="line">            pthread_mutex_lock(&amp;lru_crawler_stats_lock);</div><div class="line">            item_crawler_evaluate(search, hv, i);<span class="comment">//这个函数用于判断这个search是否过期,过期则删除.</span></div><div class="line">            pthread_mutex_unlock(&amp;lru_crawler_stats_lock);</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (hold_lock)</div><div class="line">                item_trylock_unlock(hold_lock);</div><div class="line">            pthread_mutex_unlock(&amp;lru_locks[i]);</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (crawls_persleep &lt;= <span class="number">0</span> &amp;&amp; settings.lru_crawler_sleep) &#123;</div><div class="line">                <span class="comment">//睡眠一段时间,供worker线程操作lru</span></div><div class="line">                usleep(settings.lru_crawler_sleep);</div><div class="line">                crawls_persleep = settings.crawls_persleep;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div></pre></td></tr></table></figure></p>
+<p>这个爬虫函数对给定的lru队列一个一个爬虫,每次爬一个item,直到爬完整条Lru或者指定的item个数减为0.当所有crawler结束之后,本次爬虫就结束.</p>
+<h1>maintainer线程</h1>
+<hr>
+<p>maintainer线程处于一个while循环中,不断进行lru表维护,即删除过期的item,以及如果hot,warm lru占有内存超过限定额度,则移至cold lru等等.执行完这些操作之后,还会唤醒crawler线程,执行爬虫删除过期item.来看下线程函数
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> *<span class="title">lru_maintainer_thread</span><span class="params">(<span class="keyword">void</span> *arg)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> i;</div><div class="line">    useconds\<span class="keyword">_t</span> to\_sleep = MIN_LRU_MAINTAINER_SLEEP;</div><div class="line">    rel_time\<span class="keyword">_t</span> last\_crawler_check = <span class="number">0</span>;</div><div class="line"></div><div class="line">    pthread_mutex_lock(&amp;lru_maintainer_lock);</div><div class="line">    <span class="keyword">if</span> (settings.verbose &gt; <span class="number">2</span>)</div><div class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Starting LRU maintainer background thread\n"</span>);</div><div class="line">    <span class="keyword">while</span> (do_run_lru_maintainer_thread) &#123;</div><div class="line">        <span class="keyword">int</span> did_moves = <span class="number">0</span>;</div><div class="line">        pthread_mutex_unlock(&amp;lru_maintainer_lock);</div><div class="line">        usleep(to_sleep);</div><div class="line">        pthread_mutex_lock(&amp;lru_maintainer_lock);</div><div class="line"></div><div class="line">        STATS_LOCK();</div><div class="line">        stats.lru_maintainer_juggles++;</div><div class="line">        STATS_UNLOCK();</div><div class="line">        <span class="comment">/* We were asked to immediately wake up and poke a particular slab</span></div><div class="line">         * class due to a low watermark being hit */</div><div class="line">        <span class="keyword">if</span> (lru_maintainer_check_clsid != <span class="number">0</span>) &#123;</div><div class="line">            <span class="comment">//执行维护任务,即上述所说的</span></div><div class="line">            did_moves = lru_maintainer_juggle(lru_maintainer_check_clsid);</div><div class="line">            lru_maintainer_check_clsid = <span class="number">0</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="keyword">for</span> (i = POWER_SMALLEST; i &lt; MAX_NUMBER_OF_SLAB_CLASSES; i++) &#123;</div><div class="line">                <span class="comment">//对每一个slabclass_t的lru执行维护任务</span></div><div class="line">                did_moves += lru_maintainer_juggle(i);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">if</span> (did_moves == <span class="number">0</span>) &#123;<span class="comment">//如果没有移动,则增加睡眠时间</span></div><div class="line">            <span class="keyword">if</span> (to_sleep &lt; MAX_LRU_MAINTAINER_SLEEP)</div><div class="line">                to_sleep += <span class="number">1000</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            to_sleep /= <span class="number">2</span>;<span class="comment">//如果有hot,warm,cold有数据move,则睡眠时间减少</span></div><div class="line">            <span class="keyword">if</span> (to_sleep &lt; MIN_LRU_MAINTAINER_SLEEP)</div><div class="line">                to_sleep = MIN_LRU_MAINTAINER_SLEEP;</div><div class="line">        &#125;</div><div class="line">        <span class="comment">/* 当有移动时,说明lru数据需要维护,所以睡眠时间减少,如果</span></div><div class="line">           没有移动,说明lru变化不大,则增长睡眠时间</div><div class="line">        */</div><div class="line">        <span class="keyword">if</span> (settings.lru_crawler &amp;&amp; last_crawler_check != current_time) &#123;</div><div class="line">            lru_maintainer_crawler_check();<span class="comment">//执行lru_crawler_start函数,唤醒crawler线程</span></div><div class="line">            last_crawler_check = current_time;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    pthread_mutex_unlock(&amp;lru_maintainer_lock);</div><div class="line">    <span class="keyword">if</span> (settings.verbose &gt; <span class="number">2</span>)</div><div class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"LRU maintainer thread stopping\n"</span>);</div><div class="line"></div><div class="line">    <span class="keyword">return</span> <span class="literal">NULL</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个维护线程不断的维护hot,warm,cold lru,然后再唤醒crawler线程进行爬虫删除.最后再看下lru维护函数
+<figure class="highlight zephir"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div><div class="line">105</div><div class="line">106</div><div class="line">107</div><div class="line">108</div><div class="line">109</div><div class="line">110</div><div class="line">111</div><div class="line">112</div><div class="line">113</div><div class="line">114</div><div class="line">115</div><div class="line">116</div><div class="line">117</div><div class="line">118</div><div class="line">119</div><div class="line">120</div><div class="line">121</div><div class="line">122</div><div class="line">123</div><div class="line">124</div><div class="line">125</div><div class="line">126</div><div class="line">127</div><div class="line">128</div><div class="line">129</div><div class="line">130</div><div class="line">131</div><div class="line">132</div><div class="line">133</div><div class="line">134</div><div class="line">135</div><div class="line">136</div><div class="line">137</div><div class="line">138</div><div class="line">139</div><div class="line">140</div><div class="line">141</div><div class="line">142</div><div class="line">143</div><div class="line">144</div><div class="line">145</div><div class="line">146</div><div class="line">147</div><div class="line">148</div><div class="line">149</div><div class="line">150</div><div class="line">151</div><div class="line">152</div><div class="line">153</div><div class="line">154</div><div class="line">155</div><div class="line">156</div><div class="line">157</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="keyword">int</span> lru_maintainer_juggle(<span class="keyword">const</span> <span class="keyword">int</span> slabs_clsid) &#123;</div><div class="line"><span class="comment">//.....................</span></div><div class="line"><span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; <span class="number">1000</span>; i++) &#123;</div><div class="line">        <span class="keyword">int</span> do_more = <span class="number">0</span>;</div><div class="line">        <span class="keyword">if</span> (lru_pull_tail(slabs_clsid, HOT_LRU, total_chunks, <span class="keyword">false</span>, <span class="number">0</span>) ||</div><div class="line">            lru_pull_tail(slabs_clsid, WARM_LRU, total_chunks, <span class="keyword">false</span>, <span class="number">0</span>)) &#123;</div><div class="line">            do_more++;</div><div class="line">        &#125;</div><div class="line">        do_more += lru_pull_tail(slabs_clsid, COLD_LRU, total_chunks, <span class="keyword">false</span>, <span class="number">0</span>);</div><div class="line">        <span class="keyword">if</span> (do_more == <span class="number">0</span>)</div><div class="line">            <span class="keyword">break</span>;</div><div class="line">        did_moves++;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> did_moves;</div><div class="line"><span class="comment">//这是维护线程调用的一个函数,在这个函数中调用lru_pull_tail函数进行维护</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">int</span> lru_pull_tail(<span class="keyword">const</span> <span class="keyword">int</span> orig_id, <span class="keyword">const</span> <span class="keyword">int</span> cur_lru,</div><div class="line">        <span class="keyword">const</span> unsigned <span class="keyword">int</span> total_chunks, <span class="keyword">const</span> <span class="keyword">bool</span> do_evict, <span class="keyword">const</span> uint32_t cur_hv) &#123;</div><div class="line">    item *it = <span class="keyword">NULL</span>;</div><div class="line">    <span class="keyword">int</span> id = orig_id;</div><div class="line">    <span class="keyword">int</span> removed = <span class="number">0</span>;</div><div class="line">    <span class="keyword">if</span> (id == <span class="number">0</span>)</div><div class="line">        <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="keyword">int</span> tries = <span class="number">5</span>;</div><div class="line">    item *search;</div><div class="line">    item *next_it;</div><div class="line">    void *hold_lock = <span class="keyword">NULL</span>;</div><div class="line">    unsigned <span class="keyword">int</span> move_to_lru = <span class="number">0</span>;</div><div class="line">    uint64_t limit;</div><div class="line"></div><div class="line">    id |= cur_lru;<span class="comment">//获取真实的lru id. 原始orig_id为hot lru id</span></div><div class="line">    pthread_mutex_lock(&amp;lru_locks[id]);</div><div class="line">    search = tails[id];<span class="comment">//这个lru最后一个item</span></div><div class="line">    <span class="comment">/* We walk up *only* for locked items, and if bottom is expired. */</span></div><div class="line">    <span class="keyword">for</span> (; tries &gt; <span class="number">0</span> &amp;&amp; search != <span class="keyword">NULL</span>; tries--, search=next_it) &#123;</div><div class="line">        <span class="comment">/* we might relink search mid-loop, so search-&gt;prev isn't reliable */</span></div><div class="line">        next_it = search-&gt;prev;</div><div class="line">        <span class="keyword">if</span> (search-&gt;nbytes == <span class="number">0</span> &amp;&amp; search-&gt;nkey == <span class="number">0</span> &amp;&amp; search-&gt;it_flags == <span class="number">1</span>) &#123;</div><div class="line">            <span class="comment">/* 是一个crawler,直接跳过 */</span></div><div class="line">            tries++;</div><div class="line">            <span class="keyword">continue</span>;</div><div class="line">        &#125;</div><div class="line">        uint32\_t\ hv = hash(ITEM\_key(search), search-&gt;nkey);<span class="comment">//这个item的哈希值</span></div><div class="line">        <span class="comment">/* Attempt to hash item lock the "search" item. If locked, no</span></div><div class="line">         * other callers can incr the refcount. Also skip ourselves. */</div><div class="line">        <span class="keyword">if</span> (hv == cur\_hv || (hold\_lock = item\_trylock(hv)) == <span class="keyword">NULL</span>)<span class="comment">//锁住这个哈希桶</span></div><div class="line">            <span class="keyword">continue</span>;</div><div class="line">        <span class="comment">/* Now see if the item is refcount locked */</span></div><div class="line">        <span class="keyword">if</span> (refcount_incr(&amp;search-&gt;refcount) != <span class="number">2</span>) &#123;</div><div class="line">            <span class="comment">/* Note pathological case with ref'ed items in tail.</span></div><div class="line">             * Can still unlink the item, but it won't be reusable yet */</div><div class="line">            itemstats[id].lrutail_reflocked++;</div><div class="line">            <span class="comment">/* In case of refcount leaks, enable for quick workaround. */</span></div><div class="line">            <span class="comment">/* WARNING: This can cause terrible corruption */</span></div><div class="line">            <span class="keyword">if</span> (settings.tail_repair_time &amp;&amp;</div><div class="line">                    search-&gt;time + settings.tail_repair_time &lt; current_time) &#123;</div><div class="line">                itemstats[id].tailrepairs++;</div><div class="line">                search-&gt;refcount = <span class="number">1</span>;</div><div class="line">                <span class="comment">/* This will call item_remove -&gt; item_free since refcnt is 1 */</span></div><div class="line">                do_item_unlink_nolock(search, hv);</div><div class="line">                item_trylock_unlock(hold_lock);</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* 下面这个if语句判断是否过期或者被flush */</span></div><div class="line">        <span class="keyword">if</span> ((search-&gt;exptime != <span class="number">0</span> &amp;&amp; search-&gt;exptime &lt; current_time)</div><div class="line">            || is_flushed(search)) &#123;</div><div class="line">            itemstats[id].reclaimed++;</div><div class="line">            <span class="keyword">if</span> ((search-&gt;it_flags &amp; ITEM_FETCHED) == <span class="number">0</span>) &#123;</div><div class="line">                itemstats[id].expired_unfetched++;</div><div class="line">            &#125;</div><div class="line">            <span class="comment">/* refcnt 2 -&gt; 1 */</span></div><div class="line">            do_item_unlink_nolock(search, hv);</div><div class="line">            <span class="comment">/* refcnt 1 -&gt; 0 -&gt; item_free */</span></div><div class="line">            do_item_remove(search);</div><div class="line">            item_trylock_unlock(hold_lock);</div><div class="line">            removed++;</div><div class="line"></div><div class="line">            <span class="comment">/* If all we're finding are expired, can keep going */</span></div><div class="line">            <span class="keyword">continue</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="comment">/* If we're HOT_LRU or WARM_LRU and over size limit, send to COLD_LRU.</span></div><div class="line">         * If we're COLD_LRU, send to WARM_LRU unless we need to evict</div><div class="line">         */</div><div class="line">        <span class="keyword">switch</span> (cur_lru) &#123;</div><div class="line">            <span class="keyword">case</span> HOT_LRU:<span class="comment">//这个case没有break,则与warm_lru共用代码</span></div><div class="line">                limit = total_chunks * settings.hot_lru_pct / <span class="number">100</span>;</div><div class="line">            <span class="keyword">case</span> WARM_LRU:</div><div class="line">                limit = total_chunks * settings.warm_lru_pct / <span class="number">100</span>;</div><div class="line">                <span class="keyword">if</span> (sizes[id] &gt; limit) &#123;<span class="comment">//如果hot和warm lru区item空间利用大于32%</span></div><div class="line">                    itemstats[id].moves_to_cold++;</div><div class="line">                    move_to_lru = COLD_LRU;<span class="comment">//移到cold lru区</span></div><div class="line">                    do_item_unlink_q(search);<span class="comment">//先从lru删除,后面会再加到cold lru中</span></div><div class="line">                    it = search;</div><div class="line">                    removed++;</div><div class="line">                    <span class="keyword">break</span>;</div><div class="line">                &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((search-&gt;it_flags &amp; ITEM_ACTIVE) != <span class="number">0</span>) &#123;</div><div class="line">                    <span class="comment">/* Only allow ACTIVE relinking if we're not too large. */</span></div><div class="line">                    itemstats[id].moves_within_lru++;</div><div class="line">                    search-&gt;it_flags &amp;= ~ITEM_ACTIVE;</div><div class="line">                    <span class="comment">//被访问之后,节点就active,所以更新时间,并且插入到lru最前端</span></div><div class="line">                    do_item_update_nolock(search);</div><div class="line">                    do_item_remove(search);<span class="comment">//这里只是降低引用次数</span></div><div class="line">                    item_trylock_unlock(hold_lock);</div><div class="line">                &#125; <span class="keyword">else</span> &#123;</div><div class="line">                    <span class="comment">/* Don't want to move to COLD, not active, bail out */</span></div><div class="line">                    it = search;</div><div class="line">                &#125;</div><div class="line">                <span class="keyword">break</span>;</div><div class="line">            <span class="keyword">case</span> COLD_LRU:</div><div class="line">                it = search; <span class="comment">/* No matter what, we're stopping */</span></div><div class="line">                <span class="keyword">if</span> (do_evict) &#123;<span class="comment">//如果是可以删除节点</span></div><div class="line">                    <span class="keyword">if</span> (settings.evict_to_free == <span class="number">0</span>) &#123;</div><div class="line">                        <span class="comment">/* Don't think we need a counter for this. It'll OOM.  */</span></div><div class="line">                        <span class="comment">//如果之前设置了不驱逐节点</span></div><div class="line">                        <span class="keyword">break</span>;</div><div class="line">                    &#125;</div><div class="line">                    itemstats[id].evicted++;</div><div class="line">                    itemstats[id].evicted_time = current_time - search-&gt;time;</div><div class="line">                    <span class="keyword">if</span> (search-&gt;exptime != <span class="number">0</span>)</div><div class="line">                        itemstats[id].evicted_nonzero++;</div><div class="line">                    <span class="keyword">if</span> ((search-&gt;it_flags &amp; ITEM_FETCHED) == <span class="number">0</span>) &#123;</div><div class="line">                        itemstats[id].evicted_unfetched++;</div><div class="line">                    &#125;</div><div class="line">                    do_item_unlink_nolock(search, hv);<span class="comment">//删除这个节点</span></div><div class="line">                    removed++;</div><div class="line">                &#125; <span class="keyword">else</span> <span class="keyword">if</span> ((search-&gt;it_flags &amp; ITEM_ACTIVE) != <span class="number">0</span></div><div class="line">                        &amp;&amp; settings.lru_maintainer_thread) &#123;</div><div class="line">                    itemstats[id].moves_to_warm++;</div><div class="line">                    search-&gt;it_flags &amp;= ~ITEM_ACTIVE;<span class="comment">//关闭active</span></div><div class="line">                    move_to_lru = WARM_LRU;<span class="comment">//移到warm lru</span></div><div class="line">                    do_item_unlink_q(search);<span class="comment">//先从这个cold lru删除</span></div><div class="line">                    removed++;</div><div class="line">                &#125;</div><div class="line">                <span class="keyword">break</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">if</span> (it != <span class="keyword">NULL</span>)</div><div class="line">            <span class="keyword">break</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    pthread_mutex_unlock(&amp;lru_locks[id]);</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (it != <span class="keyword">NULL</span>) &#123;</div><div class="line">        <span class="keyword">if</span> (move_to_lru) &#123;</div><div class="line">            it-&gt;slabs\_clsid = ITEM\_clsid(it);<span class="comment">//更细item-&gt;slabs_clsid</span></div><div class="line">            it-&gt;slabs\_clsid |= move\_to_lru;<span class="comment">//找到这个slabs_clsid实际的lru,hot </span></div><div class="line">            <span class="comment">//warm,cold lru?</span></div><div class="line">            item_link_q(it);<span class="comment">//插入lru队列</span></div><div class="line">        &#125;<span class="comment">//不移动,即降低引用次数</span></div><div class="line">        do_item_remove(it);</div><div class="line">        item_trylock_unlock(hold_lock);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">return</span> removed;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数比较长,也比较难懂.主要就是遍历Lru队列,检查是否有过期的Item,以及lru之间item的迁移,也很符合maintainer维护线程这个名称.</p>
+<p>lru维护抓取线程就讲到这了,总结下:</p>
+<ul>
+<li>每一个slabclass_t都对应四个lru队列,hot,warm,cold,noexp lru,四个lru的索引相差64.</li>
+<li>开启maintainer和crawler线程,可以通过memcached -o lru_crawler,lru_maintainer.</li>
+<li>可以通过客户端命令指定抓取哪个lru,lru_crawler crawl &lt;classid,classid,classid | all&gt;</li>
+<li>maintainer线程主要维护hot,warm,cold lru平衡.</li>
+</ul>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/memcache/" rel="tag">#memcache</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/01/18/memcache-slabs-rebalance/" rel="next" title="memcache源码分析之slabs平衡线程">
+                <i class="fa fa-chevron-left"></i> memcache源码分析之slabs平衡线程
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/01/21/memcache-socket/" rel="prev" title="memcache源码中一些网络设置">
+                memcache源码中一些网络设置 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/01/19/memcache-lru-maintenance/"
+     data-title="memcache源码分析之lru维护线程"
+     data-content=""
+     data-url="http://luodw.cc/2016/01/19/memcache-lru-maintenance/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/01/19/memcache-lru-maintenance/"
+           data-title="memcache源码分析之lru维护线程" data-url="http://luodw.cc/2016/01/19/memcache-lru-maintenance/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">真实的lru队列</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">memcache惰性删除机制</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.1.</span> <span class="nav-text">惰性删除之do_item_get</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.2.</span> <span class="nav-text">惰性删除之do_item_alloc</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">crawler线程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.1.</span> <span class="nav-text">crawler线程开启</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">maintainer线程</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

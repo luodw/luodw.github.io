@@ -1,0 +1,1087 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="leveldb,Cache," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="缓存对于一个系统的性能有着重要的影响。试想，如果leveldb每次查询数据时，都要从磁盘获取数据，那么磁盘多次的磁盘IO将严重影响leveldb的性能。所以levledb就在内存设计了一个缓存区，当查询数据时，先到缓存查询，如果缓存有需要的数据，即可直接返回数据即可，无需到磁盘获取数据；如果缓存没有，则到磁盘将数据取出放到缓存，下次再查询相同数据时，即可直接从缓存获取，大大减少了磁盘IO。
+缓存在">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leveldb源码分析之Cache">
+<meta property="og:url" content="http://luodw.cc/2015/10/24/leveldb-11/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="缓存对于一个系统的性能有着重要的影响。试想，如果leveldb每次查询数据时，都要从磁盘获取数据，那么磁盘多次的磁盘IO将严重影响leveldb的性能。所以levledb就在内存设计了一个缓存区，当查询数据时，先到缓存查询，如果缓存有需要的数据，即可直接返回数据即可，无需到磁盘获取数据；如果缓存没有，则到磁盘将数据取出放到缓存，下次再查询相同数据时，即可直接从缓存获取，大大减少了磁盘IO。
+缓存在">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--Cache.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="leveldb源码分析之Cache">
+<meta name="twitter:description" content="缓存对于一个系统的性能有着重要的影响。试想，如果leveldb每次查询数据时，都要从磁盘获取数据，那么磁盘多次的磁盘IO将严重影响leveldb的性能。所以levledb就在内存设计了一个缓存区，当查询数据时，先到缓存查询，如果缓存有需要的数据，即可直接返回数据即可，无需到磁盘获取数据；如果缓存没有，则到磁盘将数据取出放到缓存，下次再查询相同数据时，即可直接从缓存获取，大大减少了磁盘IO。
+缓存在">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--Cache.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/24/leveldb-11/"/>
+
+
+  <title> leveldb源码分析之Cache | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                leveldb源码分析之Cache
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-24T14:14:45+08:00" content="2015-10-24">
+              2015-10-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/24/leveldb-11/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/24/leveldb-11/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/24/leveldb-11/" class="leancloud_visitors" data-flag-title="leveldb源码分析之Cache">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>缓存对于一个系统的性能有着重要的影响。试想，如果leveldb每次查询数据时，都要从磁盘获取数据，那么磁盘多次的磁盘IO将严重影响leveldb的性能。所以levledb就在内存设计了一个缓存区，当查询数据时，先到缓存查询，如果缓存有需要的数据，即可直接返回数据即可，无需到磁盘获取数据；如果缓存没有，则到磁盘将数据取出放到缓存，下次再查询相同数据时，即可直接从缓存获取，大大减少了磁盘IO。</p>
+<p>缓存在操作系统中更常见。例如，如果要读取文件，也是要先到操作系统内核缓存获取数据，内核缓存是以page为单位，没有再到磁盘中获取；还有CPU要从内存获取数据时，也是先在Cache中查询等等。</p>
+<p>好，我们来看下leveldb的缓存设计。leveldb的缓存主要是由NewLRUCache这个类负责的，然后这个类包含了16个LRUCache，LRUCache这个类才是真正的缓存类，也就是说levledb包含了16个缓存。LRUCache这个类是一个环形双向链表组成的缓存，同时LRUCache还包含一个hash表，同样是存储缓存项，主要是为了加快查询速度。</p>
+<p>以下这个图是我自己画的示意图，没有画出哈希表：</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/luodw--Cache.jpg" alt="leveldb缓存示意图">;</p>
+<p>先给出缓存中代表键值对的数据结构：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> LRUHandle &#123;</div><div class="line">  <span class="keyword">void</span>* value;<span class="comment">//存储键值对的值</span></div><div class="line">  <span class="keyword">void</span> (*deleter)(<span class="keyword">const</span> Slice&amp;, <span class="keyword">void</span>* value);<span class="comment">//这个结构体的清除函数，由外界传进去注册</span></div><div class="line">  LRUHandle* next_hash;<span class="comment">//用于hash表冲突时使用</span></div><div class="line">  LRUHandle* next;<span class="comment">//当前节点的下一个节点</span></div><div class="line">  LRUHandle* prev;<span class="comment">//当前节点的上一个节点</span></div><div class="line">  <span class="keyword">size_t</span> charge;      <span class="comment">// 这个节点占用的内存</span></div><div class="line">  <span class="keyword">size_t</span> key_length;<span class="comment">//这个节点键值的长度</span></div><div class="line">  <span class="keyword">uint32_t</span> refs;<span class="comment">//这个节点引用次数，当引用次数为0时，即可删除</span></div><div class="line">  <span class="keyword">uint32_t</span> hash;      <span class="comment">// 这个键值的哈希值</span></div><div class="line">  <span class="keyword">char</span> key_data[<span class="number">1</span>];   <span class="comment">// 存储键的字符串，也是C++柔性数组的概念。</span></div><div class="line"></div><div class="line">  <span class="function">Slice <span class="title">key</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123;</div><div class="line">    <span class="comment">// For cheaper lookups, we allow a temporary Handle object</span></div><div class="line">    <span class="comment">// to store a pointer to a key in "value".</span></div><div class="line">    <span class="keyword">if</span> (next == <span class="keyword">this</span>) &#123;</div><div class="line">      <span class="keyword">return</span> *(<span class="keyword">reinterpret_cast</span>&lt;Slice*&gt;(value));</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      <span class="keyword">return</span> Slice(key_data, key_length);</div><div class="line">    &#125;</div><div class="line">  &#125;<span class="comment">//那句英文的意思就是，为了加速查询，有时候一个节点在value存储键。</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>这个就是缓存中存储键值对的数据结构，键值对主要储存在key_data[1]和value里面。</p>
+<h1>HandleTable</h1>
+<p>接下来看下hash表的源码分析，源码挺长的，先看下成员数属性：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">uint32_t</span> length_;<span class="comment">//哈希数组的长度</span></div><div class="line"><span class="keyword">uint32_t</span> elems_;<span class="comment">//哈希表存储元素的数量</span></div><div class="line">LRUHandle** list_;<span class="comment">//哈希数组指针，因为数组存储的是指针，所以类型必须是指针的指针</span></div></pre></td></tr></table></figure></p>
+<p>主要接口函数有：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//在哈希表中，通过key和hash值查询LRUHandle，在删除，添加，查询时有用到</span></div><div class="line"><span class="function">LRUHandle** <span class="title">FindPointer</span><span class="params">(<span class="keyword">const</span> Slice&amp; key, <span class="keyword">uint32_t</span> hash)</span></span></div><div class="line"><span class="comment">//在哈希表查询一个LRUHandle</span></div><div class="line">LRUHandle* <span class="title">Lookup</span><span class="params">(<span class="keyword">const</span> Slice&amp; key, <span class="keyword">uint32_t</span> hash)</span> </div><div class="line"><span class="comment">//在哈希表中删除一个LRUHandle</span></div><div class="line">LRUHandle* <span class="title">Remove</span><span class="params">(<span class="keyword">const</span> Slice&amp; key, <span class="keyword">uint32_t</span> hash)</span></div><div class="line"><span class="comment">//在哈希表中添加一个LRUHandle</span></div><div class="line"> LRUHandle* <span class="title">Insert</span><span class="params">(LRUHandle* h)</span></div><div class="line"><span class="comment">//改变哈希表的大小</span></div><div class="line"><span class="keyword">void</span> <span class="title">Resize</span><span class="params">()</span></div></pre></td></tr></table></figure></p>
+<p>构造函数很简单，
+<figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">HandleTable</span>() : <span class="selector-tag">length_</span>(<span class="number">0</span>), <span class="selector-tag">elems_</span>(<span class="number">0</span>), <span class="selector-tag">list_</span>(NULL) &#123; <span class="selector-tag">Resize</span>(); &#125;</div></pre></td></tr></table></figure></p>
+<p>先是对成员初始化，然后调用Resize()，因为一开始没有哈希表，所以先给哈希表分配存储空间。第一次分配时，哈希数组长度为4，当后面元素数量大于哈希表长度时，再次分配哈希表大小为现在数组长度的2倍。
+<figure class="highlight haxe"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line">  void Resize() &#123;</div><div class="line">    uint32_t <span class="keyword">new</span><span class="type">_length</span> = <span class="number">4</span>;<span class="comment">//第一次默认分配大小数组长度为4</span></div><div class="line">    <span class="keyword">while</span> (<span class="keyword">new</span><span class="type">_length</span> &lt; elems_) &#123;</div><div class="line">      <span class="keyword">new</span><span class="type">_length</span> *= <span class="number">2</span>;<span class="comment">//后续分配为目前长度的2倍</span></div><div class="line">    &#125;</div><div class="line">    <span class="comment">//以下是做重新哈希的工作，因为数组长度变化了，所以元素需要重新哈希</span></div><div class="line">    LRUHandle** <span class="keyword">new</span><span class="type">_list</span> = <span class="keyword">new</span> <span class="type">LRUHandle</span>*[<span class="keyword">new</span><span class="type">_length</span>];<span class="comment">//给哈希数组长度分配空间</span></div><div class="line">    memset(<span class="keyword">new</span><span class="type">_list</span>, <span class="number">0</span>, sizeof(<span class="keyword">new</span><span class="type">_list</span>[<span class="number">0</span>]) * <span class="keyword">new</span><span class="type">_length</span>);<span class="comment">//数组初始化为0</span></div><div class="line">    uint32_t count = <span class="number">0</span>;</div><div class="line">    <span class="keyword">for</span> (uint32_t i = <span class="number">0</span>; i &lt; length_; i++) &#123;</div><div class="line">      LRUHandle* h = list_[i];<span class="comment">//h为数组的的元素，代表某个LRUHandle指针</span></div><div class="line">      <span class="keyword">while</span> (h != NULL) &#123;<span class="comment">//第i个哈希链的遍历</span></div><div class="line">        LRUHandle* next = h-&gt;next_hash;<span class="comment">//当前节点的下一个节点</span></div><div class="line">        uint32_t hash = h-&gt;hash;<span class="comment">//当前节点的哈希值</span></div><div class="line">        LRUHandle** ptr = &amp;<span class="keyword">new</span><span class="type">_list</span>[hash &amp; (<span class="keyword">new</span><span class="type">_length</span> - <span class="number">1</span>)];<span class="comment">//当前节点在新哈希数组中的索引位置</span></div><div class="line">        h-&gt;next_hash = *ptr;<span class="comment">//这句话在同一个哈希链上插入第二个元素时，更好理解</span></div><div class="line">        *ptr = h;<span class="comment">//索引位置赋值</span></div><div class="line">        h = next;<span class="comment">//开始迭代下一个元素</span></div><div class="line">        count++;<span class="comment">//哈希数组中所有元素</span></div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">    assert(elems_ == count);</div><div class="line">    delete[] list_;<span class="comment">//析构原有哈希数组</span></div><div class="line">    list_ = <span class="keyword">new</span><span class="type">_list</span>;<span class="comment">//list_指向新的哈希数组</span></div><div class="line">    length_ = <span class="keyword">new</span><span class="type">_length</span>;<span class="comment">//更新长度</span></div><div class="line">  &#125;</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>第一次执行Resize时，不执行for循环，因为lenght_长度为0，所以就是新建一个空的哈希表。我来解释下h-&gt;next_hash = *ptr;我第一次没看懂这句话，所以我觉得有点难理解。</p>
+<ol>
+<li>一开始，*ptr值为空，所以h-&gt;next_hash值为0；</li>
+<li>然后执行*ptr = h，把h赋值给*ptr，所以*ptr指向h。</li>
+<li>当这条哈希链再来一个元素时，此时执行h-&gt;next_hash = *ptr;*ptr存储的是第一个节点的地址，然后新来的节点插在了第一个节点的前面。</li>
+<li>最后执行*ptr = h，新哈希表的索引位置就存储第二个节点的地址。</li>
+</ol>
+<p>当插入，删除，查询时，都要先找到节点的地址，调用函数如下：
+<figure class="highlight autoit"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">LRUHandle** FindPointer(<span class="keyword">const</span> Slice&amp; key, uint32_t hash) &#123;</div><div class="line">  LRUHandle** <span class="built_in">ptr</span> = &amp;list_[hash &amp; (length_ - <span class="number">1</span>)]<span class="comment">;//根据hash值，节点在哈希表中的索引位置</span></div><div class="line">  <span class="keyword">while</span> (*<span class="built_in">ptr</span> != <span class="literal">NULL</span> &amp;&amp;</div><div class="line">         ((*<span class="built_in">ptr</span>)-&gt;hash != hash || key != (*<span class="built_in">ptr</span>)-&gt;key())) &#123;</div><div class="line">    <span class="built_in">ptr</span> = &amp;(*<span class="built_in">ptr</span>)-&gt;next_hash<span class="comment">;//迭代哈希链，找到键值相等的节点</span></div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> <span class="built_in">ptr</span><span class="comment">;返回这个节点的地址的地址</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>先看下简单的查询操作;
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function">LRUHandle* <span class="title">Lookup</span><span class="params">(<span class="keyword">const</span> Slice&amp; key, <span class="keyword">uint32_t</span> hash)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> *FindPointer(key, hash);</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>插入操作,先查找要插入的键值是否在哈希表中，如果在，那么用新的节点替换就的节点，并且函数返回旧的节点。
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">LRUHandle* Insert(LRUHandle* h) &#123;</div><div class="line">    LRUHandle** ptr = FindPointer(h-&gt;key(), h-&gt;hash);<span class="comment">//查找要插入的节点的地址</span></div><div class="line">    LRUHandle* old = *ptr;</div><div class="line">    h-&gt;next_hash = (old == <span class="keyword">NULL</span> ? <span class="keyword">NULL</span> : old-&gt;next_hash);<span class="comment">//这行和下一行将新节点插入到哈希链中</span></div><div class="line">    *ptr = h;</div><div class="line">    <span class="keyword">if</span> (old == <span class="keyword">NULL</span>) &#123;<span class="comment">//当old为空时，不存在相等的节点</span></div><div class="line">      ++elems_;<span class="comment">//元素个数+1</span></div><div class="line">      <span class="keyword">if</span> (elems_ &gt; length_) &#123;</div><div class="line">        <span class="comment">// Since each cache entry is fairly large, we aim for a small</span></div><div class="line">        <span class="comment">// average linked list length (&lt;= 1).</span></div><div class="line">        Resize();</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> old;</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>为了保证哈希链的查找速度，尽量使平均哈希链长度为&lt;=1。所以函数有if判断。</p>
+<p>接下来，是哈希表删除函数，找到要删除的节点，更新即可：
+<figure class="highlight nimrod"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="type">LRUHandle</span>* <span class="type">Remove</span>(<span class="keyword">const</span> <span class="type">Slice</span>&amp; key, uint32_t hash) &#123;</div><div class="line">  <span class="type">LRUHandle</span>** <span class="keyword">ptr</span> = <span class="type">FindPointer</span>(key, hash);//查找要删除的节点位置</div><div class="line">  <span class="type">LRUHandle</span>* <span class="literal">result</span> = *<span class="keyword">ptr</span>;//把要删除的节点地址赋给<span class="literal">result</span></div><div class="line">  <span class="keyword">if</span> (<span class="literal">result</span> != <span class="type">NULL</span>) &#123;</div><div class="line">    *<span class="keyword">ptr</span> = <span class="literal">result</span>-&gt;next_hash;//删除节点的位置赋值给删除节点的下一个节点</div><div class="line">    --elems_;//元素减一</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> <span class="literal">result</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>LRUCache类</h1>
+<p>接下来，我们来分析下双向链表缓存类LRUCache,先看下主要成员：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">size_t</span> capacity_;<span class="comment">//这个双向链表的存储容量，由每个节点的charge累加和</span></div><div class="line">port::Mutex mutex_;<span class="comment">//这个链表的互斥量</span></div><div class="line"><span class="keyword">size_t</span> usage_;<span class="comment">//已使用空间</span></div><div class="line">LRUHandle lru_;<span class="comment">//双向循环链表的傀儡节点，不存储数据，方便定位这个链表的入口</span></div><div class="line">HandleTable table_;<span class="comment">//上面讲解的哈新表，所以一个链表还附带一个哈希表</span></div></pre></td></tr></table></figure></p>
+<p>lru之前(prev)的节点都是最新的节点，lru之后的节点(next)都是最“旧”的节点，所以插入新节点时，就往lru.prev插入.当空间不够时，删除lru.next后的节点。</p>
+<p>构造函数如下：
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">LRUCache:</span>:LRUCache()</div><div class="line">    : usage_(<span class="number">0</span>) &#123;</div><div class="line">  <span class="comment">// 一开始为空的循环链表，所以lru的前后指针都指向自己</span></div><div class="line">  lru_.next = <span class="variable">&amp;lru_</span>;</div><div class="line">  lru_.prev = <span class="variable">&amp;lru_</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>向链表append一个节点，调用的是void LRUCache::LRU_Append(LRUHandle* e)，这个函数由insert函数调用;
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> LRUCache::LRU_Append(LRUHandle* e) &#123;</div><div class="line">  <span class="comment">// 往lru_之前插入，使这个节点为最新节点</span></div><div class="line">  e-&gt;next = &amp;lru_;</div><div class="line">  e-&gt;prev = lru_.prev;</div><div class="line">  e-&gt;prev-&gt;next = e;</div><div class="line">  e-&gt;next-&gt;prev = e;</div><div class="line">&#125;</div><div class="line"></div><div class="line">Cache::Handle* LRUCache::Insert(</div><div class="line">    <span class="keyword">const</span> Slice&amp; key, <span class="keyword">uint32_t</span> hash, <span class="keyword">void</span>* value, <span class="keyword">size_t</span> charge,</div><div class="line">    <span class="keyword">void</span> (*deleter)(<span class="keyword">const</span> Slice&amp; key, <span class="keyword">void</span>* value)) &#123;</div><div class="line">  <span class="function">MutexLock <span class="title">l</span><span class="params">(&amp;mutex_)</span></span>;<span class="comment">//多线程使用时，删除添加均需要锁住</span></div><div class="line"></div><div class="line">  LRUHandle* e = <span class="keyword">reinterpret_cast</span>&lt;LRUHandle*&gt;(</div><div class="line">      <span class="built_in">malloc</span>(<span class="keyword">sizeof</span>(LRUHandle)<span class="number">-1</span> + key.size()));<span class="comment">//给插入的节点分配空间</span></div><div class="line">  e-&gt;value = value;</div><div class="line">  e-&gt;deleter = deleter;</div><div class="line">  e-&gt;charge = charge;</div><div class="line">  e-&gt;key_length = key.size();</div><div class="line">  e-&gt;hash = hash;</div><div class="line">  e-&gt;refs = <span class="number">2</span>;  <span class="comment">// 链表引用一次，返回值引用一次</span></div><div class="line">  <span class="built_in">memcpy</span>(e-&gt;key_data, key.data(), key.size());<span class="comment">//给键值赋值</span></div><div class="line">  LRU_Append(e);<span class="comment">//调用上述函数，添加进循环链表</span></div><div class="line">  usage_ += charge;/链表空间使用量更新</div><div class="line"></div><div class="line">  LRUHandle* old = table_.Insert(e);<span class="comment">//同时往哈希表插入节点</span></div><div class="line">  <span class="keyword">if</span> (old != <span class="literal">NULL</span>) &#123;</div><div class="line">    LRU_Remove(old);<span class="comment">//如果哈希表用新的节点替换了旧节点，那么循环链表也要删除旧节点</span></div><div class="line">    Unref(old);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="keyword">while</span> (usage_ &gt; capacity_ &amp;&amp; lru_.next != &amp;lru_) &#123;<span class="comment">//缓存不够用时，从循环链表的lru.next开始删除节点，同时也要把哈希表的节点删除</span></div><div class="line">    LRUHandle* old = lru_.next;</div><div class="line">    LRU_Remove(old);</div><div class="line">    table_.Remove(old-&gt;key(), old-&gt;hash);</div><div class="line">    Unref(old);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="keyword">return</span> <span class="keyword">reinterpret_cast</span>&lt;Cache::Handle*&gt;(e);返回新插入节点的指针</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>删除节点的函数比较简单，我就不多说了。</p>
+<h1>ShardedLRUCache类</h1>
+<p>这个类主要是一个封装类，封装类16个LRUCache类，就是16个环形链表+哈希表。根据键的哈希值，调用相应的LRUCache类的方法。</p>
+<p>先看两个简单的函数：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> uint32_t <span class="title">HashSlice</span><span class="params">(<span class="keyword">const</span> Slice&amp; s)</span> </span>&#123;</div><div class="line">  <span class="keyword">return</span> Hash(s.data(), s.size(), <span class="number">0</span>);</div><div class="line">&#125;<span class="comment">//返回这个键值的哈希值，调用hash函数</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> uint32_t <span class="title">Shard</span><span class="params">(<span class="keyword">uint32_t</span> hash)</span> </span>&#123;</div><div class="line">  <span class="keyword">return</span> hash &gt;&gt; (<span class="number">32</span> - kNumShardBits);</div><div class="line">&#125;<span class="comment">//用hash值最高的4位，来决定用那个LRUCache来操作这个键值</span></div></pre></td></tr></table></figure></p>
+<p>主要接口如下，可以看到都是调用LRUCache里的方法
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line">  <span class="keyword">explicit</span> ShardedLRUCache(size_t capacity)</div><div class="line">      : last_id_(<span class="number">0</span>) &#123;</div><div class="line">    <span class="keyword">const</span> size_t per_shard = (capacity + (kNumShards - <span class="number">1</span>)) / kNumShards;</div><div class="line">    <span class="built_in">for</span> (<span class="keyword">int</span> s = <span class="number">0</span>; s &lt; kNumShards; s++) &#123;</div><div class="line">      shard_[s].SetCapacity(per_shard);</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">virtual</span> ~ShardedLRUCache() &#123; &#125;</div><div class="line">  <span class="keyword">virtual</span> Handle* Insert(<span class="keyword">const</span> Slice&amp; key, <span class="keyword">void</span>* value, size_t charge,</div><div class="line">                         <span class="keyword">void</span> (*deleter)(<span class="keyword">const</span> Slice&amp; key, <span class="keyword">void</span>* value)) &#123;</div><div class="line">    <span class="keyword">const</span> uint32_t hash = HashSlice(key);</div><div class="line">    <span class="built_in">return</span> shard_[Shard(hash)].Insert(key, hash, value, charge, deleter);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">virtual</span> Handle* Lookup(<span class="keyword">const</span> Slice&amp; key) &#123;</div><div class="line">    <span class="keyword">const</span> uint32_t hash = HashSlice(key);</div><div class="line">    <span class="built_in">return</span> shard_[Shard(hash)].Lookup(key, hash);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">virtual</span> <span class="keyword">void</span> Release(Handle* handle) &#123;</div><div class="line">    LRUHandle* h = <span class="keyword">reinterpret_cast</span>&lt;LRUHandle*&gt;(handle);</div><div class="line">    shard_[Shard(h-&gt;hash)].Release(handle);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">virtual</span> <span class="keyword">void</span> Erase(<span class="keyword">const</span> Slice&amp; key) &#123;</div><div class="line">    <span class="keyword">const</span> uint32_t hash = HashSlice(key);</div><div class="line">    shard_[Shard(hash)].Erase(key, hash);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">virtual</span> <span class="keyword">void</span>* Value(Handle* handle) &#123;</div><div class="line">    <span class="built_in">return</span> <span class="keyword">reinterpret_cast</span>&lt;LRUHandle*&gt;(handle)-&gt;value;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">virtual</span> uint64_t NewId() &#123;</div><div class="line">    MutexLock l(&amp;id_mutex_);</div><div class="line">    <span class="built_in">return</span> ++(last_id_);</div><div class="line">  &#125;</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>看了leveldb缓存，我对缓存机制有了深刻的理解，大概就知道内核的缓存是如何实现的了，所以多看看优秀开源源码，可以学习到很多东西。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/leveldb/" rel="tag">#leveldb</a>
+          
+            <a href="/tags/Cache/" rel="tag">#Cache</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/22/Cplus6/" rel="next" title="C++之柔性数组">
+                <i class="fa fa-chevron-left"></i> C++之柔性数组
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/24/leveldb-12/" rel="prev" title="leveldb源码分析之读sst文件">
+                leveldb源码分析之读sst文件 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/24/leveldb-11/"
+     data-title="leveldb源码分析之Cache"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/24/leveldb-11/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/24/leveldb-11/"
+           data-title="leveldb源码分析之Cache" data-url="http://luodw.cc/2015/10/24/leveldb-11/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">HandleTable</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">LRUCache类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">ShardedLRUCache类</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

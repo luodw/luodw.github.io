@@ -1,0 +1,1131 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="linux," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="最近把 Linux高性能服务器编程 编程这本书给看了,之前在知乎上看好多人推荐这本书,于是乎在我看了这本书之后,我发现这本书真的很值得看,这本书适合有Linux基础的的人看,特别是看过一些成熟框架的人看,像redis,memcache,最好还有nginx,因为这本书介绍了服务器端开发的一些术语以及模式,如果没看过源码实现,这些理论我觉得会很空洞,即使书本提供了一些示例,看着也会比较吃力.
+我这篇文">
+<meta property="og:type" content="article">
+<meta property="og:title" content="学习Linux高性能服务器编程的一些收获">
+<meta property="og:url" content="http://luodw.cc/2016/04/29/HighLinux/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="最近把 Linux高性能服务器编程 编程这本书给看了,之前在知乎上看好多人推荐这本书,于是乎在我看了这本书之后,我发现这本书真的很值得看,这本书适合有Linux基础的的人看,特别是看过一些成熟框架的人看,像redis,memcache,最好还有nginx,因为这本书介绍了服务器端开发的一些术语以及模式,如果没看过源码实现,这些理论我觉得会很空洞,即使书本提供了一些示例,看着也会比较吃力.
+我这篇文">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-shuming.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0041.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0042.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0052.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0062.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.121Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="学习Linux高性能服务器编程的一些收获">
+<meta name="twitter:description" content="最近把 Linux高性能服务器编程 编程这本书给看了,之前在知乎上看好多人推荐这本书,于是乎在我看了这本书之后,我发现这本书真的很值得看,这本书适合有Linux基础的的人看,特别是看过一些成熟框架的人看,像redis,memcache,最好还有nginx,因为这本书介绍了服务器端开发的一些术语以及模式,如果没看过源码实现,这些理论我觉得会很空洞,即使书本提供了一些示例,看着也会比较吃力.
+我这篇文">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-shuming.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/04/29/HighLinux/"/>
+
+
+  <title> 学习Linux高性能服务器编程的一些收获 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                学习Linux高性能服务器编程的一些收获
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-04-29T14:41:15+08:00" content="2016-04-29">
+              2016-04-29
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/04/29/HighLinux/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/04/29/HighLinux/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/04/29/HighLinux/" class="leancloud_visitors" data-flag-title="学习Linux高性能服务器编程的一些收获">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>最近把 <strong>Linux高性能服务器编程</strong> 编程这本书给看了,之前在知乎上看好多人推荐这本书,于是乎在我看了这本书之后,我发现这本书真的很值得看,这本书适合有Linux基础的的人看,特别是看过一些成熟框架的人看,像redis,memcache,最好还有nginx,因为这本书介绍了服务器端开发的一些术语以及模式,如果没看过源码实现,这些理论我觉得会很空洞,即使书本提供了一些示例,看着也会比较吃力.</p>
+<p>我这篇文章主要记录在这本书见到的新知识,虽然很多内容在之前有接触过,但是还是有一些内容让我眼前一亮.</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-shuming.png" alt="Linux高性能服务器编程"></p>
+<p>这本书篇章布局也很合理,第一篇介绍了网络的一些基础知识,tcp,ip,dns,arp等等,这些本科的网络课都有学过,但是我强烈推荐好好掌握下tcpdump这个命令(第一次见到这个命令是在unp网络编程),对网络上的的数据包进行截获的包分析工具,例如可以查看网络建立的三次握手数据包收发过程以及四次挥手过程,还可以查看icmp等等,非常方便.当然像route,netstat,ifconfig,ping,traceroute也是需要掌握的,还有和域名解析相关的三个命令dig,host,nslookup.</p>
+<p>这本书的第二篇前半部分介绍了网络编程的一些函数调用;中间部分介绍了与网络相关的三种事件,文件io读写事件,定时事件,信号事件以及如何统一这三种事件源;最后一部分介绍了服务器编程中常用的多进程和多线程实现.</p>
+<p>这本书的第三篇介绍了高性能服务器优化和检测,主要就是服务器调试,包括资源的调整,gdb调试和压力测试;还有一些和服务器性能相关的命令,例如stat系列,netstat,vmstat,ifstat,mpstat等等.</p>
+<p>接下来,我就介绍下这本书中,给我眼前一亮的东西.</p>
+<h1>sendfile,splice和tee函数</h1>
+<hr>
+<p>这三个函数在我没读这本书之前是没有遇到过的,unp网络编程我看了前半部分我也没见着,而且在redis和memcache我也没见着,关键是这三个函数效率很高,避免了用户态和内核态之间的数据拷贝.我经过一番思考之后,是因为服务器端程序都有业务逻辑,必须将数据拷贝至用户态,然后处理数据,最后再将数据拷贝进内核态发送出去,所以这三个函数在服务器上出场率不是很高;</p>
+<h2>sendfile函数</h2>
+<p>sendfile函数主要是用于在文件服务器上,在两个文件描述符之间直接传递数据(完全在内核中操作),从而避免了内核缓冲区和用户缓冲区之间的数据拷贝,效率很高,这种称为零拷贝.函数接口如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/sendfile.h&gt;</span></span></div><div class="line"><span class="keyword">ssize_t</span> sendfile(<span class="keyword">int</span> out_fd,<span class="keyword">int</span> in_fd,<span class="keyword">off_t</span>* offset,<span class="keyword">size_t</span> count)</div></pre></td></tr></table></figure></p>
+<p>outf_fd为待写入的文件描述符,一般是一个socket,in_fd是一个写入文件描述符,一般是一个磁盘文件描述符,offset是一个输入流的偏移量,如果为空,则从输入流的起始位置开始;count是文件描述符in_fd和out_fd之间传递的字节数.函数成功调用返回传递的字节数,失败返回-1,并设置error值.</p>
+<p>sendfile函数使用场景最常见就是发送文件:</p>
+<ul>
+<li>从磁盘文件读取数据至内核缓冲区,用sendfile函数直接在内核将数据拷贝至socket输出缓冲区,发送出去;</li>
+</ul>
+<p>平时,我们如果要在网络上传输一个文件,要有以下步奏:</p>
+<ol>
+<li>打开一个文件fd,将文件的数据首先从磁盘拷贝至内核缓冲区;</li>
+<li>然后将内核缓存区数据拷贝至用户态缓冲区;</li>
+<li>将用户态缓冲区的数据拷贝至socket输出缓冲区;</li>
+<li>将socket缓冲区数据发送出去;</li>
+</ol>
+<p>但是如果我们使用sendfile函数,则可以省去内核态拷贝至用户态这一过程:</p>
+<ol>
+<li>打开一个文件fd,将文件的数据首先从磁盘拷贝至内核缓冲区;</li>
+<li>将内核哈缓冲区的数据拷贝至socket输出缓冲区;</li>
+<li>将socket缓冲区数据发送出去;</li>
+</ol>
+<h2>splice函数</h2>
+<p>这个函数主要是在两个文件描述符上移动数据,其中有一个必须是管道,主要是利用管道的在内核中缓冲区暂存数据,函数接口如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;fcntl.h&gt;</span></span></div><div class="line"><span class="keyword">ssize_t</span> splice(<span class="keyword">int</span> fd_in,<span class="keyword">loff_t</span>* off_in,in fd_out, <span class="keyword">loff_t</span>* off_out,</div><div class="line">  <span class="keyword">size_t</span> len,<span class="keyword">unsigned</span> <span class="keyword">int</span> flags)</div></pre></td></tr></table></figure></p>
+<p>splice用于在两个文件描述符之间移动数据， 也是零拷贝。fd_in参数是待输入描述符。如果它是一个管道文件描述符，则off_in必须设置为NULL；否则off_in表示从输入数据流的何处开读取，此时若为NULL，则从输入数据流的当前偏移位置读入。fd_out/off_out与上述相同，不过是用于输出。len参数指定移动数据的长度。flags参数则控制数据如何移动：</p>
+<ul>
+<li>SPLICE_F_NONBLOCK：splice 操作不会被阻塞。然而，如果文件描述符没有被设置为不可被阻塞方式的 I/O ，那么调用 splice 有可能仍然被阻塞。</li>
+<li>SPLICE_F_MORE：告知操作系统内核下一个 splice 系统调用将会有更多的数据传来。</li>
+<li>SPLICE_F_MOVE：如果输出是文件，这个值则会使得操作系统内核尝试从输入管道缓冲区直接将数据读入到输出地址空间，这个数据传输过程没有任何数据拷贝操作发生。</li>
+</ul>
+<p>所以可以想象以下两个使用场景:</p>
+<ol>
+<li>回显服务器 从socket读入数据,并用splice函数输出到管道的写端;然后从管道的读端用splice函数输出到socket,实现回显服务器.</li>
+<li>文件拷贝 从一个磁盘文件读取数据,用splice函数输出到管道的写端;然后从管道的读端用splice函数输出到另外一个磁盘文件.</li>
+</ol>
+<p>使用方法大概如下:
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//这是测试示例主要部分</span></div><div class="line">  int pipefd[2];               </div><div class="line">  <span class="keyword">ret</span> = pipe(pipefd);  <span class="comment">//创建管道  </span></div><div class="line">  <span class="keyword">assert</span>(<span class="keyword">ret</span> != -1);  </div><div class="line">  <span class="comment">//将connfd上的客户端数据定向到管道中  </span></div><div class="line">  <span class="keyword">ret</span> = splice(connfd, NULL, pipefd[1], NULL,  </div><div class="line">                32768, SPLICE_F_MORE | SPLICE_F_MOVE);  </div><div class="line">  <span class="keyword">assert</span>(<span class="keyword">ret</span> != -1);  </div><div class="line">  <span class="comment">//将管道的输出定向到connfd上  </span></div><div class="line">  <span class="keyword">ret</span> = splice(pipefd[0], NULL, connfd, NULL,  </div><div class="line">                32768, SPLICE_F_MORE | SPLICE_F_MOVE);  </div><div class="line">  <span class="keyword">assert</span>(<span class="keyword">ret</span> != -1);</div></pre></td></tr></table></figure></p>
+<p>从代码中可以看出没有使用到任何缓冲区,因为数据都是在内核实现了传递或者零传递,只是更改缓冲区的指针.</p>
+<h2>tee函数</h2>
+<p>tee函数是在两个管道文件描述符之间复制数据,也是零拷贝数据;因为只是从源管道复制到另外管道,所以原管道中保存的数据仍然可以用于后续操作,例如可以重定向到其他文件描述符;函数接口如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;fcntl.h&gt;</span></span></div><div class="line"><span class="keyword">ssize_t</span> tee(<span class="keyword">int</span> fdin, <span class="keyword">int</span> fdout, <span class="keyword">size_t</span> len, <span class="keyword">unsigned</span> <span class="keyword">int</span> flags);</div></pre></td></tr></table></figure></p>
+<p>fdin参数：待读取数据的文件描述符。fdout参数：待写入数据的文件描述符。len参数：表示复制的数据的长度。flags参数：同splice( )函数。fdin和fdout必须都是管道文件描述符。</p>
+<p>返回值&gt;0：表示复制的字节数。返回0：表示没有复制任何数据。返回-1：表示失败，并设置errno。</p>
+<p>这个函数的使用场景在我认知范围内,估计就是实现tee命令,可以实现将输入的数据输出到标准输出,同时输出到某个文件.基本使用方法如下:
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">int fd1 = open(<span class="string">"./1.txt"</span>, O_RDONLY);</div><div class="line">int fd2 = open(<span class="string">"./2.txt"</span>, O_RDWR| O_CREAT | O_TRUNC, <span class="number">0666</span>);</div><div class="line">int fd3 = open(<span class="string">"./3.txt"</span>, O_RDWR| O_CREAT | O_TRUNC, <span class="number">0666</span>);</div><div class="line"><span class="comment">/*用于向"./2.txt"输入数据*/</span></div><div class="line">int pipefd2[<span class="number">2</span>];</div><div class="line"><span class="comment">/*用于向"./3.txt"输入数据*/</span></div><div class="line">int pipefd3[<span class="number">2</span>];</div><div class="line">pipe(pipefd2);</div><div class="line">pipe(pipefd3);</div><div class="line"><span class="comment">/*将fd1文件的内容输入管道pipefd2中*/</span></div><div class="line">splice(fd1, NULL, pipefd2[<span class="number">1</span>], NULL, <span class="number">10086</span>, SPLICE_F_MORE);</div><div class="line"><span class="comment">/*将管道pipefd2的内容复制到管道pipefd3中，不消耗管道pipefd2上的数据，管道pipefd2上的数据可以用于后续操作*/</span></div><div class="line">tee(pipefd2[<span class="number">0</span>], pipefd3[<span class="number">1</span>], <span class="number">10086</span>, SPLICE_F_NONBLOCK);</div><div class="line"><span class="comment">/*将管道pipefd2的内容写入fd2文件中*/</span></div><div class="line">splice(pipefd2[<span class="number">0</span>], NULL, fd2, NULL, <span class="number">10086</span>, SPLICE_F_MORE);</div><div class="line"><span class="comment">/*将管道pipefd3的内容写入fd3文件中*/</span></div><div class="line">splice(pipefd3[<span class="number">0</span>], NULL, fd3, NULL, <span class="number">10086</span>, SPLICE_F_MORE);</div></pre></td></tr></table></figure></p>
+<p>这个程序是将fd1中的数据重定向到两个磁盘文件,而tee命令是将fd1的数据重定向到fd2和标准输出,即最后一行代码的fd3替换为STDOUT_FILENO.</p>
+<p>那有人可能会问,最后一行代码为什么不能pipefd3[0],也就是两次都从管道pipefd2[0]读取数据? 我试着修改pipefd3[0]该pipefd2[0],会造成输出阻塞. 因为splice函数将pipefd2[0]的缓冲区数据消耗了,所以第二次在pipefd2[0]调用splice会因为无数据读入而阻塞.而因为tee不会消耗数据,所以tee函数之后,还可以继续使用splice从相同pipefd2[0]读取数据.</p>
+<h1>统一事件源</h1>
+<hr>
+<p>这个是我看这本书最喜欢的设计,因为它打通了我之前在libevent理解上的阻塞.之前在memcache时,有大概看了下libevent的实现原理,因为时间事件和io读写事件和redis的mainae模块一样,很好理解,但是信号事件我始终想不明白是如何加入到事件处理的?这里又不得不表扬管道了,具体实现后面在说明.</p>
+<p>服务器常见的有三种事件类型,IO读写事件,信号事件和时间事件,如果分别去监听这三种事件,那么代码将会非常复杂,而将这三种事件整合在一个事件源中,代码将会更加简洁,而且逻辑非常清楚.libevent就是这么做的.所以这里借助libevent来分析如何将三种事件整合在一起,参考资料为张亮的 <strong>libevent 源码深度剖析</strong>,我上传到我的github,有需要可以下载看<a href="https://github.com/luodw/Material/blob/master/libevent%E6%BA%90%E7%A0%81%E6%B7%B1%E5%BA%A6%E5%89%96%E6%9E%90.pdf" target="_blank" rel="external">libevent源码剖析下载地址</a></p>
+<p>libevent是一个轻量级的开源高性能网络库,底层支持多种I/O多路复用技术,epoll,poll,dev/poll,select和kqueue等,同时还支持定时器和信号事件;先看下libevent的整体框架
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0041.png" alt="libevent整体框架" title=" "></p>
+<p>一开始,应用程序定义事件,可以是io读写事件,信号事件或者时间事件;定义好之后,接下来将事件放在各自的等待链表中;io读写事件和信号事件放在链表中,时间事件放在最小堆中.当io多路复用调用时间超时时,再检查每个事件,看是否就绪,例如可读可写事件是否可读可写,是否产生信号事件以及时间事件是否到期,并将所有就绪的事件放入就绪链表中,最后按优先级执行每个事件的事件处理函数.</p>
+<p>了解了libevent执行过程之后,再来分析libevent是如何将三种事件整合在一起的.</p>
+<ol>
+<li>IO读写事件 因为libevent底层支持多种IO多路复用技术,以epoll为例,当我们定义个IO事件时,将IO事件的fd可读事件注册到epoll调用中;当客户端给服务器发送数据之后,触发服务器可读事件,服务器读取客户端的数据,并且经过业务逻辑处理之后,将数据放入输出缓冲区,并在fd上注册一个可写事件;在下一次事件循环中,检测到可写事件,最后执行可写事件的处理函数将数据发送给客户端.这就是libevent处理IO事件的过程.</li>
+<li>时间事件 libevent用最小堆来管理时间事件,每次从堆中取出的时间事件是事件到期时间离当前最近的时间点. 如果epoll每次的超时时间都采用堆的根元素到期时间,那么epoll超时时间到期之后,最小堆的根元素事件肯定也到期了,在处理完IO事件之后,即可处理根元素时间事件,而且必须处理诺干个最小到期时间事件,直到到期时间在当前时间之后. 因为IO事件可能比较耗时,所以除了堆顶时间外,其他时间事件可能也到期了.这样就把时间事件和IO事件整合到一块了.</li>
+<li>信号事件 libevent整合信号事件是最出彩的地方, 采用的方法如下:在主线程定义一对管道,然后将管道的读端注册到io多路复用的可读事件;当产生某个信号时,在信号处理函数中,往这对管道的写端写入这个信号的数值,这样即可触发管道读端的可读事件;然后在IO多路复用超时之后,根据不同的信号,执行不同的函数. 这样就可以把信号事件整合在IO事件中.</li>
+</ol>
+<p>一开始接触管道的时候,并没有发现管道是如此的神器; 我们在linux下遇到最多的就是磁盘文件描述符,socket描述符和管道描述符,而管道描述符属于最灵活,即可以作为其他两者的连接桥梁,如上述的splice函数,还可以作为进程间通信以及将信号事件整合IO事件中等等.</p>
+<h1>多进程/多线程并发模式</h1>
+<hr>
+<p>服务器端编程三大模型,redis的单进程模型,memcache的单进程多线程模型和nginx的多进程模型.由于我看过redis,memcache源码,我对前两者模型很熟悉;而nginx源码我没看过,也没认真区研究nginx,所以对多进程模型也是一知半解; <strong>Linux服务器高性能编程</strong> 举出一个多进程通用模式,看完之后,我对这种模型有了一定的了解.</p>
+<h2>多线程并发模式</h2>
+<p>书本中列出多线程的两种模式,半同步半异步反应堆模式;下图是该模式的示意图:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0042.png" alt="半同步半异步反应堆模式" title=" ">
+该模式的主线程负责监听所有socket,包括listenfd和客户端fd.当客户端给服务器发送数据时,主线程将客户端的fd以及客户端的元数据打包成任务对象放入请求队列,然后工作线程同步的从请求队列中获取任务对象,并且处理任务对象逻辑.因为多个线程会从工作队列中争夺任务对象,所以工作队列必须加锁以保持同步.这种模式的客户端是无状态的,因为同一个连接上的不同请求可能会由不同的线程处理.</p>
+<p>高性能半同步半异步模式,这也是memcache采用的多线程模式,下图是该模式的示意图:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0052.png" alt="高性能半同步半异步模式">
+该模式的主线程主要负责监听listenfd,当有客户端连接到服务器时,主线程accept这个客户端socket,然后将这个socket放入工作线程的libevent的实例中,从此就由这个libevent实例来负责这个客户端socket的事件处理.</p>
+<p>那么怎么通知工作线程什么时候去接收这个socket? 这时又是管道的功劳.每个工作线程都定义一对管道,工作线程监听管道的读端; 当有客户端连接时,主线程向管道的写端写入一个字符,触发工作线程的可写事件,这样工作线程就可以执行管道读端的事件处理函数,在函数中接收这个socket并为这个socket注册一个可读事件,从此以后,这个客户端就由这个工作线程监听处理.</p>
+<h2>多进程模式</h2>
+<p><strong>Linux服务器高性能编程</strong> 书中实现的多进程模型如下图所示:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0062.png" alt="多进程编程模型">
+主进程和工作进程利用管道来进行通信,工作进程注册管道的可读事件; 二者同时监听listanfd,也就是说如果有客户端连接的话,主进程和工作进程都能触发可读事件,也就是惊群现象. 但是主进程并不接收客户端socket,而是通过轮询的方式选择一个工作进程来接收这个客户端,并向这个工作进程管道的写端写入一个标志,触发工作进程的可读事件,在管道读事件的处理函数中,工作进程接收这个客户端. 之后这个客户端与服务器的通信就由这个工作进程负责监听. 所以这种模式的主进程主要起负载均衡作用,所有任务主要是由工作进程负责.</p>
+<p>对多进程的理解,必须对fork系统调用以及copy on write机制有足够的理解,因为主进程和工作进程间有共享的部分listenfd也有各自独享部分.</p>
+<h1>总结</h1>
+<hr>
+<p>如果想从事后台开发,了解常用的开发框架是很有必要的,因为对于理解后台软件web服务器或者数据库很有帮助.而且我发现多进程比较适合web服务器,多线程比较适合数据库.因为数据库需要在同一块内存中存储数据,由于多线程并发处理内存数据,而多进程的每个进程内存空间是隔离的,每个进程处理数据导致会导致多份数据;而web数据库主要是接收客户端请求并返回网页,每个客户端对网页的请求相互独立,所以适合多进程模型.</p>
+<p>这本书对后台知识讲解归纳的很到位,可以对后台开发有个整体的认识,有linux基础之后,推荐读读...</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/linux/" rel="tag">#linux</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/04/09/mydb/" rel="next" title="写MyDB收获的经验和遇到的坑">
+                <i class="fa fa-chevron-left"></i> 写MyDB收获的经验和遇到的坑
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/05/20/tfs01/" rel="prev" title="TFS之DataServer启动执行过程">
+                TFS之DataServer启动执行过程 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/04/29/HighLinux/"
+     data-title="学习Linux高性能服务器编程的一些收获"
+     data-content=""
+     data-url="http://luodw.cc/2016/04/29/HighLinux/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/04/29/HighLinux/"
+           data-title="学习Linux高性能服务器编程的一些收获" data-url="http://luodw.cc/2016/04/29/HighLinux/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">sendfile,splice和tee函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.1.</span> <span class="nav-text">sendfile函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.2.</span> <span class="nav-text">splice函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.3.</span> <span class="nav-text">tee函数</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">统一事件源</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">多进程/多线程并发模式</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.1.</span> <span class="nav-text">多线程并发模式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.2.</span> <span class="nav-text">多进程模式</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

@@ -1,0 +1,1081 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="memcache,slab," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="昨天分析了memcache的整体软件架构，主要是线程模型和内存模型，今天主要分析下memcache的内存分配组件slab。slab是memcache的内存池结构，它将内存分为一系列固定大小内存的内存块chunk，线程每次申请内存时，选择和所需的内存大小最接近(大于等于)的内存即可。把slab的内存模型再次献上:
+;
+memcache事先会分配一大块内存，通过-m来设置，然后slab每次申请内存都从">
+<meta property="og:type" content="article">
+<meta property="og:title" content="memcache源码分析之slab内存分配">
+<meta property="og:url" content="http://luodw.cc/2016/01/09/memcache-slab/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="昨天分析了memcache的整体软件架构，主要是线程模型和内存模型，今天主要分析下memcache的内存分配组件slab。slab是memcache的内存池结构，它将内存分为一系列固定大小内存的内存块chunk，线程每次申请内存时，选择和所需的内存大小最接近(大于等于)的内存即可。把slab的内存模型再次献上:
+;
+memcache事先会分配一大块内存，通过-m来设置，然后slab每次申请内存都从">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/1345021404_1576.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="memcache源码分析之slab内存分配">
+<meta name="twitter:description" content="昨天分析了memcache的整体软件架构，主要是线程模型和内存模型，今天主要分析下memcache的内存分配组件slab。slab是memcache的内存池结构，它将内存分为一系列固定大小内存的内存块chunk，线程每次申请内存时，选择和所需的内存大小最接近(大于等于)的内存即可。把slab的内存模型再次献上:
+;
+memcache事先会分配一大块内存，通过-m来设置，然后slab每次申请内存都从">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/1345021404_1576.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/01/09/memcache-slab/"/>
+
+
+  <title> memcache源码分析之slab内存分配 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                memcache源码分析之slab内存分配
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-01-09T16:17:29+08:00" content="2016-01-09">
+              2016-01-09
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/memcache/" itemprop="url" rel="index">
+                    <span itemprop="name">memcache</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/01/09/memcache-slab/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/01/09/memcache-slab/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/01/09/memcache-slab/" class="leancloud_visitors" data-flag-title="memcache源码分析之slab内存分配">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>昨天分析了memcache的整体软件架构，主要是线程模型和内存模型，今天主要分析下memcache的内存分配组件slab。slab是memcache的内存池结构，它将内存分为一系列固定大小内存的内存块chunk，线程每次申请内存时，选择和所需的内存大小最接近(大于等于)的内存即可。把slab的内存模型再次献上:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/1345021404_1576.png" alt="slab内存模型">;</p>
+<p>memcache事先会分配一大块内存，通过-m来设置，然后slab每次申请内存都从大块内存中分配，这样可以减少malloc的调用。slab支持预先分配内存，即一开始就给每个slabclass分配一块内存页，需要开始时输入-k选项，默认情况下是不预先分配内存的。下面还是分析源码来解释slab。</p>
+<h1>slab定义</h1>
+<hr>
+<p>先来看下关于slab的一些定义：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> &#123;</div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> size;      <span class="comment">/*这个slabclass的chunk大小*/</span></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> perslab;   <span class="comment">/* 每个内存页有多少个chunk */</span></div><div class="line"></div><div class="line">    <span class="keyword">void</span> *slots;           <span class="comment">/* 回收来的item内存块 */</span></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> sl_curr;   <span class="comment">/* slots链表中有多少个item内存块*/</span></div><div class="line"></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> slabs;     <span class="comment">/* 这个slabclass分配了多少个内存页*/</span></div><div class="line"></div><div class="line">    <span class="keyword">void</span> **slab_list;       <span class="comment">/* 每个内存页指针数组*/</span></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> list_size; <span class="comment">/* 这个内存页指针数组的大小*/</span></div><div class="line"></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> killing;  <span class="comment">/* index+1 of dying slab, or zero if none*/</span></div><div class="line">    <span class="keyword">size_t</span> requested; <span class="comment">/* 这个slabclass已经被申请走的内存*/</span></div><div class="line">&#125; <span class="keyword">slabclass_t</span>;</div><div class="line"></div><div class="line"><span class="keyword">static</span> <span class="keyword">slabclass_t</span> slabclass[MAX_NUMBER_OF_SLAB_CLASSES];<span class="comment">//slabclass数组，默认大小为64</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">size_t</span> mem_limit = <span class="number">0</span>;<span class="comment">//预先分配内存大小，即内存池的大小</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">size_t</span> mem_malloced = <span class="number">0</span>;<span class="comment">//到目前位置已经被分配出去的内存大小，可以统计memcache数据</span></div><div class="line">占有的内存大小</div><div class="line"></div><div class="line"><span class="keyword">static</span> <span class="keyword">bool</span> mem_limit_reached = <span class="literal">false</span>;<span class="comment">//是否已经达到内存池大小，如果是，则要执行LRU策略</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">int</span> power_largest;<span class="comment">//真实slaclass数组的最大值。</span></div><div class="line"></div><div class="line"><span class="keyword">static</span> <span class="keyword">void</span> *mem_base = <span class="literal">NULL</span>;<span class="comment">//内存池的首地址</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">void</span> *mem_current = <span class="literal">NULL</span>;<span class="comment">//指向可用内存的第一个字节</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">size_t</span> mem_avail = <span class="number">0</span>;<span class="comment">//可用的内存块大小。</span></div></pre></td></tr></table></figure></p>
+<p>这些都是slab.c文件中定义的数据结构和变量。关键要理解slabclass属性表示什么，属性中，slots和slab_list最为重要。</p>
+<h1>slab初始化</h1>
+<hr>
+<p>memcache一开始会初始化slab，然后在item.c文件中，当需要申请内存时，就调用slabs_alloc分配内存，当需要回收内存时，就调用slabs_free函数。先来看下slabs_init函数：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">slabs_init</span><span class="params">(<span class="keyword">const</span> <span class="keyword">size_t</span> limit, <span class="keyword">const</span> <span class="keyword">double</span> factor, <span class="keyword">const</span> <span class="keyword">bool</span> prealloc)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> i = POWER_SMALLEST - <span class="number">1</span>;<span class="comment">//POWER_SMALLEST为slabclass数组索引最小值，为1.</span></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> size = <span class="keyword">sizeof</span>(item) + settings.chunk_size;<span class="comment">//chunk的最小值，默认为96</span></div><div class="line"></div><div class="line">    mem_limit = limit;<span class="comment">//内存池的大小，默认是64M</span></div><div class="line"></div><div class="line">    <span class="keyword">if</span> (prealloc) &#123;</div><div class="line">        <span class="comment">/* 如果预先分配内存 */</span></div><div class="line">        mem_base = <span class="built_in">malloc</span>(mem_limit);<span class="comment">//分配内存池</span></div><div class="line">        <span class="keyword">if</span> (mem_base != <span class="literal">NULL</span>) &#123;</div><div class="line">            mem_current = mem_base;</div><div class="line">            mem_avail = mem_limit;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Warning: Failed to allocate requested memory in"</span></div><div class="line">                    <span class="string">" one large chunk.\nWill allocate in smaller chunks\n"</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="built_in">memset</span>(slabclass, <span class="number">0</span>, <span class="keyword">sizeof</span>(slabclass));<span class="comment">//初始化slabclass数组</span></div><div class="line"></div><div class="line">    <span class="keyword">while</span> (++i &lt; MAX_NUMBER_OF_SLAB_CLASSES<span class="number">-1</span> &amp;&amp; size &lt;= settings.item_size_max / factor) &#123;</div><div class="line">        <span class="comment">/* 保证每个chunk是8字节对齐 */</span></div><div class="line">        <span class="keyword">if</span> (size % CHUNK_ALIGN_BYTES)</div><div class="line">            size += CHUNK_ALIGN_BYTES - (size % CHUNK_ALIGN_BYTES);</div><div class="line"></div><div class="line">        slabclass[i].size = size;<span class="comment">//第i个slabclass负责的chunk大小</span></div><div class="line">        slabclass[i].perslab = settings.item_size_max / slabclass[i].size;<span class="comment">//第i个slabclass,每</span></div><div class="line">每个内存页chunk的个数</div><div class="line">        size *= factor;<span class="comment">//下个slabclass的chunk大小</span></div><div class="line">        <span class="keyword">if</span> (settings.verbose &gt; <span class="number">1</span>) &#123;</div><div class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"slab class %3d: chunk size %9u perslab %7u\n"</span>,</div><div class="line">                    i, slabclass[i].size, slabclass[i].perslab);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    power_largest = i;<span class="comment">//最后一个slabclass，chunk为1M，且只有一个chunk。</span></div><div class="line">    slabclass[power_largest].size = settings.item_size_max;</div><div class="line">    slabclass[power_largest].perslab = <span class="number">1</span>;</div><div class="line">    <span class="keyword">if</span> (settings.verbose &gt; <span class="number">1</span>) &#123;</div><div class="line">        <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"slab class %3d: chunk size %9u perslab %7u\n"</span>,</div><div class="line">                i, slabclass[i].size, slabclass[i].perslab);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* for the test suite:  faking of how much we've already malloc'd */</span></div><div class="line">    &#123;</div><div class="line">        <span class="keyword">char</span> *t_initial_malloc = getenv(<span class="string">"T_MEMD_INITIAL_MALLOC"</span>);</div><div class="line">        <span class="keyword">if</span> (t_initial_malloc) &#123;</div><div class="line">            mem_malloced = (<span class="keyword">size_t</span>)atol(t_initial_malloc);</div><div class="line">        &#125;</div><div class="line">    &#125;<span class="comment">//调试用，可以不理</span></div><div class="line"></div><div class="line">    <span class="keyword">if</span> (prealloc) &#123;</div><div class="line">        slabs_preallocate(power_largest);<span class="comment">//预先为每一个slabclass分配一个内存页</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>slabs_init函数做的工作主要是初始化slabclass，然后如果有设置预先分配内存，则先分配一大块内存作为内存池，然后在为每一个slabclass分配一个内存页，接下来看下slabs_preallocate函数，是如何分配内存页的。</p>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">slabs_preallocate</span> <span class="params">(<span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> maxslabs)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> i;</div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">int</span> prealloc = <span class="number">0</span>;</div><div class="line"></div><div class="line">    <span class="keyword">for</span> (i = POWER_SMALLEST; i &lt; MAX_NUMBER_OF_SLAB_CLASSES; i++) &#123;</div><div class="line">        <span class="keyword">if</span> (++prealloc &gt; maxslabs)</div><div class="line">            <span class="keyword">return</span>;<span class="comment">//如果大于最大slab索引，则返回</span></div><div class="line">        <span class="keyword">if</span> (do_slabs_newslab(i) == <span class="number">0</span>) &#123;<span class="comment">//为第i个slabclass分配一个内存页</span></div><div class="line">            <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"Error while preallocating slab memory!\n"</span></div><div class="line">                <span class="string">"If using -L or other prealloc options, max memory must be "</span></div><div class="line">                <span class="string">"at least %d megabytes.\n"</span>, power_largest);</div><div class="line">            <span class="built_in">exit</span>(<span class="number">1</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数只是简单的给个for循环，从slabclass最小索引1到最大索引maxslab，分别调用do_slabs_newslab来分配一块内存页。</p>
+<p><figure class="highlight objectivec"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="keyword">int</span> do_slabs_newslab(<span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="keyword">id</span>) &#123;</div><div class="line">    slabclass_t *p = &amp;slabclass[<span class="keyword">id</span>];</div><div class="line">    <span class="keyword">int</span> len = settings.slab_reassign ? settings.item_size_max</div><div class="line">        : p-&gt;size * p-&gt;perslab;<span class="comment">//这句主要是判断新分配的内存页是1M了，还是p-&gt;size*p-&gt;perslab，</span></div><div class="line"><span class="comment">//因为后者不一定等于1M。</span></div><div class="line">    <span class="keyword">char</span> *ptr;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> ((mem_limit &amp;&amp; mem_malloced + len &gt; mem_limit &amp;&amp; p-&gt;slabs &gt; <span class="number">0</span>)) &#123;</div><div class="line">        mem_limit_reached = <span class="literal">true</span>;</div><div class="line">        MEMCACHED_SLABS_SLABCLASS_ALLOCATE_FAILED(<span class="keyword">id</span>);</div><div class="line">        <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">    &#125;<span class="comment">//如果有设置内存使用最大值而且已近分配的内存加上即将分配的内存大于mem_limit而且</span></div><div class="line">这个slabclass内存页不为空，则说明内存使用已经达到最大值。</div><div class="line"></div><div class="line">    <span class="keyword">if</span> ((grow_slab_list(<span class="keyword">id</span>) == <span class="number">0</span>) ||</div><div class="line">        ((ptr = memory_allocate((size_t)len)) == <span class="number">0</span>)) &#123;<span class="comment">//先将内存页数组的id加1，然后分配内存页</span></div><div class="line"></div><div class="line">        MEMCACHED_SLABS_SLABCLASS_ALLOCATE_FAILED(<span class="keyword">id</span>);</div><div class="line">        <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    memset(ptr, <span class="number">0</span>, (size_t)len);</div><div class="line">    split_slab_page_into_freelist(ptr, <span class="keyword">id</span>);<span class="comment">//将内存页分割成一定数量的chunk</span></div><div class="line"></div><div class="line">    p-&gt;slab_list[p-&gt;slabs++] = ptr;<span class="comment">//slab_list数组索引加1，将内存页首地址赋给这个数组元素</span></div><div class="line">    mem_malloced += len;<span class="comment">//已分配内存加上len</span></div><div class="line">    MEMCACHED_SLABS_SLABCLASS_ALLOCATE(<span class="keyword">id</span>);</div><div class="line"></div><div class="line">    <span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数主要是用于分配一块内存页，接着将这块内存页分割成chunk，并把每个chunk的首地址指针串接在p-&gt;slots上，表示可用的chunk。最后将内存页赋给slab_list数组元素。接下来看下其中的几个小函数。
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div></pre></td><td class="code"><pre><div class="line">static int grow_slab_list (const unsigned int id) &#123;</div><div class="line">    slabclass_t *p = &amp;slabclass[id];</div><div class="line">    <span class="function"><span class="title">if</span> (p-&gt;</span><span class="function"><span class="title">slabs</span> == p-&gt;</span>list_size) &#123;</div><div class="line">    <span class="comment">/*如果slab_list元素已满，(1)如果是初始化时，直接数组大小设为16，如果p-list_size!=0,</span></div><div class="line">    则数组大小翻倍*/</div><div class="line">        <span class="function"><span class="title">size_t</span> new_size =  (p-&gt;</span><span class="function"><span class="title">list_size</span> != 0) ? p-&gt;</span>list_size * <span class="number">2</span> : <span class="number">16</span>;</div><div class="line">        <span class="comment">//给slab_list重新分配内存</span></div><div class="line">        <span class="function"><span class="title">void</span> *new_list = realloc(p-&gt;</span>slab_list, new_size * sizeof(void *));</div><div class="line">        <span class="keyword">if</span> (new_list == <span class="number">0</span>) return <span class="number">0</span>;</div><div class="line">        <span class="function"><span class="title">p</span>-&gt;</span>list_size = new_size;</div><div class="line">        <span class="function"><span class="title">p</span>-&gt;</span>slab_list = new_list;</div><div class="line">    &#125;</div><div class="line">    return <span class="number">1</span>;</div><div class="line">&#125;</div><div class="line"><span class="comment">/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/</span></div><div class="line">tatic void split_slab_page_into_freelist(char *ptr, const unsigned int id) &#123;</div><div class="line">    slabclass_t *p = &amp;slabclass[id];</div><div class="line">    int x;</div><div class="line">    <span class="function"><span class="title">for</span> (x = 0; x &lt; p-&gt;</span>perslab; x++) &#123;</div><div class="line">	    <span class="function"><span class="title">do_slabs_free</span>(ptr, 0, id);//调用do_slabs_free将新分配的内存页回收，即挂到p-&gt;</span>slots</div><div class="line">	    <span class="function"><span class="title">ptr</span> += p-&gt;</span>size;</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="comment">/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/</span></div><div class="line">static void do_slabs_free(void *ptr, const size_t size, unsigned int id) &#123;</div><div class="line">    slabclass_t *p;</div><div class="line">    item *it;</div><div class="line"></div><div class="line">    assert(id &gt;= POWER_SMALLEST &amp;&amp; id &lt;= power_largest);</div><div class="line">    <span class="keyword">if</span> (id &lt; POWER_SMALLEST || id &gt; power_largest)</div><div class="line">        return;</div><div class="line"></div><div class="line">    MEMCACHED_SLABS_FREE(size, id, ptr);</div><div class="line">    p = &amp;slabclass[id];</div><div class="line"></div><div class="line">    it = (item *)ptr;将Ptr指针指向的内存强制转化为item指针</div><div class="line">    <span class="function"><span class="title">it</span>-&gt;</span>it_flags |= ITEM_SLABBED;</div><div class="line">    <span class="function"><span class="title">it</span>-&gt;</span>slabs_clsid = <span class="number">0</span>;</div><div class="line">    <span class="function"><span class="title">it</span>-&gt;</span>prev = <span class="number">0</span>;</div><div class="line">    <span class="function"><span class="title">it</span>-&gt;</span><span class="function"><span class="title">next</span> = p-&gt;</span><span class="function"><span class="title">slots</span>;//添加到p-&gt;</span>slots</div><div class="line">    <span class="function"><span class="title">if</span> (it-&gt;</span><span class="function"><span class="title">next</span>) it-&gt;</span><span class="function"><span class="title">next</span>-&gt;</span>prev = it;</div><div class="line">    <span class="function"><span class="title">p</span>-&gt;</span>slots = it;</div><div class="line"></div><div class="line">    <span class="function"><span class="title">p</span>-&gt;</span>sl_curr++;<span class="comment">//可用的item加1</span></div><div class="line">    <span class="function"><span class="title">p</span>-&gt;</span>requested -= size;<span class="comment">//已经分配的内存减size</span></div><div class="line">    return;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>至此，每个slabclass预先分配一个内存页，然后每个内存页都切割成相应的大小，并且指针挂到p-&gt;slots中，表示可用的item。需要说下几点:</p>
+<ol>
+<li>一开始时，slab默认分配的slab_list数组大小为16,之后数组存满时，再把数组大小翻倍；</li>
+<li>将刚分配的内存页指针挂到p-&gt;slots上，其实就相当于回收刚分配的内存，变为可用，所以调用do_slabs_free。</li>
+</ol>
+<h1>slab申请内存</h1>
+<hr>
+<p>当slab初始化好内存之后，当线程执行插入操作时，需要将键值对封装成item结构，而item结构就需要到slab内存池申请内存，这时就调用slabs_alloc函数
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div></pre></td><td class="code"><pre><div class="line">void *slabs_alloc(size_t size, unsigned int id, unsigned int *total_chunks) &#123;</div><div class="line">    void *ret;</div><div class="line">    <span class="comment">//因为memcache是多线程模型，而slab是一种共享资源，所以必须加锁</span></div><div class="line">    pthread_mutex_lock(&amp;slabs_lock);</div><div class="line">    ret = do_slabs_alloc(size, id, total_chunks);</div><div class="line">    pthread_mutex_unlock(&amp;slabs_lock);</div><div class="line">    return ret;</div><div class="line">&#125;</div><div class="line"><span class="comment">/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/</span></div><div class="line">static void *do_slabs_alloc(const size_t size, unsigned int id, unsigned int *total_chunks) &#123;</div><div class="line">    slabclass_t *p;</div><div class="line">    void *ret = NULL;</div><div class="line">    item *it = NULL;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (id &lt; POWER_SMALLEST || id &gt; power_largest) &#123;</div><div class="line">        MEMCACHED_SLABS_ALLOCATE_FAILED(size, <span class="number">0</span>);</div><div class="line">        return NULL;</div><div class="line">    &#125;</div><div class="line">    p = &amp;slabclass[id];</div><div class="line">    <span class="function"><span class="title">assert</span>(p-&gt;</span><span class="function"><span class="title">sl_curr</span> == 0 || ((item *)p-&gt;</span><span class="function"><span class="title">slots</span>)-&gt;</span>slabs_clsid == <span class="number">0</span>);</div><div class="line"></div><div class="line">    *<span class="function"><span class="title">total_chunks</span> = p-&gt;</span><span class="function"><span class="title">slabs</span> * p-&gt;</span>perslab;<span class="comment">//这个slabclass所有chunk个数</span></div><div class="line">    <span class="comment">/* fail unless we have space at the end of a recently allocated page,</span></div><div class="line">       we have something on our freelist, or we could allocate a new page */</div><div class="line">    <span class="function"><span class="title">if</span> (! (p-&gt;</span>sl_curr != <span class="number">0</span> || do_slabs_newslab(id) != <span class="number">0</span>)) &#123;</div><div class="line">        <span class="comment">/* 没有更多的内存了*/</span></div><div class="line">        ret = NULL;</div><div class="line">    &#125; <span class="function"><span class="title">else</span> <span class="keyword">if</span> (p-&gt;</span>sl_curr != <span class="number">0</span>) &#123;</div><div class="line">        <span class="comment">/* p-&gt;slots还有可用的item内存块 */</span></div><div class="line">        <span class="function"><span class="title">it</span> = (item *)p-&gt;</span>slots;</div><div class="line">        <span class="function"><span class="title">p</span>-&gt;</span><span class="function"><span class="title">slots</span> = it-&gt;</span>next;</div><div class="line">        <span class="function"><span class="title">if</span> (it-&gt;</span><span class="function"><span class="title">next</span>) it-&gt;</span><span class="function"><span class="title">next</span>-&gt;</span>prev = <span class="number">0</span>;</div><div class="line">        <span class="comment">/* Kill flag and initialize refcount here for lock safety in slab</span></div><div class="line">         * mover's freeness detection. */</div><div class="line">        <span class="function"><span class="title">it</span>-&gt;</span>it_flags &amp;= ~ITEM_SLABBED;<span class="comment">//关闭这个标识，表示被分配出去了</span></div><div class="line">        <span class="function"><span class="title">it</span>-&gt;</span>refcount = <span class="number">1</span>;</div><div class="line">        <span class="function"><span class="title">p</span>-&gt;</span>sl_curr--;</div><div class="line">        ret = (void *)it;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (ret) &#123;</div><div class="line">        <span class="function"><span class="title">p</span>-&gt;</span>requested += size;</div><div class="line">        MEMCACHED_SLABS_ALLOCATE(<span class="function"><span class="title">size</span>, id, p-&gt;</span>size, ret);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        MEMCACHED_SLABS_ALLOCATE_FAILED(size, id);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    return ret;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这两个函数相对较好理解，多线程执行时，先锁住全局slab，然后将p-&gt;slots第一个指针指向的内存分配出去。接下来看下内存释放操作</p>
+<h1>slab回收内存</h1>
+<hr>
+<p>slab并没有真正的释放item的内存，而是这块内存的指针插入p-&gt;slots的链表表头，这样下次需要时，即可重复利用这块内存。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">slabs_free</span><span class="params">(<span class="keyword">void</span> *ptr, <span class="keyword">size_t</span> size, <span class="keyword">unsigned</span> <span class="keyword">int</span> id)</span> </span>&#123;</div><div class="line">    pthread_mutex_lock(&amp;slabs_lock);</div><div class="line">    do_slabs_free(ptr, size, id);</div><div class="line">    pthread_mutex_unlock(&amp;slabs_lock);</div><div class="line">&#125;</div><div class="line"><span class="comment">/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/</span></div></pre></td></tr></table></figure></p>
+<p>这调用之前的那个do_slab_free函数，回收ptr指向的大小为size的内存块。</p>
+<h1>查询slab状态信息</h1>
+<hr>
+<p>slab还有一个函数用于查询slab的状态信息，比如分配了多少个内存页，内存申请了多少等等。代码如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">slabs_stats</span><span class="params">(ADD_STAT add_stats, <span class="keyword">void</span> *c)</span> </span>&#123;</div><div class="line">    pthread_mutex_lock(&amp;slabs_lock);</div><div class="line">    do_slabs_stats(add_stats, c);</div><div class="line">    pthread_mutex_unlock(&amp;slabs_lock);</div><div class="line">&#125;</div><div class="line"><span class="comment">/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">do_slabs_stats</span><span class="params">(ADD_STAT add_stats, <span class="keyword">void</span> *c)</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> i, total;</div><div class="line">    <span class="comment">/* Get the per-thread stats which contain some interesting aggregates */</span></div><div class="line">    <span class="keyword">struct</span> thread_stats thread_stats;</div><div class="line">    threadlocal_stats_aggregate(&amp;thread_stats);</div><div class="line"></div><div class="line">    total = <span class="number">0</span>;</div><div class="line">    <span class="keyword">for</span>(i = POWER_SMALLEST; i &lt;= power_largest; i++) &#123;</div><div class="line">        <span class="keyword">slabclass_t</span> *p = &amp;slabclass[i];</div><div class="line">        <span class="keyword">if</span> (p-&gt;slabs != <span class="number">0</span>) &#123;</div><div class="line">            <span class="keyword">uint32_t</span> perslab, slabs;</div><div class="line">            slabs = p-&gt;slabs;</div><div class="line">            perslab = p-&gt;perslab;</div><div class="line"></div><div class="line">            <span class="keyword">char</span> key_str[STAT_KEY_LEN];</div><div class="line">            <span class="keyword">char</span> val_str[STAT_VAL_LEN];</div><div class="line">            <span class="keyword">int</span> klen = <span class="number">0</span>, vlen = <span class="number">0</span>;</div><div class="line"></div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"chunk_size"</span>, <span class="string">"%u"</span>, p-&gt;size);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"chunks_per_page"</span>, <span class="string">"%u"</span>, perslab);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"total_pages"</span>, <span class="string">"%u"</span>, slabs);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"total_chunks"</span>, <span class="string">"%u"</span>, slabs * perslab);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"used_chunks"</span>, <span class="string">"%u"</span>,</div><div class="line">                            slabs*perslab - p-&gt;sl_curr);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"free_chunks"</span>, <span class="string">"%u"</span>, p-&gt;sl_curr);</div><div class="line">            <span class="comment">/* Stat is dead, but displaying zero instead of removing it. */</span></div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"free_chunks_end"</span>, <span class="string">"%u"</span>, <span class="number">0</span>);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"mem_requested"</span>, <span class="string">"%llu"</span>,</div><div class="line">                            (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)p-&gt;requested);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"get_hits"</span>, <span class="string">"%llu"</span>,</div><div class="line">                    (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)thread_stats.slab_stats[i].get_hits);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"cmd_set"</span>, <span class="string">"%llu"</span>,</div><div class="line">                    (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)thread_stats.slab_stats[i].set_cmds);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"delete_hits"</span>, <span class="string">"%llu"</span>,</div><div class="line">                    (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)thread_stats.slab_stats[i].delete_hits);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"incr_hits"</span>, <span class="string">"%llu"</span>,</div><div class="line">                    (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)thread_stats.slab_stats[i].incr_hits);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"decr_hits"</span>, <span class="string">"%llu"</span>,</div><div class="line">                    (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)thread_stats.slab_stats[i].decr_hits);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"cas_hits"</span>, <span class="string">"%llu"</span>,</div><div class="line">                    (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)thread_stats.slab_stats[i].cas_hits);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"cas_badval"</span>, <span class="string">"%llu"</span>,</div><div class="line">                    (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)thread_stats.slab_stats[i].cas_badval);</div><div class="line">            APPEND_NUM_STAT(i, <span class="string">"touch_hits"</span>, <span class="string">"%llu"</span>,</div><div class="line">                    (<span class="keyword">unsigned</span> <span class="keyword">long</span> <span class="keyword">long</span>)thread_stats.slab_stats[i].touch_hits);</div><div class="line">            total++;</div><div class="line">        &#125;</div><div class="line">    &#125;</div></pre></td></tr></table></figure></p>
+<p>这两个函数主要做的事就是将这些信息存放到一个这个连接的buf输出字符数组中，然后将在一个epoll轮询时，把数据输出给客户端。</p>
+<p>最后几个函数是和平衡slab的线程相关的，之后统一在分析这些辅助线程。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">start_slab_maintenance_thread</span><span class="params">(<span class="keyword">void</span>)</span></span>;</div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">stop_slab_maintenance_thread</span><span class="params">(<span class="keyword">void</span>)</span></span>;</div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">slabs_rebalancer_pause</span><span class="params">(<span class="keyword">void</span>)</span></span>;</div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">slabs_rebalancer_resume</span><span class="params">(<span class="keyword">void</span>)</span></span>;</div></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/memcache/" rel="tag">#memcache</a>
+          
+            <a href="/tags/slab/" rel="tag">#slab</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/01/08/memcache-01/" rel="next" title="memcache源码分析之软件架构">
+                <i class="fa fa-chevron-left"></i> memcache源码分析之软件架构
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/01/10/memcache-item/" rel="prev" title="memcache源码分析之item">
+                memcache源码分析之item <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/01/09/memcache-slab/"
+     data-title="memcache源码分析之slab内存分配"
+     data-content=""
+     data-url="http://luodw.cc/2016/01/09/memcache-slab/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/01/09/memcache-slab/"
+           data-title="memcache源码分析之slab内存分配" data-url="http://luodw.cc/2016/01/09/memcache-slab/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">slab定义</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">slab初始化</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">slab申请内存</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">slab回收内存</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">查询slab状态信息</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

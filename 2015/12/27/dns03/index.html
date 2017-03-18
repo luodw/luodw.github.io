@@ -1,0 +1,1099 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="linux,命令," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="上篇博客稍微介绍了域名服务器和和getaddrinfo等函数,这篇文章想好好总结下关于域名解析命令的使用,主要有以下三个命令:dig,host和nslookup。这三个命令主要是用于本地域名查询。原理就是当调用这个三个命令时，内核会向本地域名服务器查询，即dnsmasq这个守护进程。当dnsmasq有缓存所需要查询的域名时，直接返回，如果没有，则递归向外界的域名服务器查询。
+dig命令
+
+dig命">
+<meta property="og:type" content="article">
+<meta property="og:title" content="域名解析之dig,host,nslookup命令">
+<meta property="og:url" content="http://luodw.cc/2015/12/27/dns03/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="上篇博客稍微介绍了域名服务器和和getaddrinfo等函数,这篇文章想好好总结下关于域名解析命令的使用,主要有以下三个命令:dig,host和nslookup。这三个命令主要是用于本地域名查询。原理就是当调用这个三个命令时，内核会向本地域名服务器查询，即dnsmasq这个守护进程。当dnsmasq有缓存所需要查询的域名时，直接返回，如果没有，则递归向外界的域名服务器查询。
+dig命令
+
+dig命">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.121Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="域名解析之dig,host,nslookup命令">
+<meta name="twitter:description" content="上篇博客稍微介绍了域名服务器和和getaddrinfo等函数,这篇文章想好好总结下关于域名解析命令的使用,主要有以下三个命令:dig,host和nslookup。这三个命令主要是用于本地域名查询。原理就是当调用这个三个命令时，内核会向本地域名服务器查询，即dnsmasq这个守护进程。当dnsmasq有缓存所需要查询的域名时，直接返回，如果没有，则递归向外界的域名服务器查询。
+dig命令
+
+dig命">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/12/27/dns03/"/>
+
+
+  <title> 域名解析之dig,host,nslookup命令 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                域名解析之dig,host,nslookup命令
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-12-27T18:30:04+08:00" content="2015-12-27">
+              2015-12-27
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/12/27/dns03/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/12/27/dns03/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/12/27/dns03/" class="leancloud_visitors" data-flag-title="域名解析之dig,host,nslookup命令">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>上篇博客稍微介绍了域名服务器和和getaddrinfo等函数,这篇文章想好好总结下关于域名解析命令的使用,主要有以下三个命令:dig,host和nslookup。这三个命令主要是用于本地域名查询。原理就是当调用这个三个命令时，内核会向本地域名服务器查询，即dnsmasq这个守护进程。当dnsmasq有缓存所需要查询的域名时，直接返回，如果没有，则递归向外界的域名服务器查询。</p>
+<h1>dig命令</h1>
+<hr>
+<p>dig命令的使用方法很简单,主要就是dig +域名.</p>
+<ol>
+<li>dig baidu.com即可输出baidu.com这个域名的ip地址,所在的域名服务器以及域名服务器的地址;如下;
+<figure class="highlight dns"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div></pre></td><td class="code"><pre><div class="line">:charles@charles-Lenovo:~/mydir/Hexo/source/_posts$ dig baidu.com</div><div class="line"></div><div class="line"><span class="comment">; &lt;&lt;&gt;&gt; DiG 9.9.5-3ubuntu0.6-Ubuntu &lt;&lt;&gt;&gt; baidu.com</span></div><div class="line">dig这个程序的版本号和要查询的域名</div><div class="line"><span class="comment">;; global options: +cmd</span></div><div class="line">表示可以在命令后面加选项</div><div class="line"><span class="comment">;; Got answer:</span></div><div class="line">以下是获取信息的内容</div><div class="line"><span class="comment">;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 60954</span></div><div class="line"><span class="comment">;; flags: qr rd ra; QUERY: 1, ANSWER: 4, AUTHORITY: 5, ADDITIONAL: 6</span></div><div class="line">这个是返回信息的头部:</div><div class="line">opcode: 操作码,QUERY,代表是查询操作<span class="comment">;</span></div><div class="line">status: 状态,NOERROR,代表没有错误<span class="comment">;</span></div><div class="line">id: 编号,<span class="number">60954</span>,<span class="number">16</span>bit数字,在dns协议中,通过编号匹配返回和查询.</div><div class="line">flags: 标志,如果出现就表示有标志,如果不出现,就表示为设置标志:</div><div class="line">qr query,查询标志,代表是查询操作</div><div class="line">rd recursion desired,代表希望进行递归查询操作<span class="comment">;</span></div><div class="line">ra recursive available在返回中设置,代表查询的服务器支持递归查询操作<span class="comment">;</span></div><div class="line">aa Authoritative Answer权威回复,如果查询结果由管理域名的域名服务器而不是缓存服务器提供的,则</div><div class="line">称为权威回复<span class="comment">;</span></div><div class="line">QUERY 查询数,<span class="number">1</span>代表一个查询,对应下面QUESTION SECTION的记录数</div><div class="line">ANSWER 结果数,<span class="number">4</span>代表有<span class="number">4</span>个结果,对应下面的ANSWER SECTION中的记录数</div><div class="line">AUTHORITY 权威域名服务器记录数，<span class="number">5</span>代表该域名有<span class="number">5</span>个权威域名服务器，可供域名解析用。对应</div><div class="line">下面AUTHORITY SECTION</div><div class="line">ADDITIONAL 格外记录数，<span class="number">6</span>代表有<span class="number">6</span>项格外记录。对应下面 ADDITIONAL SECTION。</div><div class="line"><span class="comment">;; OPT PSEUDOSECTION:</span></div><div class="line"><span class="comment">; EDNS: version: 0, flags:; udp: 4096</span></div><div class="line">这个不知道啥意思</div><div class="line"><span class="comment">;; QUESTION SECTION:</span></div><div class="line"><span class="comment">;baidu.com.			IN	A</span></div><div class="line">查询部分,从做到右部分意义如下:</div><div class="line"><span class="number">1</span>、要查询的域名，这里是baidu.com.，'.'代表根域名，com顶级域名，baidu二级域名</div><div class="line"><span class="number">2</span>、class，要查询信息的类别，<span class="keyword">IN</span>代表类别为IP协议，即Internet。还有其它类别，比如chaos等，由于</div><div class="line">现在都是互联网，所以其它基本不用。</div><div class="line"><span class="number">3</span>、type，要查询的记录类型，<span class="keyword">A</span>记录(Address)，代表要查询ipv4地址。<span class="keyword">AAAA</span>记录，代表要查询ipv6地址。</div><div class="line"><span class="comment">;; ANSWER SECTION:</span></div><div class="line">baidu.com.		<span class="number">211</span>	<span class="keyword">IN</span>	<span class="keyword">A</span>	<span class="number">123.125.114.144</span></div><div class="line">baidu.com.		<span class="number">211</span>	<span class="keyword">IN</span>	<span class="keyword">A</span>	<span class="number">111.13.101.208</span></div><div class="line">baidu.com.		<span class="number">211</span>	<span class="keyword">IN</span>	<span class="keyword">A</span>	<span class="number">220.181.57.217</span></div><div class="line">baidu.com.		<span class="number">211</span>	<span class="keyword">IN</span>	<span class="keyword">A</span>	<span class="number">180.149.132.47</span></div><div class="line">回应部分，回应都是<span class="keyword">A</span>记录，<span class="keyword">A</span>记录从左到右各部分意义：</div><div class="line"><span class="number">1</span>、对应的域名，这里是baidu.com.，'.'代表根域名，com顶级域名，baidu二级域名</div><div class="line"><span class="number">2</span>、TTL，time ro live，缓存时间，单位秒。<span class="number">76</span>，代表缓存域名服务器，可以在缓存中保存<span class="number">76</span>秒该记录。</div><div class="line"><span class="number">3</span>、class，要查询信息的类别，<span class="keyword">IN</span>代表类别为IP协议，即Internet。还有其它类别，比如chaos等由于现在都是互联网，所以其它基本不用。</div><div class="line"><span class="number">4</span>、type，要查询的记录类型，<span class="keyword">A</span>记录，代表要查询ipv4地址。<span class="keyword">AAAA</span>记录，代表要查询ipv6地址。</div><div class="line"><span class="number">5</span>、域名对应的ip地址。</div><div class="line"></div><div class="line"><span class="comment">;; AUTHORITY SECTION:</span></div><div class="line">baidu.com.		<span class="number">52340</span>	<span class="keyword">IN</span>	<span class="keyword">NS</span>	dns.baidu.com.</div><div class="line">baidu.com.		<span class="number">52340</span>	<span class="keyword">IN</span>	<span class="keyword">NS</span>	ns3.baidu.com.</div><div class="line">baidu.com.		<span class="number">52340</span>	<span class="keyword">IN</span>	<span class="keyword">NS</span>	ns2.baidu.com.</div><div class="line">baidu.com.		<span class="number">52340</span>	<span class="keyword">IN</span>	<span class="keyword">NS</span>	ns7.baidu.com.</div><div class="line">baidu.com.		<span class="number">52340</span>	<span class="keyword">IN</span>	<span class="keyword">NS</span>	ns4.baidu.com.</div><div class="line">权威域名部分，回应都是<span class="keyword">NS</span>记录(Name Server)，<span class="keyword">NS</span>记录从左到右各部分意义：</div><div class="line"><span class="number">1</span>、对应的域名，这里是baidu.com.，'.'代表根域名，com顶级域名，baidu二级域名</div><div class="line"><span class="number">2</span>、TTL，time ro live，缓存时间，单位秒。<span class="number">63948</span>，代表缓存域名服务器，可以在缓存中保存<span class="number">63948</span>秒</div><div class="line">该记录。</div><div class="line"><span class="number">3</span>、class，要查询信息的类别，<span class="keyword">IN</span>代表类别为IP协议，即Internet。还有其它类别，比如chaos等，由于</div><div class="line">现在都是互联网，所以其它基本不用。</div><div class="line"><span class="number">4</span>、type，要查询的记录类型，<span class="keyword">NS</span>，Name Server，<span class="keyword">NS</span>记录，代表该记录描述了域名对应的权威域名</div><div class="line">解析服务器</div><div class="line"><span class="number">5</span>、域名对应域名对应的权威域名解析服务器。由于ns2.baidu.com.是baidu.com.的子域名，而解析子</div><div class="line">域名，又需要主域名的信息，为了打破这个死循环，需要在下面的额外记录中提供该服务器的ip地址。</div><div class="line"></div><div class="line"><span class="comment">;; ADDITIONAL SECTION:</span></div><div class="line">dns.baidu.com.		<span class="number">55285</span>	<span class="keyword">IN</span>	<span class="keyword">A</span>	<span class="number">202.108.22.220</span></div><div class="line">ns2.baidu.com.		<span class="number">60825</span>	<span class="keyword">IN</span>	<span class="keyword">A</span>	<span class="number">61.135.165.235</span></div><div class="line">ns3.baidu.com.		<span class="number">79196</span>	<span class="keyword">IN</span>	<span class="keyword">A</span>	<span class="number">220.181.37.10</span></div><div class="line">ns4.baidu.com.		<span class="number">79196</span>	<span class="keyword">IN</span>	<span class="keyword">A</span>	<span class="number">220.181.38.10</span></div><div class="line">ns7.baidu.com.		<span class="number">55194</span>	<span class="keyword">IN</span>	<span class="keyword">A</span>	<span class="number">119.75.219.82</span></div><div class="line">额外记录部分，这里都是<span class="keyword">A</span>记录，<span class="keyword">A</span>记录从左到右各部分意义：</div><div class="line"><span class="number">1</span>、对应的域名，这里是dns.baidu.com.，'.'代表根域名，com顶级域名，baidu二级域名，dns是三级域名。</div><div class="line"><span class="number">2</span>、TTL，time ro live，缓存时间，单位秒。<span class="number">13284</span>，代表缓存域名服务器可以在缓存中保存<span class="number">13284</span>秒该记录。</div><div class="line"><span class="number">3</span>、class，要查询信息的类别，<span class="keyword">IN</span>代表类别为IP协议，即Internet。还有其它类别，比如chaos等，由于</div><div class="line">现在都是互联网，所以其它基本不用。</div><div class="line"><span class="number">4</span>、type，要查询的记录类型，<span class="keyword">A</span>记录，代表要查询ipv4地址。<span class="keyword">AAAA</span>记录，代表要查询ipv6地址。</div><div class="line"><span class="number">5</span>、域名对应的ip地址。</div><div class="line"></div><div class="line"><span class="comment">;; Query time: 2 msec</span></div><div class="line">查询耗时</div><div class="line"><span class="comment">;; SERVER: 127.0.1.1#53(127.0.1.1)</span></div><div class="line">查询使用的服务器地址和端口,其实就是本地DNS域名服务器</div><div class="line"><span class="comment">;; WHEN: Sun Dec 27 19:27:16 CST 2015</span></div><div class="line">查询的时间</div><div class="line"><span class="comment">;; MSG SIZE  rcvd: 272</span></div><div class="line">回应的大小。收到(rcve, recieved)<span class="number">256</span>字节。</div></pre></td></tr></table></figure></li>
+</ol>
+<p>从以上dig结果中熟悉了2种DNS记录,A记录和NS记录.了解了dig的收到消息的各部分意义之后,接下来就可以看看dig命令的一些其他用法.</p>
+<ol start="2">
+<li>
+<p>dig baidu.com
+这个默认就是查询A记录,由以上可知,还有NS记录</p>
+</li>
+<li>
+<p>dig baidu.com ns
+这个是只查询NS记录,输出和dig baidu.com几乎一样,除了没有baidu.com的A记录.</p>
+</li>
+<li>
+<p>dig baidu.com soa
+查询SOA记录,SOA资源记录表明,此DNS服务器是为该DNS域中的数据的信息的最佳来源,这个命令的输出,比dig baidu.com ns命令多出一行,表示最佳的DNS域名服务器:
+<figure class="highlight dns"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="comment">;; ANSWER SECTION:</span></div><div class="line">baidu.com.		<span class="number">7200</span>	<span class="keyword">IN</span>	<span class="keyword">SOA</span>	dns.baidu.com. sa.baidu.com. <span class="number">2012128552</span> <span class="number">300</span> </div><div class="line"><span class="number">300</span> <span class="number">2592000</span> <span class="number">7200</span></div><div class="line">各项意义如下:</div><div class="line"><span class="number">1</span>、<span class="keyword">SOA</span> <span class="keyword">SOA</span>记录</div><div class="line"><span class="number">2</span>、dns.baidu.com.  Nameserver，该域名解析使用的服务器</div><div class="line"><span class="number">3</span>、dns.baidu.com  Email address，该域名管理者的电子邮件地址，第一个'.'代表电子邮件中的'@'，</div><div class="line">所以对应的邮件地址为:sa@baidu.com</div><div class="line"><span class="number">4、2012128552</span> Serial number，反映域名信息变化的序列号。每次域名信息变化该项数值需要增大。</div><div class="line">格式没有要求，但一般习惯使用YYYYMMDDnn的格式，表示在某年(YYYY)、月(MM)、日(DD)进行了第几</div><div class="line">次(nn)修改。</div><div class="line"><span class="number">5</span>、<span class="number">300</span> Refresh，备用DNS服务器隔一定时间会查询主DNS服务器中的序列号是否增加，即域文件是否有</div><div class="line">变化。这项内容就代表这个间隔的时间，单位为秒。</div><div class="line"><span class="number">6</span>、<span class="number">300</span> Retry，这项内容表示如果备用服务器无法连上主服务器，过多久再重试，单位为秒。通常小于</div><div class="line">刷新时间。</div><div class="line"><span class="number">7、2592000</span> Expiry，当备用DNS服务器无法联系上主DNS服务器时，备用DNS服务器可以在多长时间内</div><div class="line">认为其缓存是有效的，并供用户查询。单位为秒。<span class="number">1209600</span>秒为<span class="number">2</span>周。</div><div class="line"><span class="number">8</span>、<span class="number">7200</span> Minimum，缓存DNS服务器可以缓存记录多长时间，单位为秒。这个时间比较重要，太短会增加主</div><div class="line">DNS服务器负载。如果太长，在域名信息改变时，需要更长的时间才能各地的缓存DNS服务器才能得到变化</div><div class="line">信息。</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>dig baidu.com mx
+查询mx记录,表示发送到此域名的邮件将被解析到的服务器IP地址.</p>
+</li>
+<li>
+<p>dig baidu.com +trace
+这个很有用,可以看到dig程序是怎么一步一步的解析出域名的IP地址.原理就是DNS递归查询.先从本地域名服务器获取所有的&quot;.&quot;根域名服务器,然后从某个根域名服务器获取所有一级域名com服务器,接着从某个一级域名com服务器获取所有的二级域名baidu.com的所有域名服务器,最后从某个二级域名baidu.com服务器获取所有的记录.就是A记录和NS记录.</p>
+</li>
+</ol>
+<h1>nslookup命令</h1>
+<hr>
+<p>了解了dig命令获取的消息结构之后,nslookup会好理解的多.nslookup支持交互模式和非交互模式,进入交互模式有如下方法:</p>
+<ol>
+<li>直接输入nslookup命令，不加任何参数，则直接进入交互模式，此时nslookup会连接到默认的域名服务器（即/etc/resolv.conf的第一个dns地址）。</li>
+<li>是支持选定不同域名服务器的。需要设置第一个参数为“-”，然后第二个参数是设置要连接的域名服务器主机名或IP地址。例如可以设置本机为域名服务器nslookup - 127.0.0.1</li>
+</ol>
+<p>进入非交互模式,即一次性执行一次查询操作就结束,如果你直接在nslookup命令后加上所要查询的IP或主机名，那么就进入了非交互模式。当然，这个时候你也可以在第二个参数位置设置所要连接的域名服务器。</p>
+<p>但我们平时一般是使用在交互模式之下,主要是因为强大,nslookup默认情况下是执行查找A记录,如下:
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">charles@charles-Lenovo:~<span class="meta-keyword">/mydir/</span>Hexo<span class="meta-keyword">/source/</span>_posts$ nslookup </div><div class="line">&gt; baidu.com</div><div class="line"><span class="symbol">Server:</span>		<span class="number">127.0</span><span class="number">.1</span><span class="number">.1</span></div><div class="line"><span class="symbol">Address:</span>	<span class="number">127.0</span><span class="number">.1</span><span class="number">.1</span><span class="meta">#53</span></div><div class="line"></div><div class="line">Non-authoritative answer:</div><div class="line"><span class="symbol">Name:</span>	baidu.com</div><div class="line"><span class="symbol">Address:</span> <span class="number">220.181</span><span class="number">.57</span><span class="number">.217</span></div><div class="line"><span class="symbol">Name:</span>	baidu.com</div><div class="line"><span class="symbol">Address:</span> <span class="number">123.125</span><span class="number">.114</span><span class="number">.144</span></div><div class="line"><span class="symbol">Name:</span>	baidu.com</div><div class="line"><span class="symbol">Address:</span> <span class="number">180.149</span><span class="number">.132</span><span class="number">.47</span></div><div class="line"><span class="symbol">Name:</span>	baidu.com</div><div class="line"><span class="symbol">Address:</span> <span class="number">111.13</span><span class="number">.101</span><span class="number">.208</span></div><div class="line">&gt;</div></pre></td></tr></table></figure></p>
+<p>如果要设置查找不同查询信息,可以用set type=ns,a,mx等等</p>
+<p>查询ns信息:
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">&gt; set type=ns</div><div class="line">&gt; baidu<span class="selector-class">.com</span></div><div class="line">Server:		<span class="number">127.0</span>.<span class="number">1.1</span></div><div class="line">Address:	<span class="number">127.0</span>.<span class="number">1.1</span>#<span class="number">53</span></div><div class="line"></div><div class="line">Non-authoritative answer:</div><div class="line">baidu<span class="selector-class">.com</span>	nameserver = ns7<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span>	nameserver = dns<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span>	nameserver = ns3<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span>	nameserver = ns2<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span>	nameserver = ns4<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line"></div><div class="line">Authoritative answers can be found from:</div><div class="line">dns<span class="selector-class">.baidu</span><span class="selector-class">.com</span>	internet <span class="selector-tag">address</span> = <span class="number">202.108</span>.<span class="number">22.220</span></div><div class="line">ns2<span class="selector-class">.baidu</span><span class="selector-class">.com</span>	internet <span class="selector-tag">address</span> = <span class="number">61.135</span>.<span class="number">165.235</span></div><div class="line">ns3<span class="selector-class">.baidu</span><span class="selector-class">.com</span>	internet <span class="selector-tag">address</span> = <span class="number">220.181</span>.<span class="number">37.10</span></div><div class="line">ns4<span class="selector-class">.baidu</span><span class="selector-class">.com</span>	internet <span class="selector-tag">address</span> = <span class="number">220.181</span>.<span class="number">38.10</span></div><div class="line">ns7<span class="selector-class">.baidu</span><span class="selector-class">.com</span>	internet <span class="selector-tag">address</span> = <span class="number">119.75</span>.<span class="number">219.82</span></div><div class="line">&gt;</div></pre></td></tr></table></figure></p>
+<p>查询mx信息:set type=mx,输出比ns的输出多出mx的信息:
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">Non-authoritative answer:</div><div class="line">baidu<span class="selector-class">.com</span>	mail exchanger = <span class="number">20</span> mx1<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span>	mail exchanger = <span class="number">20</span> jpmx<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span>	mail exchanger = <span class="number">10</span> mx<span class="selector-class">.n</span><span class="selector-class">.shifen</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span>	mail exchanger = <span class="number">20</span> mx50<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div></pre></td></tr></table></figure></p>
+<h1>host命令</h1>
+<hr>
+<p>host命令也很简单,默认输出只有A和MX记录:
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">charles@charles-Lenovo:~/mydir/Hexo/source/_posts$ host baidu<span class="selector-class">.com</span></div><div class="line">baidu<span class="selector-class">.com</span> has <span class="selector-tag">address</span> <span class="number">123.125</span>.<span class="number">114.144</span></div><div class="line">baidu<span class="selector-class">.com</span> has <span class="selector-tag">address</span> <span class="number">111.13</span>.<span class="number">101.208</span></div><div class="line">baidu<span class="selector-class">.com</span> has <span class="selector-tag">address</span> <span class="number">220.181</span>.<span class="number">57.217</span></div><div class="line">baidu<span class="selector-class">.com</span> has <span class="selector-tag">address</span> <span class="number">180.149</span>.<span class="number">132.47</span></div><div class="line">baidu<span class="selector-class">.com</span> mail is handled by <span class="number">20</span> jpmx<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span> mail is handled by <span class="number">20</span> mx1<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span> mail is handled by <span class="number">10</span> mx<span class="selector-class">.n</span><span class="selector-class">.shifen</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span> mail is handled by <span class="number">20</span> mx50<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div></pre></td></tr></table></figure></p>
+<p>如果想输出详细信息,即全部信息,可以用host -a baidu.com,输出和dig baidu.com一样,信息详细.</p>
+<p>平常使用过程中使用最多的还是查询各种的消息记录,host查询各种消息类型用如下命令:
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">host -t ns baidu<span class="selector-class">.com</span></div><div class="line">charles@charles-Lenovo:~/mydir/Hexo/source/_posts$ host -t ns  baidu<span class="selector-class">.com</span></div><div class="line">baidu<span class="selector-class">.com</span> name server ns7<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span> name server ns4<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span> name server ns3<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span> name server ns2<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div><div class="line">baidu<span class="selector-class">.com</span> name server dns<span class="selector-class">.baidu</span><span class="selector-class">.com</span>.</div></pre></td></tr></table></figure></p>
+<p>还有一个查询SOA权威域名服务器的选项:
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">charles@charles-Lenovo:~/mydir/Hexo/source/_posts$ host -C  baidu<span class="selector-class">.com</span></div><div class="line">Nameserver <span class="number">220.181</span>.<span class="number">38.10</span>:</div><div class="line">	baidu<span class="selector-class">.com</span> has SOA record dns<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. sa<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. <span class="number">2012128552</span> <span class="number">300</span> <span class="number">300</span> <span class="number">2592000</span> <span class="number">7200</span></div><div class="line">Nameserver <span class="number">119.75</span>.<span class="number">219.82</span>:</div><div class="line">	baidu<span class="selector-class">.com</span> has SOA record dns<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. sa<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. <span class="number">2012128552</span> <span class="number">300</span> <span class="number">300</span> <span class="number">2592000</span> <span class="number">7200</span></div><div class="line">Nameserver <span class="number">202.108</span>.<span class="number">22.220</span>:</div><div class="line">	baidu<span class="selector-class">.com</span> has SOA record dns<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. sa<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. <span class="number">2012128552</span> <span class="number">300</span> <span class="number">300</span> <span class="number">2592000</span> <span class="number">7200</span></div><div class="line">Nameserver <span class="number">61.135</span>.<span class="number">165.235</span>:</div><div class="line">	baidu<span class="selector-class">.com</span> has SOA record dns<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. sa<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. <span class="number">2012128552</span> <span class="number">300</span> <span class="number">300</span> <span class="number">2592000</span> <span class="number">7200</span></div><div class="line">Nameserver <span class="number">220.181</span>.<span class="number">37.10</span>:</div><div class="line">	baidu<span class="selector-class">.com</span> has SOA record dns<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. sa<span class="selector-class">.baidu</span><span class="selector-class">.com</span>. <span class="number">2012128552</span> <span class="number">300</span> <span class="number">300</span> <span class="number">2592000</span> <span class="number">7200</span></div></pre></td></tr></table></figure></p>
+<p>学习这三个命令,初级阶段主要了解了解基本用法即可,即查询域名的A,AAAA,NS,MX,PTR,SOA记录等等即可．</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/linux/" rel="tag">#linux</a>
+          
+            <a href="/tags/命令/" rel="tag">#命令</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/12/27/dns02/" rel="next" title="从getaddinfo谈谈域名服务器">
+                <i class="fa fa-chevron-left"></i> 从getaddinfo谈谈域名服务器
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/12/30/network-command/" rel="prev" title="命令netstat,trace和tcpdump">
+                命令netstat,trace和tcpdump <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/12/27/dns03/"
+     data-title="域名解析之dig,host,nslookup命令"
+     data-content=""
+     data-url="http://luodw.cc/2015/12/27/dns03/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/12/27/dns03/"
+           data-title="域名解析之dig,host,nslookup命令" data-url="http://luodw.cc/2015/12/27/dns03/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">dig命令</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">nslookup命令</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">host命令</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

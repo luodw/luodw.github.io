@@ -1,0 +1,1082 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="leveldb,log,log::reader,log::writer," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="这篇文章讲讲leveldb第二大组件log文件的读写。log文件也可以称为恢复日志。当leveldb插入数据时，先插入log日志文件中，接着再插入内存memtable中。这样以来，万一在使用过程中，突然断电，memtable还来不及把数据持久化到磁盘时，内存数据就不会丢失，这时就可以从log文件中恢复。redis也有类似文件。
+log文件按块划分，默认每块为32768kb=32M。这么大有个好处，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leveldb源码分析之读写log文件">
+<meta property="og:url" content="http://luodw.cc/2015/10/18/leveldb-08/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="这篇文章讲讲leveldb第二大组件log文件的读写。log文件也可以称为恢复日志。当leveldb插入数据时，先插入log日志文件中，接着再插入内存memtable中。这样以来，万一在使用过程中，突然断电，memtable还来不及把数据持久化到磁盘时，内存数据就不会丢失，这时就可以从log文件中恢复。redis也有类似文件。
+log文件按块划分，默认每块为32768kb=32M。这么大有个好处，">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--log.jpg">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_017.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--log1.jpg">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--log2.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="leveldb源码分析之读写log文件">
+<meta name="twitter:description" content="这篇文章讲讲leveldb第二大组件log文件的读写。log文件也可以称为恢复日志。当leveldb插入数据时，先插入log日志文件中，接着再插入内存memtable中。这样以来，万一在使用过程中，突然断电，memtable还来不及把数据持久化到磁盘时，内存数据就不会丢失，这时就可以从log文件中恢复。redis也有类似文件。
+log文件按块划分，默认每块为32768kb=32M。这么大有个好处，">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--log.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/18/leveldb-08/"/>
+
+
+  <title> leveldb源码分析之读写log文件 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                leveldb源码分析之读写log文件
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-18T17:16:38+08:00" content="2015-10-18">
+              2015-10-18
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/18/leveldb-08/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/18/leveldb-08/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/18/leveldb-08/" class="leancloud_visitors" data-flag-title="leveldb源码分析之读写log文件">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>这篇文章讲讲leveldb第二大组件log文件的读写。log文件也可以称为恢复日志。当leveldb插入数据时，先插入log日志文件中，接着再插入内存memtable中。这样以来，万一在使用过程中，突然断电，memtable还来不及把数据持久化到磁盘时，内存数据就不会丢失，这时就可以从log文件中恢复。redis也有类似文件。</p>
+<p>log文件按块划分，默认每块为32768kb=32M。这么大有个好处，就是减少从磁盘读取数据的次数，减少磁盘IO。可以看如下图：
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/luodw--log.jpg" alt="log文件模型">;
+这个图中有3个block。然后每一条数据的格式：
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_017.png" alt="log记录格式">;
+log文件每一条记录由四个部分组成：</p>
+<ol>
+<li>CheckSum，即CRC验证码，占4个字节</li>
+<li>记录长度，即数据部分的长度，2个字节</li>
+<li>类型，这条记录的类型，后续讲解，1个字节</li>
+<li>数据，就是这条记录的数据。</li>
+</ol>
+<p>关于记录的类型，平常使用中有4种：</p>
+<ol>
+<li>FULL，表示这是一条完整的记录</li>
+<li>FIRST，表示这是一条记录的第一部分。</li>
+<li>MIDDLE，表示这是一条记录的中间部分。</li>
+<li>LAST，表示这是一条记录的最后一部分。</li>
+</ol>
+<h2>log日志Writer类</h2>
+<p>log日志写相对简单，把数据按记录的格式封装好，再写入文件即可。成员变量有：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">WritableFile* dest_;<span class="comment">//log日志文件封装类</span></div><div class="line"><span class="keyword">int</span> block_offset_;       <span class="comment">// 块内偏移量用于指定写地址</span></div></pre></td></tr></table></figure></p>
+<p>添加记录函数：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div></pre></td><td class="code"><pre><div class="line">Status Writer::AddRecord(<span class="keyword">const</span> Slice&amp; slice) &#123;</div><div class="line">  <span class="keyword">const</span> <span class="keyword">char</span>* ptr = slice.data();<span class="comment">//添加记录数据</span></div><div class="line">  <span class="keyword">size_t</span> left = slice.size();<span class="comment">//记录数据长度</span></div><div class="line"></div><div class="line">  Status s;</div><div class="line">  <span class="keyword">bool</span> begin = <span class="literal">true</span>;</div><div class="line">  <span class="keyword">do</span> &#123;</div><div class="line">    <span class="keyword">const</span> <span class="keyword">int</span> leftover = kBlockSize - block_offset_;<span class="comment">//当前块剩余容量</span></div><div class="line">    assert(leftover &gt;= <span class="number">0</span>);</div><div class="line">    <span class="keyword">if</span> (leftover &lt; kHeaderSize) &#123;<span class="comment">//如果剩余容量小于记录头长度（7kb）</span></div><div class="line">	<span class="comment">//用00填充</span></div><div class="line">      <span class="keyword">if</span> (leftover &gt; <span class="number">0</span>) &#123;</div><div class="line">        assert(kHeaderSize == <span class="number">7</span>);</div><div class="line">        dest_-&gt;Append(Slice(<span class="string">"\x00\x00\x00\x00\x00\x00"</span>, leftover));</div><div class="line">      &#125;</div><div class="line">      block_offset_ = <span class="number">0</span>;<span class="comment">//开始写一个新块，块内偏移就为0了。</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    assert(kBlockSize - block_offset_ - kHeaderSize &gt;= <span class="number">0</span>);</div><div class="line">    <span class="comment">//当前块除了记录头还有剩余空间</span></div><div class="line">    <span class="keyword">const</span> <span class="keyword">size_t</span> avail = kBlockSize - block_offset_ - kHeaderSize;<span class="comment">//可用的空间</span></div><div class="line">    <span class="keyword">const</span> <span class="keyword">size_t</span> fragment_length = (left &lt; avail) ? left : avail;</div><div class="line">    <span class="comment">//判断当前块能否容下当前记录</span></div><div class="line">    RecordType type;</div><div class="line">    <span class="keyword">const</span> <span class="keyword">bool</span> end = (left == fragment_length);<span class="comment">//判断是否是记录的最后一部分</span></div><div class="line">    <span class="keyword">if</span> (begin &amp;&amp; end) &#123;</div><div class="line">      type = kFullType;<span class="comment">//完整块</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (begin) &#123;</div><div class="line">      type = kFirstType;<span class="comment">//记录第一块</span></div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (end) &#123;</div><div class="line">      type = kLastType;<span class="comment">//最后一块</span></div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      type = kMiddleType;<span class="comment">//记录中间块</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    s = EmitPhysicalRecord(type, ptr, fragment_length);<span class="comment">//将fragment_length长度记录写入文件</span></div><div class="line">    ptr += fragment_length;<span class="comment">//指针向后移动frament_length个字节</span></div><div class="line">    left -= fragment_length;<span class="comment">//记录剩余长度</span></div><div class="line">    begin = <span class="literal">false</span>;</div><div class="line">  &#125; <span class="keyword">while</span> (s.ok() &amp;&amp; left &gt; <span class="number">0</span>);</div><div class="line">  <span class="keyword">return</span> s;</div><div class="line">&#125;</div><div class="line"></div><div class="line">Status Writer::EmitPhysicalRecord(RecordType t, <span class="keyword">const</span> <span class="keyword">char</span>* ptr, <span class="keyword">size_t</span> n) &#123;</div><div class="line">  assert(n &lt;= <span class="number">0xffff</span>);  </div><div class="line">  assert(block_offset_ + kHeaderSize + n &lt;= kBlockSize);</div><div class="line"></div><div class="line">  <span class="comment">// 封装好记录头checksum7+length2+flag1</span></div><div class="line">  <span class="keyword">char</span> buf[kHeaderSize];</div><div class="line">  buf[<span class="number">4</span>] = <span class="keyword">static_cast</span>&lt;<span class="keyword">char</span>&gt;(n &amp; <span class="number">0xff</span>);</div><div class="line">  buf[<span class="number">5</span>] = <span class="keyword">static_cast</span>&lt;<span class="keyword">char</span>&gt;(n &gt;&gt; <span class="number">8</span>);</div><div class="line">  buf[<span class="number">6</span>] = <span class="keyword">static_cast</span>&lt;<span class="keyword">char</span>&gt;(t);</div><div class="line"></div><div class="line">  <span class="comment">// 用crc填充buf前四个字节</span></div><div class="line">  <span class="keyword">uint32_t</span> crc = crc32c::Extend(type_crc_[t], ptr, n);</div><div class="line">  crc = crc32c::Mask(crc);                 <span class="comment">// Adjust for storage</span></div><div class="line">  EncodeFixed32(buf, crc);</div><div class="line"></div><div class="line">  <span class="comment">// 将记录头写入缓存</span></div><div class="line">  Status s = dest_-&gt;Append(Slice(buf, kHeaderSize));</div><div class="line">  <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">    s = dest_-&gt;Append(Slice(ptr, n));<span class="comment">//将记录内容写入缓存</span></div><div class="line">    <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">      s = dest_-&gt;Flush();<span class="comment">//将缓存的数据刷新进内核。</span></div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  block_offset_ += kHeaderSize + n;<span class="comment">//更新块内偏移量</span></div><div class="line">  <span class="keyword">return</span> s;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>log写文件分析就结束了。接下来分析log文件读取，读取相对较难。</p>
+<h2>log文件Reader类</h2>
+<p>我们先来看下Reader类的成员变量：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">SequentialFile* <span class="keyword">const</span> file_;<span class="comment">//读取文件封装类</span></div><div class="line"> Reporter* <span class="keyword">const</span> reporter_;<span class="comment">//报告错误类</span></div><div class="line"> <span class="keyword">bool</span> <span class="keyword">const</span> checksum_;<span class="comment">//是否要进行CRC验证</span></div><div class="line"> <span class="keyword">char</span>* <span class="keyword">const</span> backing_store_;<span class="comment">//读取是存储备份</span></div><div class="line"> Slice buffer_;<span class="comment">//一次性读取一个块，而且用于定位lsat_record_offset_</span></div><div class="line"> <span class="keyword">bool</span> eof_;   <span class="comment">// 是否是最后一次读</span></div><div class="line"></div><div class="line"> <span class="comment">// 上条记录的偏移量</span></div><div class="line"> <span class="keyword">uint64_t</span> last_record_offset_;</div><div class="line"> <span class="comment">// 当前块结尾在log文件的偏移量</span></div><div class="line"> <span class="keyword">uint64_t</span> end_of_buffer_offset_;</div><div class="line"></div><div class="line"> <span class="comment">// 开始查找的起始地址</span></div><div class="line"> <span class="keyword">uint64_t</span> <span class="keyword">const</span> initial_offset_;</div></pre></td></tr></table></figure></p>
+<p>读取文件函数：
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div></pre></td><td class="code"><pre><div class="line">bool Reader::ReadRecord(Slice* record, std::string* scratch) &#123;</div><div class="line">  <span class="keyword">if</span> (last_record_offset_ &lt; initial_offset_) &#123;</div><div class="line">    <span class="keyword">if</span> (!SkipToInitialBlock()) &#123;</div><div class="line">      <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  scratch-&gt;<span class="built_in">clear</span>();</div><div class="line">  record-&gt;<span class="built_in">clear</span>();</div><div class="line">  bool in_fragmented_record = <span class="keyword">false</span>;<span class="comment">//上条记录是否为完整记录</span></div><div class="line">  uint64_t prospective_record_offset = <span class="number">0</span>;<span class="comment">//当前读取记录的偏移量</span></div><div class="line"></div><div class="line">  Slice fragment;</div><div class="line">  <span class="keyword">while</span> (<span class="keyword">true</span>) &#123;</div><div class="line">    <span class="comment">//当前记录的起始地址</span></div><div class="line">    uint64_t physical_record_offset = end_of_buffer_offset_ - buffer_.<span class="built_in">size</span>();</div><div class="line">    <span class="comment">//读取当前记录</span></div><div class="line">    <span class="keyword">const</span> unsigned <span class="built_in">int</span> record_type = ReadPhysicalRecord(&amp;fragment);</div><div class="line">    <span class="keyword">switch</span> (record_type) &#123;</div><div class="line">      <span class="keyword">case</span> kFullType:</div><div class="line">        <span class="keyword">if</span> (in_fragmented_record) &#123;</div><div class="line">          <span class="comment">// 完整记录，直接读取即可。</span></div><div class="line">          <span class="keyword">if</span> (scratch-&gt;empty()) &#123;</div><div class="line">            in_fragmented_record = <span class="keyword">false</span>;</div><div class="line">          &#125; <span class="keyword">else</span> &#123;</div><div class="line">            ReportCorruption(scratch-&gt;<span class="built_in">size</span>(), <span class="string">"partial record without end(1)"</span>);</div><div class="line">          &#125;</div><div class="line">        &#125;</div><div class="line">        prospective_record_offset = physical_record_offset;</div><div class="line">        scratch-&gt;<span class="built_in">clear</span>();</div><div class="line">        *record = fragment;</div><div class="line">        last_record_offset_ = prospective_record_offset;<span class="comment">//对于下一条记录而言，这偏移量就是上条记录的偏移量，</span></div><div class="line"><span class="comment">//也就是这条记录的偏移量</span></div><div class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kFirstType:</div><div class="line">        <span class="keyword">if</span> (in_fragmented_record) &#123;</div><div class="line">          <span class="comment">// 如果是一条记录的第一部分</span></div><div class="line">          <span class="keyword">if</span> (scratch-&gt;empty()) &#123;</div><div class="line">            in_fragmented_record = <span class="keyword">false</span>;</div><div class="line">          &#125; <span class="keyword">else</span> &#123;</div><div class="line">            ReportCorruption(scratch-&gt;<span class="built_in">size</span>(), <span class="string">"partial record without end(2)"</span>);</div><div class="line">          &#125;</div><div class="line">        &#125;</div><div class="line">        prospective_record_offset = physical_record_offset;</div><div class="line">        scratch-&gt;assign(fragment.data(), fragment.<span class="built_in">size</span>());<span class="comment">//把第一部分的数据添加进scratch</span></div><div class="line">        in_fragmented_record = <span class="keyword">true</span>;<span class="comment">//下一条记录就是属于当前记录的一部分</span></div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kMiddleType:</div><div class="line">        <span class="keyword">if</span> (!in_fragmented_record) &#123;</div><div class="line">          ReportCorruption(fragment.<span class="built_in">size</span>(),</div><div class="line">                           <span class="string">"missing start of fragmented record(1)"</span>);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          scratch-&gt;<span class="built_in">append</span>(fragment.data(), fragment.<span class="built_in">size</span>());<span class="comment">//将当前记录添加进scratch</span></div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kLastType:</div><div class="line">        <span class="keyword">if</span> (!in_fragmented_record) &#123;</div><div class="line">          ReportCorruption(fragment.<span class="built_in">size</span>(),</div><div class="line">                           <span class="string">"missing start of fragmented record(2)"</span>);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">          scratch-&gt;<span class="built_in">append</span>(fragment.data(), fragment.<span class="built_in">size</span>());<span class="comment">//当前记录最后部分添加进scratch</span></div><div class="line">          *record = Slice(*scratch);<span class="comment">//给record赋值，即记录的内容</span></div><div class="line">          last_record_offset_ = prospective_record_offset;<span class="comment">//指向当前记录的起始地址</span></div><div class="line">          <span class="keyword">return</span> <span class="keyword">true</span>;</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kEof:</div><div class="line">        <span class="keyword">if</span> (in_fragmented_record) &#123;</div><div class="line">          <span class="comment">// This can be caused by the writer dying immediately after</span></div><div class="line">          <span class="comment">// writing a physical record but before completing the next; don't</span></div><div class="line">          <span class="comment">// treat it as a corruption, just ignore the entire logical record.</span></div><div class="line">          scratch-&gt;<span class="built_in">clear</span>();</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line"></div><div class="line">      <span class="keyword">case</span> kBadRecord:</div><div class="line">        <span class="keyword">if</span> (in_fragmented_record) &#123;</div><div class="line">          ReportCorruption(scratch-&gt;<span class="built_in">size</span>(), <span class="string">"error in middle of record"</span>);</div><div class="line">          in_fragmented_record = <span class="keyword">false</span>;</div><div class="line">          scratch-&gt;<span class="built_in">clear</span>();</div><div class="line">        &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line"></div><div class="line">      <span class="keyword">default</span>: &#123;</div><div class="line">        <span class="built_in">char</span> buf[<span class="number">40</span>];</div><div class="line">        snprintf(buf, sizeof(buf), <span class="string">"unknown record type %u"</span>, record_type);</div><div class="line">        ReportCorruption(</div><div class="line">            (fragment.<span class="built_in">size</span>() + (in_fragmented_record ? scratch-&gt;<span class="built_in">size</span>() : <span class="number">0</span>)),</div><div class="line">            buf);</div><div class="line">        in_fragmented_record = <span class="keyword">false</span>;</div><div class="line">        scratch-&gt;<span class="built_in">clear</span>();</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> <span class="keyword">false</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从文件读取记录的函数如下:
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">unsigned</span> <span class="keyword">int</span> Reader::ReadPhysicalRecord(Slice* result) &#123;</div><div class="line">  <span class="built_in">while</span> (true) &#123;</div><div class="line">    <span class="built_in">if</span> (buffer_.<span class="built_in">size</span>() &lt; kHeaderSize) &#123;</div><div class="line">      <span class="built_in">if</span> (!eof_) &#123;</div><div class="line">        <span class="comment">// 因为不是结尾，说明上次读取的是一整个块，现在这个块只剩下补充的0，跳过即可。</span></div><div class="line">        buffer_.<span class="built_in">clear</span>();</div><div class="line"> 	<span class="comment">//读取一个新块</span></div><div class="line">        Status status = file_-&gt;Read(kBlockSize, &amp;buffer_, backing_store_);</div><div class="line">        end_of_buffer_offset_ += buffer_.<span class="built_in">size</span>();<span class="comment">//缓存块偏移量指向这个块结尾。</span></div><div class="line">        <span class="built_in">if</span> (!status.ok()) &#123;</div><div class="line">          buffer_.<span class="built_in">clear</span>();</div><div class="line">          ReportDrop(kBlockSize, status);</div><div class="line">          eof_ = true;</div><div class="line">          <span class="built_in">return</span> kEof;<span class="comment">//如果读取失败，返回结尾</span></div><div class="line">        &#125; <span class="built_in">else</span> <span class="built_in">if</span> (buffer_.<span class="built_in">size</span>() &lt; kBlockSize) &#123;</div><div class="line">          eof_ = true;<span class="comment">//读取成功，但是读取记录小于头，实际大小应该是0，到达文件结尾</span></div><div class="line">        &#125;</div><div class="line">        <span class="built_in">continue</span>;</div><div class="line">      &#125; <span class="built_in">else</span> &#123;</div><div class="line">        buffer_.<span class="built_in">clear</span>();</div><div class="line">        <span class="built_in">return</span> kEof;</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 解析记录头</span></div><div class="line">    <span class="keyword">const</span> <span class="keyword">char</span>* header = buffer_.data();</div><div class="line">    <span class="keyword">const</span> uint32_t a = <span class="keyword">static_cast</span>&lt;uint32_t&gt;(header[<span class="number">4</span>]) &amp; <span class="number">0xff</span>;</div><div class="line">    <span class="keyword">const</span> uint32_t b = <span class="keyword">static_cast</span>&lt;uint32_t&gt;(header[<span class="number">5</span>]) &amp; <span class="number">0xff</span>;</div><div class="line">    <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> type = header[<span class="number">6</span>];<span class="comment">//记录类型</span></div><div class="line">    <span class="keyword">const</span> uint32_t length = a | (b &lt;&lt; <span class="number">8</span>);<span class="comment">//记录长度</span></div><div class="line">    <span class="built_in">if</span> (kHeaderSize + length &gt; buffer_.<span class="built_in">size</span>()) &#123;</div><div class="line">      size_t drop_size = buffer_.<span class="built_in">size</span>();</div><div class="line">      buffer_.<span class="built_in">clear</span>();</div><div class="line">      <span class="built_in">if</span> (!eof_) &#123;</div><div class="line">        ReportCorruption(drop_size, <span class="string">"bad record length"</span>);</div><div class="line">        <span class="built_in">return</span> kBadRecord;</div><div class="line">      &#125;</div><div class="line">      <span class="comment">// If the end of the file has been reached without reading |length| bytes</span></div><div class="line">      <span class="comment">// of payload, assume the writer died in the middle of writing the record.</span></div><div class="line">      <span class="comment">// Don't report a corruption.</span></div><div class="line">      <span class="built_in">return</span> kEof;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="built_in">if</span> (type == kZeroType &amp;&amp; length == <span class="number">0</span>) &#123;</div><div class="line">      <span class="comment">// Skip zero length record without reporting any drops since</span></div><div class="line">      <span class="comment">// such records are produced by the mmap based writing code in</span></div><div class="line">      <span class="comment">// env_posix.cc that preallocates file regions.</span></div><div class="line">      buffer_.<span class="built_in">clear</span>();</div><div class="line">      <span class="built_in">return</span> kBadRecord;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// Check crc</span></div><div class="line">    <span class="built_in">if</span> (checksum_) &#123;</div><div class="line">      uint32_t expected_crc = crc32c::Unmask(DecodeFixed32(header));</div><div class="line">      uint32_t actual_crc = crc32c::Value(header + <span class="number">6</span>, <span class="number">1</span> + length);</div><div class="line">      <span class="built_in">if</span> (actual_crc != expected_crc) &#123;</div><div class="line">        <span class="comment">// Drop the rest of the buffer since "length" itself may have</span></div><div class="line">        <span class="comment">// been corrupted and if we trust it, we could find some</span></div><div class="line">        <span class="comment">// fragment of a real log record that just happens to look</span></div><div class="line">        <span class="comment">// like a valid log record.</span></div><div class="line">        size_t drop_size = buffer_.<span class="built_in">size</span>();</div><div class="line">        buffer_.<span class="built_in">clear</span>();</div><div class="line">        ReportCorruption(drop_size, <span class="string">"checksum mismatch"</span>);</div><div class="line">        <span class="built_in">return</span> kBadRecord;</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    buffer_.remove_prefix(kHeaderSize + length);<span class="comment">//buffer_是一块的长度，当读取结束一条记录时</span></div><div class="line"><span class="comment">//buffer_指向内容的指针向前移动KheaderSize+length，即下一条记录的起始地址</span></div><div class="line"></div><div class="line">    <span class="comment">// 跳过初始地址之前的记录</span></div><div class="line">    <span class="built_in">if</span> (end_of_buffer_offset_ - buffer_.<span class="built_in">size</span>() - kHeaderSize - length &lt;</div><div class="line">        initial_offset_) &#123;</div><div class="line">      result-&gt;<span class="built_in">clear</span>();</div><div class="line">      <span class="built_in">return</span> kBadRecord;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    *result = Slice(header + kHeaderSize, length);<span class="comment">//获取记录内容部分</span></div><div class="line">    <span class="built_in">return</span> type;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>读写log文件主要是要熟悉log文件的记录模型和文件的偏移量，这样当按格式，一个字节一个字节写入log文件是时，Reader类才能精确地一个一个字节从文件读出。我上两张图帮助理解：
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/luodw--log1.jpg" alt="log文件读取记录">
+这张图假设读取Record C的第一部分，因为在第一块内，所以end_of_buffer_offset_指向第一个块的最后一个字节，last_record_offset_指向Record B，buffer_的长度为B记录第一部分长度。当第一部分读取结束时，此时，因为第一块已经读取结束，所以从新从文件读取一个块存如buffer_，end_of_buffer_offset_指向第二个块的最后一个字节。因为buffer_.size()=一个块的容量，所以接下来读取C记录第二部分的偏移量为Block2的首地址。下图展示了读取RecordB之后图示:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/luodw--log2.jpg" alt="log文件读取记录"></p>
+<p>至此，log文件读取结束，也就是leveldb第二大组件。leveldb第三大组件为sst文件，接下来几篇文章讲解。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/leveldb/" rel="tag">#leveldb</a>
+          
+            <a href="/tags/log/" rel="tag">#log</a>
+          
+            <a href="/tags/log-reader/" rel="tag">#log::reader</a>
+          
+            <a href="/tags/log-writer/" rel="tag">#log::writer</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/17/leveldb-06/" rel="next" title="leveldb源码分析之memtable">
+                <i class="fa fa-chevron-left"></i> leveldb源码分析之memtable
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/21/leveldb-09/" rel="prev" title="leveldb源码分析之sst文件格式">
+                leveldb源码分析之sst文件格式 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/18/leveldb-08/"
+     data-title="leveldb源码分析之读写log文件"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/18/leveldb-08/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/18/leveldb-08/"
+           data-title="leveldb源码分析之读写log文件" data-url="http://luodw.cc/2015/10/18/leveldb-08/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">log日志Writer类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">log文件Reader类</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

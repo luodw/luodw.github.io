@@ -1,0 +1,1085 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="redis," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="redis慢查询日志
+在mysql中，有一类日志，叫慢查询日志，主要是保存查询时间超过一定阈值的sql语句，用于分析如何优化查询。redis也有一个慢查询日志，功能类似，存储查询时间超过事先定义的阈值的命令，用来分析和优化查询。
+redis有两个和慢查询日志相关的选项：
+
+slowlog-log-slower-than 选项指定执行时间超过多少微秒（1 秒等于 1,000,000 微秒）的命令请求">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis源码分析之慢日志">
+<meta property="og:url" content="http://luodw.cc/2016/02/14/redis-slowlog/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="redis慢查询日志
+在mysql中，有一类日志，叫慢查询日志，主要是保存查询时间超过一定阈值的sql语句，用于分析如何优化查询。redis也有一个慢查询日志，功能类似，存储查询时间超过事先定义的阈值的命令，用来分析和优化查询。
+redis有两个和慢查询日志相关的选项：
+
+slowlog-log-slower-than 选项指定执行时间超过多少微秒（1 秒等于 1,000,000 微秒）的命令请求">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis源码分析之慢日志">
+<meta name="twitter:description" content="redis慢查询日志
+在mysql中，有一类日志，叫慢查询日志，主要是保存查询时间超过一定阈值的sql语句，用于分析如何优化查询。redis也有一个慢查询日志，功能类似，存储查询时间超过事先定义的阈值的命令，用来分析和优化查询。
+redis有两个和慢查询日志相关的选项：
+
+slowlog-log-slower-than 选项指定执行时间超过多少微秒（1 秒等于 1,000,000 微秒）的命令请求">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/02/14/redis-slowlog/"/>
+
+
+  <title> redis源码分析之慢日志 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis源码分析之慢日志
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-14T11:01:19+08:00" content="2016-02-14">
+              2016-02-14
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/02/14/redis-slowlog/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/02/14/redis-slowlog/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/14/redis-slowlog/" class="leancloud_visitors" data-flag-title="redis源码分析之慢日志">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1>redis慢查询日志</h1>
+<p>在mysql中，有一类日志，叫慢查询日志，主要是保存查询时间超过一定阈值的sql语句，用于分析如何优化查询。redis也有一个慢查询日志，功能类似，存储查询时间超过事先定义的阈值的命令，用来分析和优化查询。</p>
+<p>redis有两个和慢查询日志相关的选项：</p>
+<ul>
+<li>slowlog-log-slower-than 选项指定执行时间超过多少微秒（1 秒等于 1,000,000 微秒）的命令请求会被记录到日志上。举个例子， 如果这个选项的值为 100 ， 那么执行时间超过 100 微秒的命令就会被记录到慢查询日志； 如果这个选项的值为 500 ， 那么执行时间超过 500 微秒的命令就会被记录到慢查询日志； 诸如此类。</li>
+<li>slowlog-max-len 选项指定服务器最多保存多少条慢查询日志。服务器使用先进先出的方式保存多条慢查询日志： 当服务器储存的慢查询日志数量等于 slowlog-max-len 选项的值时， 服务器在添加一条新的慢查询日志之前， 会先将最旧的一条慢查询日志删除。举个例子， 如果服务器 slowlog-max-len 的值为 100 ， 并且假设服务器已经储存了 100 条慢查询日志， 那么如果服务器打算添加一条新日志的话， 它就必须先删除目前保存的最旧的那条日志， 然后再添加新日志。</li>
+</ul>
+<p>我们先来看下慢查询日志是如何使用的，可以通过redis.conf配置文件配置上述两项，或者采用config set命令来设置
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">127<span class="selector-class">.0</span><span class="selector-class">.0</span><span class="selector-class">.1</span><span class="selector-pseudo">:6379</span>&gt; <span class="selector-tag">slowlog</span> <span class="selector-tag">get</span></div><div class="line">(<span class="selector-tag">empty</span> <span class="selector-tag">list</span> <span class="selector-tag">or</span> <span class="selector-tag">set</span>)</div><div class="line">127<span class="selector-class">.0</span><span class="selector-class">.0</span><span class="selector-class">.1</span><span class="selector-pseudo">:6379</span>&gt; <span class="selector-tag">config</span> <span class="selector-tag">get</span> <span class="selector-tag">slowlog-log-slower-than</span></div><div class="line">1) "<span class="selector-tag">slowlog-log-slower-than</span>"</div><div class="line">2) "1"</div><div class="line">127<span class="selector-class">.0</span><span class="selector-class">.0</span><span class="selector-class">.1</span><span class="selector-pseudo">:6379</span>&gt; <span class="selector-tag">config</span> <span class="selector-tag">set</span> <span class="selector-tag">slowlog-log-slower-than</span> 2</div><div class="line"><span class="selector-tag">OK</span></div><div class="line">127<span class="selector-class">.0</span><span class="selector-class">.0</span><span class="selector-class">.1</span><span class="selector-pseudo">:6379</span>&gt; <span class="selector-tag">config</span> <span class="selector-tag">get</span> <span class="selector-tag">slowlog-log-slower-than</span></div><div class="line">1) "<span class="selector-tag">slowlog-log-slower-than</span>"</div><div class="line">2) "2"</div><div class="line">127<span class="selector-class">.0</span><span class="selector-class">.0</span><span class="selector-class">.1</span><span class="selector-pseudo">:6379</span>&gt; <span class="selector-tag">set</span> <span class="selector-tag">name</span> <span class="selector-tag">hello</span></div><div class="line"><span class="selector-tag">OK</span></div></pre></td></tr></table></figure></p>
+<p>一开始慢日志为空，然后通过config get先获取变量slowlog-log-slower-than的值，为我之前设置的1，单位为微秒。然后通过命令config set命令设置为2微秒，然后执行一个set命令，我们来看下慢查询日志
+<figure class="highlight gams"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">6379</span>&gt; slowlog get</div><div class="line"><span class="number">1</span>) <span class="number">1</span>) (<span class="keyword">integer</span>) <span class="number">0</span><span class="comment">//日志的唯一标识符</span></div><div class="line">   <span class="number">2</span>) (<span class="keyword">integer</span>) <span class="number">1454593637</span><span class="comment">//命令执行时的unix时间戳</span></div><div class="line">   <span class="number">3</span>) (<span class="keyword">integer</span>) <span class="number">14</span><span class="comment">//命令执行的时长，以微秒计算</span></div><div class="line">   <span class="number">4</span>) <span class="number">1</span>) <span class="string">"set"</span> <span class="comment">//命令以及命令参数</span></div><div class="line">      <span class="number">2</span>) <span class="string">"name"</span></div><div class="line">      <span class="number">3</span>) <span class="string">"hello"</span></div></pre></td></tr></table></figure></p>
+<p>其实之前的config命令，也会在慢日志中，我没列出。可以看下慢查询日志格式。慢查询日志还有一个选项是最多保留慢查询日志的条数slowlog-max-len，如果慢查询日志数量超出设定的阈值，则最旧的日志会被删除。</p>
+<h1>慢查询源码分析</h1>
+<p>解析来看下慢查询日志源码是如何实现的。慢查询日志数据结构为
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//slowlog.h</span></div><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> slowlogEntry &#123;</div><div class="line">    robj **argv;        <span class="comment">/* 命令参数对象数组 */</span></div><div class="line">    <span class="keyword">int</span> argc;</div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> id;       <span class="comment">/* Unique entry identifier. */</span></div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> duration; <span class="comment">/* Time spent by the query, in nanoseconds. */</span></div><div class="line">    <span class="keyword">time_t</span> time;        <span class="comment">/* Unix time at which the query was executed. */</span></div><div class="line">&#125; slowlogEntry;</div></pre></td></tr></table></figure></p>
+<p>这里注释的命令执行时间为纳秒，但是官网上是微秒，而且我觉得微秒更可信点，在server结构中，也有几个属性与慢日志相关
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> redisServer &#123;</div><div class="line">    <span class="comment">//..................</span></div><div class="line">    <span class="built_in">list</span> *slowlog;                  <span class="comment">/* SLOWLOG list of commands */</span></div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> slowlog_entry_id;     <span class="comment">/* SLOWLOG current entry ID */</span></div><div class="line">    <span class="keyword">long</span> <span class="keyword">long</span> slowlog_log_slower_than; <span class="comment">/* SLOWLOG time limit (to get logged) */</span></div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> slowlog_max_len;     <span class="comment">/* SLOWLOG max number of items logged */</span></div><div class="line">    <span class="comment">//......................</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>redis用一个链表来存储所有的慢查询日志，在redis.c/main函数中的initServer函数中，调用slowlogInit函数初始化慢查询日志:
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> slowlogInit(<span class="keyword">void</span>) &#123;</div><div class="line">    <span class="keyword">server</span>.slowlog = listCreate();<span class="comment">//创建链表</span></div><div class="line">    <span class="keyword">server</span>.slowlog_entry_id = <span class="number">0</span>;<span class="comment">//初始化日志id</span></div><div class="line">    listSetFreeMethod(<span class="keyword">server</span>.slowlog,slowlogFreeEntry);<span class="comment">//注册日志析构函数，主要</span></div><div class="line"><span class="comment">//为了回收argv中存储的参数对象</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>初始化好慢查询日志之后，接下来在哪进行慢查询日志插入了？因为慢查询日志是需要知道命令的执行时间，所以肯定必须在命令执行之后，根据这个思路，我们在call函数中找到了慢查询日志插入点。
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">void call(redisClient *c, int flags) &#123;</div><div class="line">    <span class="comment">/* ..... */</span></div><div class="line">       start = ustime();</div><div class="line">       <span class="function"><span class="title">c</span>-&gt;</span><span class="function"><span class="title">cmd</span>-&gt;</span>proc(c);</div><div class="line">       duration = ustime()-start;</div><div class="line">    <span class="comment">/* ......*/</span></div><div class="line">       <span class="function"><span class="title">slowlogPushEntryIfNeeded</span>(c-&gt;</span><span class="function"><span class="title">argv</span>,c-&gt;</span>argc,duration);</div></pre></td></tr></table></figure></p>
+<p>所以，这个命令时长是调用命令的执行函数所持续的时间，最后调用slowlog.c中的slowlogPushEntryIfNeeded函数如果有必要插入。
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> slowlogPushEntryIfNeeded(robj **argv, <span class="keyword">int</span> argc, <span class="keyword">long</span> <span class="keyword">long</span> duration) &#123;</div><div class="line">    <span class="keyword">if</span> (<span class="keyword">server</span>.slowlog_log_slower_than &lt; <span class="number">0</span>) <span class="keyword">return</span>; <span class="comment">/* Slowlog disabled */</span></div><div class="line">    <span class="keyword">if</span> (duration &gt;= <span class="keyword">server</span>.slowlog_log_slower_than)</div><div class="line">        listAddNodeHead(<span class="keyword">server</span>.slowlog,slowlogCreateEntry(argv,argc,duration));</div><div class="line"></div><div class="line">    <span class="comment">/* 如果慢查询日志链表已满，则删除最旧的日志 */</span></div><div class="line">    <span class="keyword">while</span> (listLength(<span class="keyword">server</span>.slowlog) &gt; <span class="keyword">server</span>.slowlog_max_len)</div><div class="line">        listDelNode(<span class="keyword">server</span>.slowlog,listLast(<span class="keyword">server</span>.slowlog));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>必须先创建好一个日志项，然后再将日志项插入慢日志列表头:
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line">slowlogEntry *slowlogCreateEntry(robj **argv, int argc, long long duration) &#123;</div><div class="line">    slowlogEntry *se = zmalloc(sizeof(*se));</div><div class="line">    int j, slargc = argc;</div><div class="line">    <span class="comment">//判断参数是否过多</span></div><div class="line">    <span class="keyword">if</span> (slargc &gt; SLOWLOG_ENTRY_MAX_ARGC) slargc = SLOWLOG_ENTRY_MAX_ARGC;</div><div class="line">    <span class="function"><span class="title">se</span>-&gt;</span>argc = slargc;</div><div class="line">    <span class="function"><span class="title">se</span>-&gt;</span>argv = zmalloc(sizeof(robj*)*slargc);</div><div class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; slargc; j++) &#123;</div><div class="line">        <span class="keyword">if</span> (slargc != argc &amp;&amp; j == slargc-<span class="number">1</span>) &#123;</div><div class="line">            <span class="function"><span class="title">se</span>-&gt;</span>argv[j] = createObject(REDIS_STRING,</div><div class="line">                sdscatprintf(sdsempty(),<span class="string">"... (%d more arguments)"</span>,</div><div class="line">                argc-slargc+<span class="number">1</span>));<span class="comment">//在最后一个参数输出提示</span></div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            <span class="comment">/* 有些字符串太长，进行缩减 */</span></div><div class="line">            <span class="function"><span class="title">if</span> (argv[j]-&gt;</span>type == REDIS_STRING &amp;&amp;</div><div class="line">                sdsEncodedObject(argv[j]) &amp;&amp;</div><div class="line">                <span class="function"><span class="title">sdslen</span>(argv[j]-&gt;</span>ptr) &gt; SLOWLOG_ENTRY_MAX_STRING)</div><div class="line">            &#123;</div><div class="line">                <span class="function"><span class="title">sds</span> s = sdsnewlen(argv[j]-&gt;</span>ptr, SLOWLOG_ENTRY_MAX_STRING);</div><div class="line"></div><div class="line">                s = sdscatprintf(s,<span class="string">"... (%lu more bytes)"</span>,</div><div class="line">                    (unsigned long)</div><div class="line">                    <span class="function"><span class="title">sdslen</span>(argv[j]-&gt;</span>ptr) - SLOWLOG_ENTRY_MAX_STRING);</div><div class="line">                <span class="function"><span class="title">se</span>-&gt;</span>argv[j] = createObject(REDIS_STRING,s);</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                <span class="function"><span class="title">se</span>-&gt;</span>argv[j] = argv[j];</div><div class="line">                incrRefCount(argv[j]);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//为slowlogEntry其他选项赋值</span></div><div class="line">    <span class="function"><span class="title">se</span>-&gt;</span><span class="built_in">time</span> = <span class="built_in">time</span>(NULL);</div><div class="line">    <span class="function"><span class="title">se</span>-&gt;</span>duration = duration;</div><div class="line">    <span class="function"><span class="title">se</span>-&gt;</span>id = server.slowlog_entry_id++;</div><div class="line">    return se;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>最后再来看下slowlog命令执行函数
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line">void slowlogCommand(redisClient *c) &#123;</div><div class="line">    <span class="function"><span class="title">if</span> (c-&gt;</span><span class="function"><span class="title">argc</span> == 2 &amp;&amp; !strcasecmp(c-&gt;</span><span class="function"><span class="title">argv</span>[1]-&gt;</span>ptr,<span class="string">"reset"</span>)) &#123;</div><div class="line">        slowlogReset();</div><div class="line">        addReply(c,shared.ok);</div><div class="line">    &#125; <span class="function"><span class="title">else</span> <span class="keyword">if</span> (c-&gt;</span><span class="function"><span class="title">argc</span> == 2 &amp;&amp; !strcasecmp(c-&gt;</span><span class="function"><span class="title">argv</span>[1]-&gt;</span>ptr,<span class="string">"len"</span>)) &#123;</div><div class="line">        addReplyLongLong(c,listLength(server.slowlog));</div><div class="line">    &#125; <span class="function"><span class="title">else</span> <span class="keyword">if</span> ((c-&gt;</span><span class="function"><span class="title">argc</span> == 2 || c-&gt;</span>argc == <span class="number">3</span>) &amp;&amp;</div><div class="line">               !<span class="function"><span class="title">strcasecmp</span>(c-&gt;</span><span class="function"><span class="title">argv</span>[1]-&gt;</span>ptr,<span class="string">"get"</span>))</div><div class="line">    &#123;</div><div class="line">        long count = <span class="number">10</span>, sent = <span class="number">0</span>;</div><div class="line">        listIter li;</div><div class="line">        void *totentries;</div><div class="line">        listNode *ln;</div><div class="line">        slowlogEntry *se;</div><div class="line"></div><div class="line">        <span class="function"><span class="title">if</span> (c-&gt;</span>argc == <span class="number">3</span> &amp;&amp;</div><div class="line">            <span class="function"><span class="title">getLongFromObjectOrReply</span>(c,c-&gt;</span>argv[<span class="number">2</span>],&amp;count,NULL) != REDIS_OK)</div><div class="line">            return;</div><div class="line"></div><div class="line">        listRewind(server.slowlog,&amp;li);</div><div class="line">        totentries = addDeferredMultiBulkLength(c);</div><div class="line">        <span class="keyword">while</span>(count-- &amp;&amp; (ln = listNext(&amp;li))) &#123;</div><div class="line">            int j;</div><div class="line"></div><div class="line">            <span class="function"><span class="title">se</span> = ln-&gt;</span>value;</div><div class="line">            addReplyMultiBulkLen(c,<span class="number">4</span>);</div><div class="line">            <span class="function"><span class="title">addReplyLongLong</span>(c,se-&gt;</span>id);</div><div class="line">            <span class="function"><span class="title">addReplyLongLong</span>(c,se-&gt;</span><span class="built_in">time</span>);</div><div class="line">            <span class="function"><span class="title">addReplyLongLong</span>(c,se-&gt;</span>duration);</div><div class="line">            <span class="function"><span class="title">addReplyMultiBulkLen</span>(c,se-&gt;</span>argc);</div><div class="line">            <span class="function"><span class="title">for</span> (j = 0; j &lt; se-&gt;</span>argc; j++)</div><div class="line">                <span class="function"><span class="title">addReplyBulk</span>(c,se-&gt;</span>argv[j]);</div><div class="line">            sent++;</div><div class="line">        &#125;</div><div class="line">        setDeferredMultiBulkLength(c,totentries,sent);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        addReplyError(c,</div><div class="line">            <span class="string">"Unknown SLOWLOG subcommand or wrong # of args. Try GET, RESET, LEN."</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>slowlog命令有三个子命令，</p>
+<ol>
+<li>
+<p>第一个是reset,这时调用slowlogReset函数恢复日志列表，即删除所有日志:
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> slowlogReset(<span class="keyword">void</span>) &#123;</div><div class="line">    <span class="keyword">while</span> (listLength(<span class="keyword">server</span>.slowlog) &gt; <span class="number">0</span>)</div><div class="line">        listDelNode(<span class="keyword">server</span>.slowlog,listLast(<span class="keyword">server</span>.slowlog));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>第二个是len，返回日志链表长度
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="title">else</span> <span class="keyword">if</span> (c-&gt;</span><span class="function"><span class="title">argc</span> == 2 &amp;&amp; !strcasecmp(c-&gt;</span><span class="function"><span class="title">argv</span>[1]-&gt;</span>ptr,<span class="string">"len"</span>)) &#123;</div><div class="line">        addReplyLongLong(c,listLength(server.slowlog));</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>第三个是get，返回的是所有慢日志,很简单，只是简单的迭代slowlog链表，输出每一个日志项。</p>
+</li>
+</ol>
+<p>慢查询日志整体相对较简单，在每次执行命令时，判断执行时间是否超时，如果超时，就插入慢查询日志链表中，之后就可以调用slowlog命令查询.</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag">#redis</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/02/13/redis-msglist/" rel="next" title="redis消息队列之链表实现">
+                <i class="fa fa-chevron-left"></i> redis消息队列之链表实现
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/02/15/redis-msgpub/" rel="prev" title="redis源码分析之广播订阅机制">
+                redis源码分析之广播订阅机制 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/02/14/redis-slowlog/"
+     data-title="redis源码分析之慢日志"
+     data-content=""
+     data-url="http://luodw.cc/2016/02/14/redis-slowlog/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/02/14/redis-slowlog/"
+           data-title="redis源码分析之慢日志" data-url="http://luodw.cc/2016/02/14/redis-slowlog/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">redis慢查询日志</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">慢查询源码分析</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

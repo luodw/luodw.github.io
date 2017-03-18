@@ -1,0 +1,1063 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="leveldb,table_cache," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="上篇文章有说到过，leveldb有分为block_cache和table_cache。block_cache主要是用来缓存data_block，减少磁盘IO次数。那table_cache是用来干啥了？
+先介绍table_cache的键值对形式，如下图所示：
+;
+key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构体指针，然后这个TableAndFile是由Ran">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leveldb源码分析之Table_cache">
+<meta property="og:url" content="http://luodw.cc/2015/10/25/leveldb-13/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="上篇文章有说到过，leveldb有分为block_cache和table_cache。block_cache主要是用来缓存data_block，减少磁盘IO次数。那table_cache是用来干啥了？
+先介绍table_cache的键值对形式，如下图所示：
+;
+key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构体指针，然后这个TableAndFile是由Ran">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--Table_cache.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="leveldb源码分析之Table_cache">
+<meta name="twitter:description" content="上篇文章有说到过，leveldb有分为block_cache和table_cache。block_cache主要是用来缓存data_block，减少磁盘IO次数。那table_cache是用来干啥了？
+先介绍table_cache的键值对形式，如下图所示：
+;
+key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构体指针，然后这个TableAndFile是由Ran">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--Table_cache.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/25/leveldb-13/"/>
+
+
+  <title> leveldb源码分析之Table_cache | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                leveldb源码分析之Table_cache
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-25T21:11:43+08:00" content="2015-10-25">
+              2015-10-25
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/25/leveldb-13/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/25/leveldb-13/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/25/leveldb-13/" class="leancloud_visitors" data-flag-title="leveldb源码分析之Table_cache">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>上篇文章有说到过，leveldb有分为block_cache和table_cache。block_cache主要是用来缓存data_block，减少磁盘IO次数。那table_cache是用来干啥了？</p>
+<p>先介绍table_cache的键值对形式，如下图所示：
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/luodw--Table_cache.jpg" alt="table_cache的键值对格式">;</p>
+<p>key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构体指针，然后这个TableAndFile是由RandomAccessFile指针和Table指针组成。所以从这个TableAndFile指针，就可以获得这个文件的Table指针，随即可以得到这个文件的任何键值对。所以这个缓存有点类似Linux内核中的inode，由indoe就可以获取磁盘的data block。</p>
+<p>先看下Table_cache这个类的定义：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//成员属性</span></div><div class="line">  Env* <span class="keyword">const</span> env_;<span class="comment">//操作系统封装类</span></div><div class="line">  <span class="keyword">const</span> <span class="built_in">std</span>::<span class="built_in">string</span> dbname_;<span class="comment">//数据库名字</span></div><div class="line">  <span class="keyword">const</span> Options* options_;<span class="comment">//配置选项类</span></div><div class="line">  Cache* cache_;<span class="comment">//Table_cache类</span></div><div class="line"></div><div class="line"><span class="comment">//构造函数如下:</span></div><div class="line">TableCache::TableCache(<span class="keyword">const</span> <span class="built_in">std</span>::<span class="built_in">string</span>&amp; dbname,</div><div class="line">                       <span class="keyword">const</span> Options* options,</div><div class="line">                       <span class="keyword">int</span> entries)</div><div class="line">    : env_(options-&gt;env),</div><div class="line">      dbname_(dbname),</div><div class="line">      options_(options),</div><div class="line">      cache_(NewLRUCache(entries)) &#123;<span class="comment">//Table_cache默认开启，而且为NewLRUCache</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>先介绍下FindTable这个函数:
+<figure class="highlight gams"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line">Status TableCache::FindTable(uint64_t file_number, uint64_t file_size,</div><div class="line">                             Cache::Handle** handle) &#123;</div><div class="line">  Status s;</div><div class="line">  char buf[sizeof(file_number)];<span class="comment">//定义用于存储文件编号的字符数组</span></div><div class="line">  EncodeFixed64(buf, file_number);<span class="comment">//整型编码存储在buf中</span></div><div class="line">  Slice key(buf, sizeof(buf));</div><div class="line">  *handle = cache_-&gt;Lookup(key);<span class="comment">//在Table中查找这个文件编号的handle。</span></div><div class="line">  <span class="keyword">if</span> (*handle == NULL) &#123;如果在TableCache中没有找到，则要新建一个handle，存储这个文件缓存</div><div class="line">    std::string fname = TableFileName(dbname_, file_number);</div><div class="line">    RandomAccessFile* <span class="keyword">file</span> = NULL;</div><div class="line">    <span class="keyword">Table</span>* <span class="keyword">table</span> <span class="comment">= NULL</span>;</div><div class="line">    s = env_-&gt;NewRandomAccessFile(fname, &amp;file);</div><div class="line">    <span class="keyword">if</span> (!s.ok()) &#123;</div><div class="line">      std::string old_fname = SSTTableFileName(dbname_, file_number);</div><div class="line">      <span class="keyword">if</span> (env_-&gt;NewRandomAccessFile(old_fname, &amp;<span class="keyword">file</span>).ok()) &#123;</div><div class="line">        s = Status::OK();</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">      s = <span class="keyword">Table</span>::Open(*options_, file, file_size, &amp;<span class="keyword">table</span>);//打开这个文件的<span class="keyword">Table</span>，存储在*<span class="keyword">table</span></div><div class="line">    &#125;</div><div class="line"></div><div class="line">    if (!s.ok()) &#123;</div><div class="line">      assert(<span class="keyword">table</span> == NULL);</div><div class="line">      delete file;</div><div class="line">      <span class="comment">// We do not cache error results so that if the error is transient,</span></div><div class="line">      <span class="comment">// or somebody repairs the file, we recover automatically.</span></div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      TableAndFile* tf = new TableAndFile;<span class="comment">//新建一个TableAndFile</span></div><div class="line">      tf-&gt;<span class="keyword">file</span> = <span class="keyword">file</span>;</div><div class="line">      tf-&gt;<span class="keyword">table</span> = <span class="keyword">table</span>;</div><div class="line">      *handle = cache_-&gt;Insert(key, tf, <span class="number">1</span>, &amp;DeleteEntry);<span class="comment">//将这个新的tf存入Table_cache</span></div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  return s;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在Table_cache中插入数据时，也注册了这个handle被删除时执行的回调函数。我来分析下，我觉得挺有意思的。首先来看下cache.cc里面handle删除函数
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> LRUCache::Erase(<span class="keyword">const</span> Slice&amp; key, <span class="keyword">uint32_t</span> hash) &#123;</div><div class="line">  <span class="function">MutexLock <span class="title">l</span><span class="params">(&amp;mutex_)</span></span>;</div><div class="line">  LRUHandle* e = table_.Remove(key, hash);<span class="comment">//先在哈希表删除这个handle</span></div><div class="line">  <span class="keyword">if</span> (e != <span class="literal">NULL</span>) &#123;</div><div class="line">    LRU_Remove(e);<span class="comment">//循环双向链表删除这个handle</span></div><div class="line">    Unref(e);<span class="comment">//引用数减一，如果本来就等于1，则删除这个节点</span></div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">void</span> LRUCache::Unref(LRUHandle* e) &#123;</div><div class="line">  assert(e-&gt;refs &gt; <span class="number">0</span>);</div><div class="line">  e-&gt;refs--;</div><div class="line">  <span class="keyword">if</span> (e-&gt;refs &lt;= <span class="number">0</span>) &#123;</div><div class="line">    usage_ -= e-&gt;charge;</div><div class="line">    (*e-&gt;deleter)(e-&gt;key(), e-&gt;value);<span class="comment">//这就是在table_cache注册的回调函数DeleteEntry</span></div><div class="line">    <span class="built_in">free</span>(e);</div><div class="line">  &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">DeleteEntry</span><span class="params">(<span class="keyword">const</span> Slice&amp; key, <span class="keyword">void</span>* value)</span> </span>&#123;</div><div class="line">  TableAndFile* tf = <span class="keyword">reinterpret_cast</span>&lt;TableAndFile*&gt;(value);</div><div class="line">  <span class="keyword">delete</span> tf-&gt;table;<span class="comment">//先delete  table</span></div><div class="line">  <span class="keyword">delete</span> tf-&gt;file;<span class="comment">//再delete  file</span></div><div class="line">  <span class="keyword">delete</span> tf;<span class="comment">//最后delete tf</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>以上就是handle被删除时的回调过程。</p>
+<p>接下来，分析下table_cache这个类的迭代器：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">Iterator* TableCache::NewIterator(<span class="keyword">const</span> ReadOptions&amp; options,</div><div class="line">                                  <span class="keyword">uint64_t</span> file_number,</div><div class="line">                                  <span class="keyword">uint64_t</span> file_size,</div><div class="line">                                  Table** tableptr) &#123;</div><div class="line">  <span class="keyword">if</span> (tableptr != <span class="literal">NULL</span>) &#123;</div><div class="line">    *tableptr = <span class="literal">NULL</span>;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  Cache::Handle* handle = <span class="literal">NULL</span>;</div><div class="line">  Status s = FindTable(file_number, file_size, &amp;handle);<span class="comment">//通过文件编号在缓存中查找文件handle</span></div><div class="line">  <span class="keyword">if</span> (!s.ok()) &#123;</div><div class="line">    <span class="keyword">return</span> NewErrorIterator(s);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  Table* table = <span class="keyword">reinterpret_cast</span>&lt;TableAndFile*&gt;(cache_-&gt;Value(handle))-&gt;table;</div><div class="line">  <span class="comment">//获取这个这个文件编号的Table</span></div><div class="line">  Iterator* result = table-&gt;NewIterator(options);获取这个Table的迭代器</div><div class="line">  result-&gt;RegisterCleanup(&amp;UnrefEntry, cache_, handle);<span class="comment">//注册这个handle删除函数</span></div><div class="line">  <span class="keyword">if</span> (tableptr != <span class="literal">NULL</span>) &#123;</div><div class="line">    *tableptr = table;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> result;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>通过源码可以看出，table_cache的迭代器，本质就是table的迭代器。leveldb迭代器设计帧的很巧妙。从block迭代器-&gt;table两层迭代器-&gt;table_cache迭代器。最后只有通过table_cache迭代器即可获取需要的数据。我觉得这样的做法就是上层接口很简单。</p>
+<p>那什么时候将表格的添加进table_cache呢？</p>
+<p>上次分析创建sst文件时，分析到了table_builder，其实还有个BuilderTable函数，在builder.h/.cc文件里。来分析下：
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div></pre></td><td class="code"><pre><div class="line">Status BuildTable(const std::string&amp; dbname,<span class="comment">//数据库名称</span></div><div class="line">                  Env* env,<span class="comment">//操作系统封装类</span></div><div class="line">                  const Options&amp; options,<span class="comment">//配置选项类</span></div><div class="line">                  TableCache* table_cache,<span class="comment">//缓存</span></div><div class="line">                  Iterator* iter,<span class="comment">//immemtable迭代器，用来将immemtable数据刷回磁盘</span></div><div class="line">                  FileMetaData* meta) &#123;</div><div class="line">  Status s;</div><div class="line">  <span class="function"><span class="title">meta</span>-&gt;</span>file_size = <span class="number">0</span>;</div><div class="line">  <span class="function"><span class="title">iter</span>-&gt;</span>SeekToFirst();</div><div class="line"></div><div class="line">  <span class="function"><span class="title">std</span>::string fname = TableFileName(dbname, meta-&gt;</span>number);</div><div class="line">  <span class="function"><span class="title">if</span> (iter-&gt;</span>Valid()) &#123;</div><div class="line">    WritableFile* file;</div><div class="line">    <span class="function"><span class="title">s</span> = env-&gt;</span>NewWritableFile(fname, &amp;file);创建WritableFile，用于存储memtable数据</div><div class="line">    <span class="keyword">if</span> (!s.ok()) &#123;</div><div class="line">      return s;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    TableBuilder* builder = new TableBuilder(options, file);<span class="comment">//创建table_builder类，</span></div><div class="line">    <span class="function"><span class="title">meta</span>-&gt;</span><span class="function"><span class="title">smallest</span>.DecodeFrom(iter-&gt;</span>key());</div><div class="line">    <span class="function"><span class="title">for</span> (; iter-&gt;</span>V<span class="function"><span class="title">alid</span>(); iter-&gt;</span>Next()) &#123;</div><div class="line">      S<span class="function"><span class="title">lice</span> key = iter-&gt;</span>key();</div><div class="line">      <span class="function"><span class="title">meta</span>-&gt;</span>largest.DecodeFrom(key);</div><div class="line">      <span class="function"><span class="title">builder</span>-&gt;</span>A<span class="function"><span class="title">dd</span>(key, iter-&gt;</span>value());</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// Finish and check for builder errors</span></div><div class="line">    <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">      <span class="function"><span class="title">s</span> = builder-&gt;</span>Finish();<span class="comment">//建表完成</span></div><div class="line">      <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">        <span class="function"><span class="title">meta</span>-&gt;</span><span class="function"><span class="title">file_size</span> = builder-&gt;</span>FileSize();</div><div class="line">        <span class="function"><span class="title">assert</span>(meta-&gt;</span>file_size &gt; <span class="number">0</span>);</div><div class="line">      &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      <span class="function"><span class="title">builder</span>-&gt;</span>Abandon();</div><div class="line">    &#125;</div><div class="line">    delete builder;</div><div class="line"></div><div class="line">    <span class="comment">// Finish and check for file errors</span></div><div class="line">    <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">      <span class="function"><span class="title">s</span> = file-&gt;</span>Sync();<span class="comment">//文件内容刷回磁盘</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">      <span class="function"><span class="title">s</span> = file-&gt;</span>Close();</div><div class="line">    &#125;</div><div class="line">    delete file;</div><div class="line">    file = NULL;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">      <span class="comment">// 这就是将这个文件添加进table_cache了</span></div><div class="line">      I<span class="function"><span class="title">terator</span>* it = table_cache-&gt;</span>NewIterator(ReadOptions(),</div><div class="line">                                              <span class="function"><span class="title">meta</span>-&gt;</span>number,</div><div class="line">                                              <span class="function"><span class="title">meta</span>-&gt;</span>file_size);</div><div class="line">      <span class="function"><span class="title">s</span> = it-&gt;</span>status();</div><div class="line">      delete it;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// Check for input iterator errors</span></div><div class="line">  <span class="function"><span class="title">if</span> (!iter-&gt;</span>status().ok()) &#123;</div><div class="line">    <span class="function"><span class="title">s</span> = iter-&gt;</span>status();</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="title">if</span> (s.ok() &amp;&amp; meta-&gt;</span>file_size &gt; <span class="number">0</span>) &#123;</div><div class="line">    <span class="comment">// Keep it</span></div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="function"><span class="title">env</span>-&gt;</span>DeleteFile(fname);</div><div class="line">  &#125;</div><div class="line">  return s;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>所以，没创建一个sst文件时 ，就将这个文件的添加进table_cache中，这是有理由的，因为新创建的文件，也必定是最新的，所以在一定程度上可能马上就被要使用到。因为查询键值对时，就是从level0文件开始查询的，也就是最新的文件。</p>
+<p>到这边，leveldb三大组件都分析结束了。最后还剩版本控制，db实现类。两个庞然大物，后面再慢慢分析了。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/leveldb/" rel="tag">#leveldb</a>
+          
+            <a href="/tags/table-cache/" rel="tag">#table_cache</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/24/leveldb-12/" rel="next" title="leveldb源码分析之读sst文件">
+                <i class="fa fa-chevron-left"></i> leveldb源码分析之读sst文件
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/26/Calloc/" rel="prev" title="C++STL内存池和空间配置器">
+                C++STL内存池和空间配置器 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/25/leveldb-13/"
+     data-title="leveldb源码分析之Table_cache"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/25/leveldb-13/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/25/leveldb-13/"
+           data-title="leveldb源码分析之Table_cache" data-url="http://luodw.cc/2015/10/25/leveldb-13/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <p class="post-toc-empty">此文章未包含目录</p>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

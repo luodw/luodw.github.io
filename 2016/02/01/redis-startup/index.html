@@ -1,0 +1,1176 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="redis," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="今天这篇文章主要是分析下redis的启动流程，作为一个完整的软件，分析开启过程主要是分析main函数，当然，这主要还是在对redis有一定的了解，否则很难读懂redis的各个函数。
+redis服务器所有属性都保存在struct redisServer这个结构体中，所以服务器一开始时，首先是先初始化服务器属性，然后在建立事件驱动，将listenfd可读事件添加进EventLoop事件驱动中，等待客户">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis源码分析之启动过程">
+<meta property="og:url" content="http://luodw.cc/2016/02/01/redis-startup/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="今天这篇文章主要是分析下redis的启动流程，作为一个完整的软件，分析开启过程主要是分析main函数，当然，这主要还是在对redis有一定的了解，否则很难读懂redis的各个函数。
+redis服务器所有属性都保存在struct redisServer这个结构体中，所以服务器一开始时，首先是先初始化服务器属性，然后在建立事件驱动，将listenfd可读事件添加进EventLoop事件驱动中，等待客户">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis源码分析之启动过程">
+<meta name="twitter:description" content="今天这篇文章主要是分析下redis的启动流程，作为一个完整的软件，分析开启过程主要是分析main函数，当然，这主要还是在对redis有一定的了解，否则很难读懂redis的各个函数。
+redis服务器所有属性都保存在struct redisServer这个结构体中，所以服务器一开始时，首先是先初始化服务器属性，然后在建立事件驱动，将listenfd可读事件添加进EventLoop事件驱动中，等待客户">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/02/01/redis-startup/"/>
+
+
+  <title> redis源码分析之启动过程 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis源码分析之启动过程
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-01T10:52:23+08:00" content="2016-02-01">
+              2016-02-01
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/02/01/redis-startup/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/02/01/redis-startup/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/01/redis-startup/" class="leancloud_visitors" data-flag-title="redis源码分析之启动过程">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>今天这篇文章主要是分析下redis的启动流程，作为一个完整的软件，分析开启过程主要是分析main函数，当然，这主要还是在对redis有一定的了解，否则很难读懂redis的各个函数。</p>
+<p>redis服务器所有属性都保存在struct redisServer这个结构体中，所以服务器一开始时，首先是先初始化服务器属性，然后在建立事件驱动，将listenfd可读事件添加进EventLoop事件驱动中，等待客户端连接，然后服务器处于事件驱动的无限循环中。</p>
+<p>在main函数中，首先做的就是为改服务器进程标题做好初始化操作。首先调用 spt_init(argc, argv);再调用 redisSetProcTitle(argv[0]);修改标题。我们都知道argv[0]就是进程的名称，是否可以直接修改了？</p>
+<p>首先需要说明一点就是linux进程栈上面还有main函数参数和环境变量指针，都为字符数组指针，以NULL结尾，而且argv[]参数和environ参数是在连续内存中，这样一来，如果新的进程名称长度大于旧的argv[0]，那么就会改变argv[1]的值。所以redis采用的方法是先将[argv[1],argv[argc-1]]参数和environ的值移到另一块内存块，然后再对argv[0]进行赋值，此时argv[0]拥有原argv和environ所有内存。</p>
+<p>接下来分析下重要的几个设置。</p>
+<h1>initServerConfig函数</h1>
+<p>这个函数主要就是初始化server结构体，这个结构体有大量的属性，这里说下几个重要属性。</p>
+<ol>
+<li>server.lruclock=getLRUClock();这个为redis运行时钟，主要是用于判断键值队是否到期，代码如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//mstime()函数返回unix时间毫秒数</span></div><div class="line"><span class="comment">//#define REDIS_LRU_BITS 24</span></div><div class="line"><span class="comment">//#define REDIS_LRU_CLOCK_MAX ((1&lt;&lt;REDIS_LRU_BITS)-1) /* Max value of obj-&gt;lru */</span></div><div class="line"><span class="comment">//#define REDIS_LRU_CLOCK_RESOLUTION 1000 /* LRU clock resolution in ms */</span></div><div class="line"><span class="function"><span class="keyword">unsigned</span> <span class="keyword">int</span> <span class="title">getLRUClock</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> (mstime()/REDIS_LRU_CLOCK_RESOLUTION) &amp; REDIS_LRU_CLOCK_MAX;</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>这个REDIS_LRU_CLOCK_RESOLUTION常量主要是unix运行时钟精度，这里值为1000ms，所以 (mstime()/REDIS_LRU_CLOCK_RESOLUTION)所得值最后三位为0，即精度为秒。即server.lruclock为unix某个时间点的秒数。</p>
+<ol start="2">
+<li>将命令列表挂到server属性中。
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">server.commands = <span class="keyword">dictCreate(&amp;commandTableDictType,NULL);</span></div><div class="line">server.<span class="keyword">orig_commands </span>= <span class="keyword">dictCreate(&amp;commandTableDictType,NULL);</span></div><div class="line">populateCommandTable()<span class="comment">;</span></div></pre></td></tr></table></figure></li>
+</ol>
+<p>populateCommandTable()函数将命令数组redisCommandTable中的所有命令添加到server.commands和server.orig_commands。因为在redis.conf可能被rename命令改变，所以需要在server.orig_commands再保存一份命令表。</p>
+<h1>从命令行和redis.conf读取配置项</h1>
+<p>初始化好server之后，接下来redis读取用户设置选项，然后对server属性重新赋值。代码如下:
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (argc &gt;= <span class="number">2</span>) &#123;</div><div class="line">        int j = <span class="number">1</span>; <span class="regexp">/* argv第一个选项 */</span></div><div class="line">        sds options = sdsempty();</div><div class="line">        char *configfile = NULL;<span class="regexp">//</span>配置文件路径</div><div class="line"></div><div class="line">        <span class="regexp">/* H处理特殊选项 --help 和 --version */</span></div><div class="line">        <span class="keyword">if</span> (strcmp(argv[<span class="number">1</span>], <span class="string">"-v"</span>) == <span class="number">0</span> ||</div><div class="line">            strcmp(argv[<span class="number">1</span>], <span class="string">"--version"</span>) == <span class="number">0</span>) version();</div><div class="line">        <span class="keyword">if</span> (strcmp(argv[<span class="number">1</span>], <span class="string">"--help"</span>) == <span class="number">0</span> ||</div><div class="line">            strcmp(argv[<span class="number">1</span>], <span class="string">"-h"</span>) == <span class="number">0</span>) usage();</div><div class="line">        <span class="keyword">if</span> (strcmp(argv[<span class="number">1</span>], <span class="string">"--test-memory"</span>) == <span class="number">0</span>) &#123;</div><div class="line">            <span class="keyword">if</span> (argc == <span class="number">3</span>) &#123;</div><div class="line">                memtest(atoi(argv[<span class="number">2</span>]),<span class="number">50</span>);</div><div class="line">                <span class="keyword">exit</span>(<span class="number">0</span>);</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                fprintf(stderr,<span class="string">"Please specify the amount of memory to test in megabytes.\n"</span>);</div><div class="line">                fprintf(stderr,<span class="string">"Example: ./redis-server --test-memory 4096\n\n"</span>);</div><div class="line">                <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">            &#125;</div><div class="line">        &#125;</div></pre></td></tr></table></figure></p>
+<p>这段代码先是处理一些特殊的选项，例如版本，帮助和内存测试。而且这些选项函数执行之后，redis服务器就退出。而且我也发现，在linux下面，完整选项必须加'--'，而缩写选项加'-'。</p>
+<p>接下来就是读取真正的配置项。</p>
+<p><figure class="highlight gams"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* 判断第一个参数是否为配置文件 */</span></div><div class="line">     <span class="keyword">if</span> (argv[j][<span class="number">0</span>] != <span class="string">'-'</span> || argv[j][<span class="number">1</span>] != <span class="string">'-'</span>)</div><div class="line">         configfile = argv[j++];<span class="comment">//如果是，赋值给configfile，并将j+1，开始解析第二个参数</span></div><div class="line"><span class="keyword">while</span>(j != argc) &#123;</div><div class="line">         <span class="keyword">if</span> (argv[j][<span class="number">0</span>] == <span class="string">'-'</span> &amp;&amp; argv[j][<span class="number">1</span>] == <span class="string">'-'</span>) &#123;</div><div class="line">             <span class="comment">/* (1)选项的名称 */</span></div><div class="line">             <span class="keyword">if</span> (sdslen(<span class="keyword">options</span>)) <span class="keyword">options</span> = sdscat(<span class="keyword">options</span>,<span class="string">"\n"</span>);</div><div class="line">             <span class="keyword">options</span> = sdscat(<span class="keyword">options</span>,argv[j]+<span class="number">2</span>);</div><div class="line">             <span class="keyword">options</span> = sdscat(<span class="keyword">options</span>,<span class="string">" "</span>);</div><div class="line">         &#125; <span class="keyword">else</span> &#123;</div><div class="line">             <span class="comment">/* (2)选项的值 */</span></div><div class="line">             <span class="keyword">options</span> = sdscatrepr(<span class="keyword">options</span>,argv[j],strlen(argv[j]));</div><div class="line">             <span class="keyword">options</span> = sdscat(<span class="keyword">options</span>,<span class="string">" "</span>);</div><div class="line">         &#125;</div><div class="line">         j++;</div><div class="line">     &#125;</div></pre></td></tr></table></figure></p>
+<p>根据源码，配置文件只能在第二个参数(第一个为程序名称)，然后跟着配置文件后面可以是各个配置选项，都存储在option字符串中。加入有一个配置项是--port 6380，那么在option字符串会添加&quot;port 6380\n&quot;。然后调用函数 loadServerConfig(configfile,options);将文件读进内存，并给server赋值:
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> loadServerConfig(<span class="keyword">char</span> *filename, <span class="keyword">char</span> *options) &#123;</div><div class="line">    sds <span class="built_in">config</span> = sdsempty();</div><div class="line">    <span class="keyword">char</span> buf[REDIS_CONFIGLINE_MAX+<span class="number">1</span>];</div><div class="line"></div><div class="line">    <span class="comment">/* 读取配置文件的内容 */</span></div><div class="line">    <span class="built_in">if</span> (filename) &#123;</div><div class="line">        FILE *fp;</div><div class="line"></div><div class="line">        <span class="built_in">if</span> (filename[<span class="number">0</span>] == <span class="string">'-'</span> &amp;&amp; filename[<span class="number">1</span>] == <span class="string">'\0'</span>) &#123;</div><div class="line">            fp = stdin;<span class="comment">//配置文件为空，则从标准输入读取</span></div><div class="line">        &#125; <span class="built_in">else</span> &#123;</div><div class="line">            <span class="built_in">if</span> ((fp = fopen(filename,<span class="string">"r"</span>)) == NULL) &#123;</div><div class="line">                redisLog(REDIS_WARNING,</div><div class="line">                    <span class="string">"Fatal error, can't open config file '%s'"</span>, filename);</div><div class="line">                exit(<span class="number">1</span>);</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="built_in">while</span>(fgets(buf,REDIS_CONFIGLINE_MAX+<span class="number">1</span>,fp) != NULL)</div><div class="line">            <span class="built_in">config</span> = sdscat(<span class="built_in">config</span>,buf);<span class="comment">//将配置文件的每一行读取进config字符串</span></div><div class="line">        <span class="built_in">if</span> (fp != stdin) fclose(fp);</div><div class="line">    &#125;</div><div class="line">    <span class="comment">/* Append the additional options */</span></div><div class="line">    <span class="built_in">if</span> (options) &#123;</div><div class="line">        <span class="built_in">config</span> = sdscat(<span class="built_in">config</span>,<span class="string">"\n"</span>);</div><div class="line">        <span class="built_in">config</span> = sdscat(<span class="built_in">config</span>,options);<span class="comment">//将options接着配置文件字符串后面</span></div><div class="line">    &#125;</div><div class="line">　　<span class="comment">//最后读取config字符串，将配置项赋值给server</span></div><div class="line">    loadServerConfigFromString(<span class="built_in">config</span>);</div><div class="line">    sdsfree(<span class="built_in">config</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从这段代码即可得知，命令行参数配置选项是跟在配置文件之后的，所以如果命令行参数配置选项和配置文件有同样的配置，则命令行参数选项会覆盖配置文件中的配置选项。 loadServerConfigFromString(config);这个函数代码比较长，主要就是比较配置选项名称，给server属性赋值。</p>
+<p>接下来主要就是分析initServer()函数</p>
+<h1>initServer函数</h1>
+<p>这个函数非常重要，主要就是在服务器进入事件循环之前，做的一些工作，例如忽略SIGHUP,SIGPIPE信号，监听listenfd并加入Eventloop,以及监听unix域并加入Eventloop等等。</p>
+<ol>
+<li>
+<p>创建EventLoop实例 事件监听的文件描述符个数为客户端数量的最大值+预留值。
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">server</span>.el = aeCreateEventLoop(<span class="keyword">server</span>.maxclients+REDIS_EVENTLOOP_FDSET_INCR);</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>获取监听的ip数组以及个数
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (server.port != <span class="number">0</span> &amp;&amp;</div><div class="line">       listenToPort(server.port,server.ipfd,&amp;server.ipfd_count) == REDIS_ERR)</div><div class="line">       <span class="keyword">exit</span>(<span class="number">1</span>);</div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>这个函数主要做的就是先判断用户是否有提供监听地址，如果没有，则监听0,0,0,0地址，即INADDR_ANY，也就是所有地址。并监听0,0,0,0的ipv4和ipv6地址，并设置为非阻塞；如果有设置监听地址，可以是一个地址队列，则只监听用户自己设置的ip地址队列。最后server.ipfd为监听套接字数组，server.ipfd_count为套接字数组个数。</p>
+<ol start="3">
+<li>设置unix域套接字监听
+<figure class="highlight vbscript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (<span class="built_in">server</span>.unixsocket != <span class="literal">NULL</span>) &#123;</div><div class="line">       unlink(<span class="built_in">server</span>.unixsocket); /* 防止unix套接字文件存在 */</div><div class="line">       <span class="built_in">server</span>.sofd = anetUnixServer(<span class="built_in">server</span>.neterr,<span class="built_in">server</span>.unixsocket,</div><div class="line">           <span class="built_in">server</span>.unixsocketperm, <span class="built_in">server</span>.tcp_backlog);</div><div class="line">       <span class="keyword">if</span> (<span class="built_in">server</span>.sofd == ANET_ERR) &#123;</div><div class="line">           redisLog(REDIS_WARNING, <span class="string">"Opening Unix socket: %s"</span>, <span class="built_in">server</span>.neterr);</div><div class="line">           <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">       &#125;</div><div class="line">       anetNonBlock(<span class="literal">NULL</span>,<span class="built_in">server</span>.sofd);</div><div class="line">   &#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>anetUnixServer函数主要工作就是创建unix域套接字，并返回文件描述符sofd。因为在创建域套接字时，会创建文件，所以需要先unlink这个文件，防止已经存在了。</p>
+<ol start="4">
+<li>
+<p>更新unix缓存时间
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">updateCachedTime</span><span class="params">(<span class="keyword">void</span>)</span> </span>&#123;</div><div class="line">    server.unixtime = time(<span class="literal">NULL</span>);<span class="comment">//以秒数为单位</span></div><div class="line">    server.mstime = mstime();<span class="comment">//以毫秒为单位</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>创建时间事件和网络事件
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="regexp">//</span>时间事件</div><div class="line">  <span class="keyword">if</span>(aeCreateTimeEvent(server.el, <span class="number">1</span>, serverCron, NULL, NULL) == AE_ERR) &#123;</div><div class="line">        redisPanic(<span class="string">"Can't create the serverCron time event."</span>);</div><div class="line">        <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line"><span class="regexp">//</span>文件描述符事件</div><div class="line">  <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; server.ipfd_count; j++) &#123;</div><div class="line">        <span class="keyword">if</span> (aeCreateFileEvent(server.el, server.ipfd[j], AE_READABLE,</div><div class="line">            acceptTcpHandler,NULL) == AE_ERR)</div><div class="line">            &#123;</div><div class="line">                redisPanic(</div><div class="line">                    <span class="string">"Unrecoverable error creating server.ipfd file event."</span>);</div><div class="line">            &#125;</div><div class="line">    &#125;</div><div class="line"><span class="regexp">//</span>域套接字文件描述符事件</div><div class="line"><span class="keyword">if</span> (server.sofd &gt; <span class="number">0</span> &amp;&amp; aeCreateFileEvent(server.el,server.sofd,AE_READABLE,</div><div class="line">        acceptUnixHandler,NULL) == AE_ERR) redisPanic(<span class="string">"Unrecoverable error creating server.sofd file event."</span>);</div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>这个没啥好说的，因为之前有介绍过Mainae模块，就是调用相应函数，但是要关注下回调函数，这个等后面分析。还有一个就是时间事件的回调函数，非常重要，在redis运行期间，每一秒执行一次，后面再分析。</p>
+<ol start="6">
+<li>一些初始化</li>
+</ol>
+<p>例如如果有必要打开aof文件，lua脚本环境初始化，慢日志初始化等待。</p>
+<p>initServer函数结束之后，调用aeMain()函数进入事件驱动循环，到此为止，redis服务器就运行起来了，等客户端的连接。接下来要分析redis时间事件回调函数serverCron，每秒执行一次，非常重要，很多都基于这个回调函数更新。</p>
+<h1>serverCron</h1>
+<p>像memecache的时间事件主要是更新时间戳，而且是每秒执行一次，所以秒数就一秒一秒更新，因为需要用当前时间来判断键值对item是否过期。而redis的时间事件第一次是1毫秒执行，后面就是100毫秒执行一次。serverCron除了更新时间外，还做了很多工作:</p>
+<ol>
+<li>更新时间缓存
+<figure class="highlight markdown"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"> /<span class="bullet">* Update the time cache. *</span>/</div><div class="line"><span class="code">    updateCachedTime();</span></div><div class="line">//<span class="strong">*****</span><span class="strong">*****</span><span class="strong">*****</span><span class="strong">*****</span><span class="strong">*****</span><span class="strong">*****</span><span class="strong">*****</span></div><div class="line">void updateCachedTime(void) &#123;</div><div class="line"><span class="code">    server.unixtime = time(NULL);</span></div><div class="line"><span class="code">    server.mstime = mstime();</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>主要是因为后期有大量需要获取时间的情况，如果每次都调用time(NULL)，那么将降低系统的性能，所以在server全局变量中缓存时间，这样以后每次就可以从这获取时间了。</p>
+<ol start="2">
+<li>跟新LRU时钟
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">server.lruclock = getLRUClock()<span class="comment">;</span></div></pre></td></tr></table></figure></li>
+</ol>
+<p>更新时钟缓存，减少time系统调用.</p>
+<ol start="3">
+<li>
+<p>更新内存使用的最大值
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* Record the max memory used since the server was started. */</span></div><div class="line">   <span class="keyword">if</span> (zmalloc_used_memory() &gt; <span class="keyword">server</span>.stat_peak_memory)</div><div class="line">       <span class="keyword">server</span>.stat_peak_memory = zmalloc_used_memory();</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>更新常驻内存的大小
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* Sample the RSS here since this is a relatively slow call. */</span></div><div class="line">    <span class="keyword">server</span>.resident_set_size = zmalloc_get_rss();</div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>这个函数其实取出/proc/&lt;pid&gt;/stat文件第23个选项，然后乘以内存页的大小即为常驻内存的大小。</p>
+<ol start="5">
+<li>优雅执行shutdown
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (server.shutdown_asap) &#123;</div><div class="line">       <span class="keyword">if</span> (prepareForShutdown(<span class="number">0</span>) == REDIS_OK) <span class="keyword">exit</span>(<span class="number">0</span>);</div><div class="line">       redisLog(REDIS_WARNING,<span class="string">"SIGTERM received but errors trying to shut down the server, check the logs for more information"</span>);</div><div class="line">       server.shutdown_asap = <span class="number">0</span>;</div><div class="line">   &#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>当执行shutdown命令时或者产生SIGINT或者SIGTERM信号，不是直接exit退出程序，而是设置server.shutdown_asap=1，然后在时间事件中，调用prepareForShutdown函数，先准一些关闭前的操作，例如刷新aof和rdb文件，关闭监听描述符等等,最后再关闭。</p>
+<ol start="6">
+<li>
+<p>展示一些非空数据库信息</p>
+</li>
+<li>
+<p>如果是sentinel模式，展示客户端连接信息</p>
+</li>
+<li>
+<p>处理客户端信息
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">/* We need <span class="keyword">to</span> do a few operations <span class="keyword">on</span> clients asynchronously. */</div><div class="line">  clientsCron();</div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>主要就是判断是否有客户端空闲时间超过一定值，即keepalive设置的，有的话，删除。</p>
+<ol start="9">
+<li>更新数据库信息
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">/* Handle background operations <span class="keyword">on</span> Redis databases. */</div><div class="line">   databasesCron();</div></pre></td></tr></table></figure></li>
+</ol>
+<p>主要就是哈希表扩容</p>
+<ol start="10">
+<li>
+<p>调度aof或者rdb读写子进程</p>
+</li>
+<li>
+<p>复制同步，集群同步，sentinel定时器</p>
+</li>
+</ol>
+<p>定时事件做的事情很多，可以说redis充分利用了定时器，这样就少了很多线程，因为memcache很多事都交给了线程，所以时间事件只是更新时间戳。</p>
+<h1>分析redis开启过程的一些收获</h1>
+<h2>服务器如何监听ipv6地址</h2>
+<p>现在ipv6越来越普及，服务器也必须支持ipv6，当初getaddrinfo函数就是为了ipv6而出的。那如何监听ipv6地址了？</p>
+<ol>
+<li>
+<p>创建ipv6套接字
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">int s=socket(<span class="name">AF_INET6</span>,SOCK_STREAM,<span class="number">0</span>)</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>设置套接字选项IPV6_V6ONLY
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">int yes = <span class="number">1</span><span class="comment">;</span></div><div class="line">setsockopt(<span class="name">s</span>,IPPROTO_IPV6,IPV6_V6ONLY,<span class="symbol">&amp;yes</span>,sizeof(<span class="name">yes</span>))</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>当绑定或者accept地址时时，需要使用sockaddr_in6</p>
+</li>
+</ol>
+<h2>RSS和VSZ的区别</h2>
+<p>今天在看redis时，有看到进程获取rss的大小；在调用ps命令时，也经常看到rss和vsz这两个选项，那么这两个选项是什么意思了？</p>
+<p>RSS(Resident Set Size)是进程常驻内存的大小,用来表示进程在RAM中分配了多少内存。RSS不包括被swapped out出去的swap内存部分，RSS包括在内存中的共享库部分，在内存中代码部分，堆，栈。</p>
+<p>VSZ(Virtual Memory Size)是虚拟内存部分，也就是进程可以操控的内存部分。包括进程所有内存，包括在内存中或者swap out在交换空间中。</p>
+<p>举个例子，如果一个进程有500k的二进制代码，2500k的共享库，200k的堆栈；其中100k堆栈在内存中（其他被swapped），400k的二进制代码和1000k共享库在实际内存中(其他被swapped)。</p>
+<blockquote>
+<p>RSS:400k+1000k+100k = 1500k
+VSZ:500k+2500k+200k = 3200k</p>
+</blockquote>
+<p>参考stackoverflow一个帖子<a href="http://stackoverflow.com/questions/7880784/what-is-rss-and-vsz-in-linux-memory-management" target="_blank" rel="external">What is RSS and VSZ in Linux memory management</a></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag">#redis</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/01/24/epoll/" rel="next" title="谈谈epoll实现原理">
+                <i class="fa fa-chevron-left"></i> 谈谈epoll实现原理
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/02/05/redis-procCom/" rel="prev" title="redis源码分析之命令处理过程">
+                redis源码分析之命令处理过程 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/02/01/redis-startup/"
+     data-title="redis源码分析之启动过程"
+     data-content=""
+     data-url="http://luodw.cc/2016/02/01/redis-startup/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/02/01/redis-startup/"
+           data-title="redis源码分析之启动过程" data-url="http://luodw.cc/2016/02/01/redis-startup/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">initServerConfig函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">从命令行和redis.conf读取配置项</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">initServer函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">serverCron</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">分析redis开启过程的一些收获</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">5.1.</span> <span class="nav-text">服务器如何监听ipv6地址</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">5.2.</span> <span class="nav-text">RSS和VSZ的区别</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

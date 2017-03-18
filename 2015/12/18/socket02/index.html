@@ -1,0 +1,1127 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="socket,udp,网络编程," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="linux下网络编程主要就是tcp/udp协议,虽然还有个sctp,但是用的并不多,所以这里就先不写了.tcp为面向连接,可靠传输协议,为了实现可靠,指定了一些重要的机制,例如三次握手,拥塞控制,发送确认机制等等.而udp是无连接不可靠传输协议,所以对于udp而言,服务器和客户端并没有连接的概念,而是二者之间的读写就是一次性结束.先来看下udp传输模型.
+udp传输模型
+
+udp传输模型如下图所示">
+<meta property="og:type" content="article">
+<meta property="og:title" content="linux网络编程udp学习读书笔记">
+<meta property="og:url" content="http://luodw.cc/2015/12/18/socket02/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="linux下网络编程主要就是tcp/udp协议,虽然还有个sctp,但是用的并不多,所以这里就先不写了.tcp为面向连接,可靠传输协议,为了实现可靠,指定了一些重要的机制,例如三次握手,拥塞控制,发送确认机制等等.而udp是无连接不可靠传输协议,所以对于udp而言,服务器和客户端并没有连接的概念,而是二者之间的读写就是一次性结束.先来看下udp传输模型.
+udp传输模型
+
+udp传输模型如下图所示">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_048.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_049.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="linux网络编程udp学习读书笔记">
+<meta name="twitter:description" content="linux下网络编程主要就是tcp/udp协议,虽然还有个sctp,但是用的并不多,所以这里就先不写了.tcp为面向连接,可靠传输协议,为了实现可靠,指定了一些重要的机制,例如三次握手,拥塞控制,发送确认机制等等.而udp是无连接不可靠传输协议,所以对于udp而言,服务器和客户端并没有连接的概念,而是二者之间的读写就是一次性结束.先来看下udp传输模型.
+udp传输模型
+
+udp传输模型如下图所示">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_048.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/12/18/socket02/"/>
+
+
+  <title> linux网络编程udp学习读书笔记 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                linux网络编程udp学习读书笔记
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-12-18T20:34:01+08:00" content="2015-12-18">
+              2015-12-18
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/socket/" itemprop="url" rel="index">
+                    <span itemprop="name">socket</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/12/18/socket02/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/12/18/socket02/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/12/18/socket02/" class="leancloud_visitors" data-flag-title="linux网络编程udp学习读书笔记">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>linux下网络编程主要就是tcp/udp协议,虽然还有个sctp,但是用的并不多,所以这里就先不写了.tcp为面向连接,可靠传输协议,为了实现可靠,指定了一些重要的机制,例如三次握手,拥塞控制,发送确认机制等等.而udp是无连接不可靠传输协议,所以对于udp而言,服务器和客户端并没有连接的概念,而是二者之间的读写就是一次性结束.先来看下udp传输模型.</p>
+<h1>udp传输模型</h1>
+<hr>
+<p>udp传输模型如下图所示,图来自<strong>UNIX网络编程卷1:套接字联网API</strong>,
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_048.png" alt="udp传输模型">
+如图所示,对于服务器端,由以下步骤:</p>
+<ol>
+<li>调用socket函数获得套接字Serverfd;</li>
+<li>调用bind函数绑定服务器端本地地址和端口,一般情况下绑定地址为ANY_INADDR,即绑定到所有地址,如果是多宿主服务器,则有ip1,ip2,...,127.0.0.1个ip地址.</li>
+<li>调用recvfrom函数并阻塞等待用户数据到达.</li>
+<li>处理客户端的数据,并调用sendto函数返回给用户.</li>
+</ol>
+<p>对于udp客户端而言,主要有以下几个步骤:</p>
+<ol>
+<li>调用socket获得套接字Clientfd;</li>
+<li>调用sendto向服务器端发送数据;</li>
+<li>调用recvfrom阻塞等待服务端返回的数据;</li>
+<li>调用close关闭这个Clientfd套接字;</li>
+</ol>
+<p>由于udp面向无连接,所以每次发送数据都要指定目的地的ip地址和端口,所以必须调用sendto函数.</p>
+<p>当客户端向服务器发送一个数据报,然后数据报在网络中迷路走丢了,这时客户端就会一直阻塞在recvfrom上,永远阻塞;但是服务器是有给客户端回应的,只是没有传到用户态.我们可以通过tcpdump查看,服务给客户端发送了ICMP报文,如下:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_049.png" alt="ICMP报文">;
+这个也叫异步错误,因为这错误是sendto犯下,却在recvfrom收到ICMP报文.</p>
+<p>tcp服务器是并发服务器,udp是迭代服务器,之所以为迭代服务器,是因为udp服务器只有一个udp套接字,然后这个套接字有个缓冲区,任何客户端发送给这个套接字的数据都缓存在那个缓冲区,然后用户进程以FIFO从缓存区读取数据报.</p>
+<p>如果udp客户端是多宿的,那么如果客户端没有绑定到哪个具体的ip地址,则端口是由第一次sendto时确定的临时端口,而且之后不变,这原因应该就是一个进程确定一个端口.然后ip地址会随着每次发送数据报而变化.这种变化主要是查找路由时决定的.</p>
+<h1>udp调用connect函数</h1>
+<hr>
+<p>udp编程主要两种模式,一种是不调用connect,一种是调用connect函数.当调用connect函数之后,这时udp就分为如下两种:</p>
+<ol>
+<li>未连接UDP套接字,新创建的UDP套接字默认如此;</li>
+<li>已连接UDP套接字,对UDP套接字调用connect函数的结果;</li>
+</ol>
+<p>已连接的套接字比未连接的套接字,发生了三个变化:</p>
+<ol>
+<li>
+<p>我们没必要在输出函数上指定ip地址和端口.即我们不用sendto,而是改用write或send,写到套接字上的任何内容都发送到connect指定的协议地址.注意:sendto也是可以用的.</p>
+</li>
+<li>
+<p>我们没必要调用recvfrom函数以获得数据报的发送者,而改用read,recv或recvmsg;这样这个ip地址只接收connect地址中的数据报,即这个udp套接字仅仅与一个ip地址交换数据报.</p>
+</li>
+<li>
+<p>已连接UDP套接字引发的异步错误会返回给它们所在的进程,而未连接udp套接字不会接收任何异步错误,这个后面例子程序有说明.</p>
+</li>
+</ol>
+<p>如果给一个udp多次调用connect,则有两个作用:</p>
+<ol>
+<li>指定新的ip地址和端口号;</li>
+<li>断开套接字;</li>
+</ol>
+<p>对于第一点,TCP是只能调用一次connect函数,而udp是可以多次的,这样就可以指定新的ip地址和端口号;</p>
+<p>对于第二点,如果想关闭套接字,需要将地址族改为AF_UNSPEC.</p>
+<p>调用connect性能的影响:当没调用connect时,如果要发送两个数据报,则需要以下步骤:</p>
+<ul>
+<li>连接套接字;</li>
+<li>输出第一个数据报;</li>
+<li>断开套接字连接;</li>
+<li>连接套接字;</li>
+<li>输出第二个数据报;</li>
+<li>断开套接字连接;</li>
+</ul>
+<p>其实当第二次发送数据时,因为ip地址已经在高速缓存中,所以第二次就没必要查找路由表了.</p>
+<p>当调用connect函数之后,</p>
+<ul>
+<li>连接套接字,</li>
+<li>输出第一个数据报;</li>
+<li>输出第二个数据报;</li>
+</ul>
+<p>这种情况下,内核只复制一次含有目的地址的ip地址和端口号的套接字地址结构,而调用两次sendto时需要两次复制.</p>
+<h1>我的测试程序</h1>
+<hr>
+<p>下面是我写的测试程序,客户端带connect函数,所以可以返回异步通知.服务器端如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;arpa/inet.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;netinet/in.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> MAXLINE 1024</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> n;</div><div class="line">	<span class="keyword">socklen_t</span> len;</div><div class="line">	<span class="keyword">char</span> mesg[MAXLINE],sendline[MAXLINE],strip[MAXLINE];</div><div class="line">	<span class="keyword">char</span> *ptr;</div><div class="line">	<span class="keyword">struct</span> sockaddr_in servaddr,cliaddr;</div><div class="line">	<span class="keyword">int</span> sockfd;</div><div class="line">	sockfd=socket(AF_INET,SOCK_DGRAM,<span class="number">0</span>);</div><div class="line">	<span class="keyword">if</span>(sockfd==<span class="number">-1</span>)</div><div class="line">	&#123;</div><div class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"%s\n"</span>,<span class="string">"socket  error!\n"</span> );</div><div class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</div><div class="line">	&#125;</div><div class="line">	bzero(&amp;servaddr,<span class="keyword">sizeof</span>(servaddr));</div><div class="line">	servaddr.sin_family=AF_INET;</div><div class="line">	servaddr.sin_addr.s_addr=htonl(INADDR_ANY);</div><div class="line">	servaddr.sin_port=htons(<span class="number">8888</span>);</div><div class="line"></div><div class="line">	bind(sockfd,(<span class="keyword">struct</span> sockaddr*)&amp;servaddr,<span class="keyword">sizeof</span>(servaddr));</div><div class="line"></div><div class="line">	<span class="keyword">for</span>(;;)</div><div class="line">	&#123;</div><div class="line">		<span class="built_in">memset</span>(sendline,<span class="number">0</span>,<span class="keyword">sizeof</span>(sendline));</div><div class="line">		<span class="built_in">snprintf</span>(sendline, MAXLINE,<span class="string">"Come from the server:"</span>);</div><div class="line">		len=<span class="keyword">sizeof</span>(cliaddr);</div><div class="line">		n=recvfrom(sockfd,mesg,MAXLINE,<span class="number">0</span>,(<span class="keyword">struct</span> sockaddr*)&amp;cliaddr,&amp;len);</div><div class="line">		mesg[n]=<span class="string">'\0'</span>;</div><div class="line">		ptr=sendline+<span class="built_in">strlen</span>(sendline);</div><div class="line">		<span class="built_in">memcpy</span>(ptr,mesg,n+<span class="number">1</span>);</div><div class="line">		<span class="built_in">printf</span>(<span class="string">"receive from client %s ,port is %d  mesg  is %s"</span>,inet_ntop(AF_INET ,&amp;cliaddr.sin_addr,strip,len),ntohs(cliaddr.sin_port) ,mesg );</div><div class="line">		sendto(sockfd,sendline ,<span class="built_in">strlen</span>(sendline),<span class="number">0</span>,(<span class="keyword">struct</span> sockaddr*)&amp;cliaddr,len);</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>客户端程序如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;sys/socket.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;arpa/inet.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;netinet/in.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;string.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> MAXLINE 1024</span></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span> * argv[])</span></span></div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> n;</div><div class="line">	<span class="keyword">char</span> mesg[MAXLINE],readline[MAXLINE+<span class="number">1</span>];</div><div class="line">	<span class="keyword">struct</span> sockaddr_in cliaddr2;</div><div class="line">	<span class="keyword">int</span> sockfd;</div><div class="line">	sockfd=socket(AF_INET,SOCK_DGRAM,<span class="number">0</span>);</div><div class="line">	<span class="keyword">if</span>(sockfd==<span class="number">-1</span>)</div><div class="line">	&#123;</div><div class="line">		<span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"%s\n"</span>,<span class="string">"socket  error!\n"</span> );</div><div class="line">		<span class="built_in">exit</span>(<span class="number">-1</span>);</div><div class="line">	&#125;</div><div class="line">	bzero(&amp;cliaddr2,<span class="keyword">sizeof</span>(cliaddr2));</div><div class="line">	cliaddr2.sin_family=AF_INET;</div><div class="line">	inet_aton(argv[<span class="number">1</span>], &amp;cliaddr2.sin_addr);</div><div class="line">	cliaddr2.sin_port=htons(<span class="number">8888</span>);</div><div class="line">	connect(sockfd,(<span class="keyword">struct</span> sockaddr*)&amp;cliaddr2,<span class="keyword">sizeof</span>(cliaddr2));</div><div class="line">	<span class="keyword">while</span>(fgets(mesg,MAXLINE,<span class="built_in">stdin</span>)!=<span class="literal">NULL</span>)</div><div class="line">	&#123;</div><div class="line">		write(sockfd,mesg,<span class="built_in">strlen</span>(mesg));</div><div class="line">		n=read(sockfd,readline,MAXLINE);</div><div class="line">		<span class="keyword">if</span>(n&lt;<span class="number">0</span>)</div><div class="line">		&#123;</div><div class="line">			perror(<span class="string">"read error"</span>);</div><div class="line">			<span class="built_in">exit</span>(<span class="number">-1</span>);</div><div class="line">		&#125;</div><div class="line">		readline[n]=<span class="string">'\0'</span>;</div><div class="line">		<span class="built_in">printf</span>(<span class="string">"%s"</span>,readline);</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>程序输出如下:服务端
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">➜  mycode  ./udpServer                 </div><div class="line">receive from client <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span> ,port is <span class="number">54956</span>  mesg  is hello world!</div><div class="line">receive from client <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span> ,port is <span class="number">54956</span>  mesg  is nice to meet you!</div></pre></td></tr></table></figure></p>
+<p>客户端如下:
+<figure class="highlight livecodeserver"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">➜  mycode  ./udpClient <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span></div><div class="line">hello world!</div><div class="line">Come <span class="built_in">from</span> <span class="keyword">the</span> server:hello world!</div><div class="line">nice <span class="built_in">to</span> meet you!</div><div class="line">Come <span class="built_in">from</span> <span class="keyword">the</span> server:nice <span class="built_in">to</span> meet you!</div></pre></td></tr></table></figure></p>
+<p>当服务器没开启时,这时客户端向服务器发送请求,recvfrom将返回一个错误:
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜  mycode  ./udpClient <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span></div><div class="line">see you again!</div><div class="line"><span class="built_in">read</span> <span class="keyword">error</span>: Connection refused</div><div class="line">➜  mycode</div></pre></td></tr></table></figure></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/socket/" rel="tag">#socket</a>
+          
+            <a href="/tags/udp/" rel="tag">#udp</a>
+          
+            <a href="/tags/网络编程/" rel="tag">#网络编程</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/11/28/socket01/" rel="next" title="linux网络学习前五章读书笔记">
+                <i class="fa fa-chevron-left"></i> linux网络学习前五章读书笔记
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/12/27/emptyfile/" rel="prev" title="空洞文件的作用">
+                空洞文件的作用 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/12/18/socket02/"
+     data-title="linux网络编程udp学习读书笔记"
+     data-content=""
+     data-url="http://luodw.cc/2015/12/18/socket02/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/12/18/socket02/"
+           data-title="linux网络编程udp学习读书笔记" data-url="http://luodw.cc/2015/12/18/socket02/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">udp传输模型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">udp调用connect函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">我的测试程序</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

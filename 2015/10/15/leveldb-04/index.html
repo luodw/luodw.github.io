@@ -1,0 +1,1075 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="leveldb,Arena," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="这篇博客主要讲解下leveldb内存池，内存池很多地方都有用到，像linux内核也有个内存池。内存池的存在主要就是减少malloc或者new调用的次数，较少内存分配所带来的系统开销。
+Arena类采用vector来存储每次分配内存的指针，每一次分配的内存，我们称为一个块block。block默认大小为4096kb。我们可以先看下Arena的模型：
+
+我们来看看源码：
+首先看下这个类的几个成员变量：">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leveldb源码分析之内存池Arena">
+<meta property="og:url" content="http://luodw.cc/2015/10/15/leveldb-04/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="这篇博客主要讲解下leveldb内存池，内存池很多地方都有用到，像linux内核也有个内存池。内存池的存在主要就是减少malloc或者new调用的次数，较少内存分配所带来的系统开销。
+Arena类采用vector来存储每次分配内存的指针，每一次分配的内存，我们称为一个块block。block默认大小为4096kb。我们可以先看下Arena的模型：
+
+我们来看看源码：
+首先看下这个类的几个成员变量：">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodwarena.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="leveldb源码分析之内存池Arena">
+<meta name="twitter:description" content="这篇博客主要讲解下leveldb内存池，内存池很多地方都有用到，像linux内核也有个内存池。内存池的存在主要就是减少malloc或者new调用的次数，较少内存分配所带来的系统开销。
+Arena类采用vector来存储每次分配内存的指针，每一次分配的内存，我们称为一个块block。block默认大小为4096kb。我们可以先看下Arena的模型：
+
+我们来看看源码：
+首先看下这个类的几个成员变量：">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodwarena.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/15/leveldb-04/"/>
+
+
+  <title> leveldb源码分析之内存池Arena | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                leveldb源码分析之内存池Arena
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-15T19:12:47+08:00" content="2015-10-15">
+              2015-10-15
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/15/leveldb-04/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/15/leveldb-04/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/15/leveldb-04/" class="leancloud_visitors" data-flag-title="leveldb源码分析之内存池Arena">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>这篇博客主要讲解下leveldb内存池，内存池很多地方都有用到，像linux内核也有个内存池。内存池的存在主要就是减少malloc或者new调用的次数，较少内存分配所带来的系统开销。</p>
+<p>Arena类采用vector来存储每次分配内存的指针，每一次分配的内存，我们称为一个块block。block默认大小为4096kb。我们可以先看下Arena的模型：
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/luodwarena.jpg" alt="leveldb内存池Arena模型"></p>
+<p>我们来看看源码：
+首先看下这个类的几个成员变量：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">char</span>* alloc_ptr_;<span class="comment">//内存的偏移量指针，即指向未使用内存的首地址</span></div><div class="line"><span class="keyword">size_t</span> alloc_bytes_remaining_;<span class="comment">//还剩下的内存数</span></div><div class="line"><span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="keyword">char</span>*&gt; blocks_;<span class="comment">//存储每一次分配的内存指针</span></div><div class="line"><span class="keyword">size_t</span> blocks_memory_;<span class="comment">//到目前为止分配的总内存。</span></div></pre></td></tr></table></figure></p>
+<p>构造函数和析构函数：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">Arena::Arena() &#123;</div><div class="line">  blocks_memory_ = <span class="number">0</span>;</div><div class="line">  alloc_ptr_ = <span class="literal">NULL</span>;  <span class="comment">// First allocation will allocate a block</span></div><div class="line">  alloc_bytes_remaining_ = <span class="number">0</span>;</div><div class="line">&#125;<span class="comment">//构造函数初始化总总分配的内存为0，指针偏移量为NULL,剩余内存为0。</span></div><div class="line"><span class="built_in">vector</span>会调用默认构造函数初始化。</div><div class="line"></div><div class="line">Arena::~Arena() &#123;</div><div class="line">  <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; blocks_.size(); i++) &#123;</div><div class="line">    <span class="keyword">delete</span>[] blocks_[i];</div><div class="line">  &#125;</div><div class="line">&#125;<span class="comment">//Arena析构时，只需要把所有的指针指向的内存都delete就可以了。</span></div></pre></td></tr></table></figure></p>
+<p>都说谷歌的C++编程风格是最优美的。leveldb里面的每个类的构造函数都直接初始化所有的属性，这样就不会导致使用为初始化的变量，而且代码很清晰，知道哪些属性被初始化为何值。</p>
+<p>接下来分析下Arena内存分配的主要函数。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span>:</div><div class="line">	<span class="function"><span class="keyword">char</span>* <span class="title">Allocate</span><span class="params">(<span class="keyword">size_t</span> bytes)</span></span>;</div><div class="line"><span class="keyword">private</span>:</div><div class="line">	<span class="function"><span class="keyword">char</span>* <span class="title">AllocateFallback</span><span class="params">(<span class="keyword">size_t</span> bytes)</span></span>;</div><div class="line">	<span class="function"><span class="keyword">char</span>* <span class="title">AllocateNewBlock</span><span class="params">(<span class="keyword">size_t</span> block_bytes)</span></span>;</div></pre></td></tr></table></figure></p>
+<p>Arena对外提供的接口是public里的函数，但是该函数会调用private里的两个函数.我分析内存分配策略。当要分配内存的时候：</p>
+<ol>
+<li>如果需求的内存小于剩余的内存，那么直接在剩余的内存分配就可以了；</li>
+<li>如果需求的内存大于剩余的内存，而且大于4096/4，则给这内存单独分配一块bytes（函数参数）大小的内存。</li>
+<li>如果需求的内存大于剩余的内存，而且小于4096/4，则重新分配一个内存块，默认大小4096，用于存储数据。</li>
+</ol>
+<p>针对第二点，按源码的注释是说避浪费太多的剩余空间。我的理解是，如果剩余的内存为1500kb，那么假设有一个内存需求是500kb，一个内存需求是1500kb,则第一个需求可以使用三次才导致进行一次重新内存分配，而第二个只能使用一次就要进行一次重新内存分配。所以leveldb第二条的用意主要还是减少内存分配的次数。</p>
+<p>源码如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">inline</span> <span class="keyword">char</span>* Arena::Allocate(<span class="keyword">size_t</span> bytes) &#123;</div><div class="line">  <span class="comment">// The semantics of what to return are a bit messy if we allow</span></div><div class="line">  <span class="comment">// 0-byte allocations, so we disallow them here (we don't need</span></div><div class="line">  <span class="comment">// them for our internal use).</span></div><div class="line">  assert(bytes &gt; <span class="number">0</span>);</div><div class="line">  <span class="keyword">if</span> (bytes &lt;= alloc_bytes_remaining_) &#123;<span class="comment">//需要的内存小于剩余的内存，直接分配，</span></div><div class="line"><span class="comment">//移动指针偏移量，减少剩余内存，返回刚分配内存的首位置</span></div><div class="line">    <span class="keyword">char</span>* result = alloc_ptr_;<span class="comment">//先保存指针偏移量，用于返回</span></div><div class="line">    alloc_ptr_ += bytes;<span class="comment">//指针偏移量向上移动bytes个字节</span></div><div class="line">    alloc_bytes_remaining_ -= bytes;<span class="comment">//剩余内存减少bytes个字节</span></div><div class="line">    <span class="keyword">return</span> result;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> AllocateFallback(bytes);<span class="comment">//当需求内存大于剩余内存时</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">char</span>* Arena::AllocateFallback(<span class="keyword">size_t</span> bytes) &#123;</div><div class="line">  <span class="keyword">if</span> (bytes &gt; kBlockSize / <span class="number">4</span>) &#123;<span class="comment">//需求内存大于1024kb时</span></div><div class="line">    <span class="comment">// Object is more than a quarter of our block size.  Allocate it separately</span></div><div class="line">    <span class="comment">// to avoid wasting too much space in leftover bytes.</span></div><div class="line">    <span class="keyword">char</span>* result = AllocateNewBlock(bytes);</div><div class="line">    <span class="keyword">return</span> result;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// We waste the remaining space in the current block.</span></div><div class="line">  alloc_ptr_ = AllocateNewBlock(kBlockSize);<span class="comment">//需求内存大于剩余内存，且小于1024时。</span></div><div class="line">  alloc_bytes_remaining_ = kBlockSize;</div><div class="line"></div><div class="line">  <span class="keyword">char</span>* result = alloc_ptr_;</div><div class="line">  alloc_ptr_ += bytes;</div><div class="line">  alloc_bytes_remaining_ -= bytes;</div><div class="line">  <span class="keyword">return</span> result;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">char</span>* Arena::AllocateNewBlock(<span class="keyword">size_t</span> block_bytes) &#123;</div><div class="line">  <span class="keyword">char</span>* result = <span class="keyword">new</span> <span class="keyword">char</span>[block_bytes];<span class="comment">//分配内存</span></div><div class="line">  blocks_memory_ += block_bytes;<span class="comment">//总的内存加上刚分配的内存</span></div><div class="line">  blocks_.push_back(result);<span class="comment">//添加进内存指针数组</span></div><div class="line">  <span class="keyword">return</span> result;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>arena还提供了字节对齐内存分配，一般情况是8个字节对齐分配，即内存地址后三位必须为0.我们来看下源码，挺多学问的。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">char</span>* Arena::AllocateAligned(<span class="keyword">size_t</span> bytes) &#123;</div><div class="line">  <span class="comment">//用于判断对齐的大小，我64位电脑sizeof(void*)=8，不大于8，所以对齐大小为8。</span></div><div class="line">  <span class="keyword">const</span> <span class="keyword">int</span> align = (<span class="keyword">sizeof</span>(<span class="keyword">void</span>*) &gt; <span class="number">8</span>) ? <span class="keyword">sizeof</span>(<span class="keyword">void</span>*) : <span class="number">8</span>;</div><div class="line">  <span class="comment">//用于判断align是否为2的次幂，内存对齐肯定是2的次幂。</span></div><div class="line">  assert((align &amp; (align<span class="number">-1</span>)) == <span class="number">0</span>);   </div><div class="line">  <span class="comment">//判断当前的模式，align-1后三位为1，其他都为0，所以指针与align-1做与运算，</span></div><div class="line"><span class="comment">//其实就是指针与align求余运算。例如如果地址值为9，9&amp;7，则最后一位为1，9%8=1。</span></div><div class="line">  <span class="keyword">size_t</span> current_mod = <span class="keyword">reinterpret_cast</span>&lt;<span class="keyword">uintptr_t</span>&gt;(alloc_ptr_) &amp; (align<span class="number">-1</span>);</div><div class="line">  <span class="comment">//根据当前的模式，算出需要添加的字节数</span></div><div class="line">  <span class="keyword">size_t</span> slop = (current_mod == <span class="number">0</span> ? <span class="number">0</span> : align - current_mod);</div><div class="line">  <span class="keyword">size_t</span> needed = bytes + slop;<span class="comment">//原来需求的字节大小，加上为了对齐补充的字节大小</span></div><div class="line">  <span class="keyword">char</span>* result;</div><div class="line">  <span class="keyword">if</span> (needed &lt;= alloc_bytes_remaining_) &#123;</div><div class="line">    result = alloc_ptr_ + slop;</div><div class="line">    alloc_ptr_ += needed;</div><div class="line">    alloc_bytes_remaining_ -= needed;</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="comment">// AllocateFallback always returned aligned memory</span></div><div class="line">    result = AllocateFallback(bytes);</div><div class="line">  &#125;</div><div class="line">  assert((<span class="keyword">reinterpret_cast</span>&lt;<span class="keyword">uintptr_t</span>&gt;(result) &amp; (align<span class="number">-1</span>)) == <span class="number">0</span>);</div><div class="line">  <span class="keyword">return</span> result;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这里边有一个uintptr_t类型，定义在&lt;stddef.h&gt;头文件里，是无符号长整形类型，是typedef unsigned long int 类型，对应有符号类型为typedef long int intptr_t。这种类型是机器指针大小对应,如果32位系统，则uintptr_t也为32位，如果是64位系统，则这个值为64位。</p>
+<p>Arena最后一个对外接口是返回这个内存池分配总的内存大小。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">size_t</span> MemoryUsage() <span class="keyword">const</span> &#123;</div><div class="line">    <span class="keyword">return</span> blocks_memory_ + blocks_.capacity() * <span class="keyword">sizeof</span>(<span class="keyword">char</span>*);</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>Arena内存大小包括分配的内存空间大小和所有指针大小之和。</p>
+<p>Arena在memtabla（也就是跳跃链表）使用较多，因为刚插入的内存数据都放在了memtable里。</p>
+<p>至此Arena就分析结束了。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/leveldb/" rel="tag">#leveldb</a>
+          
+            <a href="/tags/Arena/" rel="tag">#Arena</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/15/leveldb-03/" rel="next" title="leveldb源码分析之Status">
+                <i class="fa fa-chevron-left"></i> leveldb源码分析之Status
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/16/leveldb-05/" rel="prev" title="leveldb源码分析之Skiplist">
+                leveldb源码分析之Skiplist <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/15/leveldb-04/"
+     data-title="leveldb源码分析之内存池Arena"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/15/leveldb-04/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/15/leveldb-04/"
+           data-title="leveldb源码分析之内存池Arena" data-url="http://luodw.cc/2015/10/15/leveldb-04/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <p class="post-toc-empty">此文章未包含目录</p>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

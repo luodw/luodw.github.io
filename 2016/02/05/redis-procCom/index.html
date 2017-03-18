@@ -1,0 +1,1085 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="redis," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="命令执行过程
+这篇文章分析下客户端连接redis服务器，并且输入命令之后，redis服务器做了什么。这里以最基础的set命令为例。
+客户端连接服务器
+要分析客户端是如何连接服务器，即客户端调用connect之后，服务器做了啥，首先就是看下监听listenfd可读事件(listenfd永远为可读事件，等有客户端connect之后，此时产生可读事件)的回调函数acceptTcpHandler
+1234">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis源码分析之命令处理过程">
+<meta property="og:url" content="http://luodw.cc/2016/02/05/redis-procCom/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="命令执行过程
+这篇文章分析下客户端连接redis服务器，并且输入命令之后，redis服务器做了什么。这里以最基础的set命令为例。
+客户端连接服务器
+要分析客户端是如何连接服务器，即客户端调用connect之后，服务器做了啥，首先就是看下监听listenfd可读事件(listenfd永远为可读事件，等有客户端connect之后，此时产生可读事件)的回调函数acceptTcpHandler
+1234">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis源码分析之命令处理过程">
+<meta name="twitter:description" content="命令执行过程
+这篇文章分析下客户端连接redis服务器，并且输入命令之后，redis服务器做了什么。这里以最基础的set命令为例。
+客户端连接服务器
+要分析客户端是如何连接服务器，即客户端调用connect之后，服务器做了啥，首先就是看下监听listenfd可读事件(listenfd永远为可读事件，等有客户端connect之后，此时产生可读事件)的回调函数acceptTcpHandler
+1234">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/02/05/redis-procCom/"/>
+
+
+  <title> redis源码分析之命令处理过程 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis源码分析之命令处理过程
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-05T10:55:46+08:00" content="2016-02-05">
+              2016-02-05
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/02/05/redis-procCom/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/02/05/redis-procCom/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/05/redis-procCom/" class="leancloud_visitors" data-flag-title="redis源码分析之命令处理过程">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1>命令执行过程</h1>
+<p>这篇文章分析下客户端连接redis服务器，并且输入命令之后，redis服务器做了什么。这里以最基础的set命令为例。</p>
+<h1>客户端连接服务器</h1>
+<p>要分析客户端是如何连接服务器，即客户端调用connect之后，服务器做了啥，首先就是看下监听listenfd可读事件(listenfd永远为可读事件，等有客户端connect之后，此时产生可读事件)的回调函数acceptTcpHandler
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//networking.c</span></div><div class="line"><span class="comment">/* ------------------------------------------------------------------------- */</span></div><div class="line"><span class="keyword">void</span> acceptTcpHandler(aeEventLoop *el, <span class="keyword">int</span> fd, <span class="keyword">void</span> *privdata, <span class="keyword">int</span> mask) &#123;</div><div class="line">    <span class="keyword">int</span> cport, cfd, <span class="built_in">max</span> = MAX_ACCEPTS_PER_CALL;</div><div class="line">    <span class="keyword">char</span> cip[REDIS_IP_STR_LEN];</div><div class="line">    REDIS_NOTUSED(el);</div><div class="line">    REDIS_NOTUSED(mask);</div><div class="line">    REDIS_NOTUSED(privdata);</div><div class="line"></div><div class="line">    <span class="built_in">while</span>(<span class="built_in">max</span>--) &#123;</div><div class="line">        cfd = anetTcpAccept(server.neterr, fd, cip, <span class="keyword">sizeof</span>(cip), &amp;cport);</div><div class="line">        <span class="built_in">if</span> (cfd == ANET_ERR) &#123;</div><div class="line">            <span class="built_in">if</span> (errno != EWOULDBLOCK)</div><div class="line">                redisLog(REDIS_WARNING,</div><div class="line">                    <span class="string">"Accepting client connection: %s"</span>, server.neterr);</div><div class="line">            <span class="built_in">return</span>;</div><div class="line">        &#125;</div><div class="line">        redisLog(REDIS_VERBOSE,<span class="string">"Accepted %s:%d"</span>, cip, cport);</div><div class="line">        acceptCommonHandler(cfd,<span class="number">0</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>常量MAX_ACCEPTS_PER_CALL=1000，所以对于listenfd一次可读事件，可以接收最多1000个客户端。这个回调函数先调用anetTcpAccept函数，accept客户端socket，接着把accept接收的客户端cfd传递给函数acceptCommonHandler处理
+<figure class="highlight axapta"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="keyword">void</span> acceptCommonHandler(<span class="keyword">int</span> fd, <span class="keyword">int</span> flags) &#123;</div><div class="line">    redisClient *c;</div><div class="line">    <span class="keyword">if</span> ((c = createClient(fd)) == NULL) &#123;</div><div class="line">        redisLog(REDIS_WARNING,</div><div class="line">            <span class="string">"Error registering fd event for the new client: %s (fd=%d)"</span>,</div><div class="line">            strerror(errno),fd);</div><div class="line">        close(fd); <span class="comment">/* May be already closed, just ignore errors */</span></div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> (listLength(<span class="keyword">server</span>.clients) &gt; <span class="keyword">server</span>.maxclients) &#123;</div><div class="line">        <span class="keyword">char</span> *err = <span class="string">"-ERR max number of clients reached\r\n"</span>;</div><div class="line"></div><div class="line">        <span class="comment">/* That's a best effort error message, don't check write errors */</span></div><div class="line">        <span class="keyword">if</span> (write(c-&gt;fd,err,strlen(err)) == <span class="number">-1</span>) &#123;</div><div class="line">            <span class="comment">/* Nothing to do, Just to avoid the warning... */</span></div><div class="line">        &#125;</div><div class="line">        <span class="keyword">server</span>.stat_rejected_conn++;</div><div class="line">        freeClient(c);</div><div class="line">        <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">server</span>.stat_numconnections++;</div><div class="line">    c-&gt;flags |= flags;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数先是调用createClient创建一个redisClient，每一个客户端fd对应一个redisClient，用于存储读取的操作命令以及缓存输出的结果。然后就是判断客户端数量是否超出事先定义的个数，如果是则向客户端回复一个错误信息，并且回收这个redisClient。接下来主要看下创建redisClient函数
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line">redisClient *createClient(int fd) &#123;</div><div class="line">    redisClient *<span class="built_in">c</span> = zmalloc(<span class="built_in">sizeof</span>(redisClient));</div><div class="line"></div><div class="line">    <span class="comment">/* passing -1 as fd it is possible to create a non connected client.</span></div><div class="line">     * This is useful since all the Redis commands needs to be executed</div><div class="line">     * in the context of a client. When commands are executed in other</div><div class="line">     * contexts (for instance a Lua script) we need a non connected client. */</div><div class="line">    <span class="keyword">if</span> (fd != -<span class="number">1</span>) &#123;</div><div class="line">        anetNonBlock(<span class="type">NULL</span>,fd);</div><div class="line">        anetEnableTcpNoDelay(<span class="type">NULL</span>,fd);</div><div class="line">        <span class="keyword">if</span> (server.tcpkeepalive)</div><div class="line">            anetKeepAlive(<span class="type">NULL</span>,fd,server.tcpkeepalive);</div><div class="line">        <span class="keyword">if</span> (aeCreateFileEvent(server.el,fd,<span class="type">AE_READABLE</span>,</div><div class="line">            readQueryFromClient, <span class="built_in">c</span>) == <span class="type">AE_ERR</span>)</div><div class="line">        &#123;</div><div class="line">            close(fd);</div><div class="line">            zfree(<span class="built_in">c</span>);</div><div class="line">            <span class="keyword">return</span> <span class="type">NULL</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    selectDb(<span class="built_in">c</span>,<span class="number">0</span>);<span class="comment">//初始化为0数据库，默认16个</span></div><div class="line">    <span class="built_in">c</span>-&gt;id = server.next_client_id++;</div><div class="line">    <span class="built_in">c</span>-&gt;fd = fd;</div><div class="line">    <span class="comment">/* 省略初始化redisClient各个属性部分 */</span></div><div class="line">    <span class="keyword">if</span> (fd != -<span class="number">1</span>) listAddNodeTail(server.clients,<span class="built_in">c</span>);<span class="comment">//加入server.clients客户端链表末尾</span></div><div class="line">    initClientMultiState(<span class="built_in">c</span>);<span class="comment">//初始化事物机制属性</span></div><div class="line">    <span class="keyword">return</span> <span class="built_in">c</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>注释中也有说明当fd==-1时，可用于lua 脚本执行脚本。如果不是-1，则说明是客户端连接，这时设置为非阻塞，允许Nagle算法，TCP默认是禁止的。如果需要，开启keepalive设置。接着在这个fd上创建可读事件，等待客户端发送命令。以上就是redis客户端连接的过程。</p>
+<h1>服务器执行命令过程</h1>
+<p>当客户端连上服务器之后，接下来，就会向服务器发送执行命令。这时，就要从客户端fd的回调函数readQueryFromClient开始分析:
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">void readQueryFromClient(aeEventLoop *el, int fd, void *privdata, int mask) &#123;</div><div class="line">    redisClient *c = (redisClient*) privdata;</div><div class="line">    int nread, readlen;</div><div class="line">    size_t qblen;</div><div class="line">    server.current_client = c;</div><div class="line">    readlen = REDIS_IOBUF_LEN;</div><div class="line">    <span class="function"><span class="title">qblen</span> = sdslen(c-&gt;</span>querybuf);</div><div class="line">    <span class="function"><span class="title">if</span> (c-&gt;</span><span class="function"><span class="title">querybuf_peak</span> &lt; qblen) c-&gt;</span>querybuf_peak = qblen;</div><div class="line">    <span class="comment">//为查询缓冲区分配内存空间</span></div><div class="line">    <span class="function"><span class="title">c</span>-&gt;</span><span class="function"><span class="title">querybuf</span> = sdsMakeRoomFor(c-&gt;</span>querybuf, readlen);</div><div class="line">    <span class="comment">/* 读取客户端发送的命令  */</span></div><div class="line">    <span class="function"><span class="title">nread</span> = read(fd, c-&gt;</span>querybuf+qblen, readlen);</div><div class="line"></div><div class="line">    <span class="comment">/* 省略...... */</span></div><div class="line">    processInputBuffer(c);<span class="comment">//处理输入的命令字符串，</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>redis命令有分为单结果回复和多结果回复，例如get命令，就是获取一个键的value,即为单回复；lrange命令就是获取列表某一范围的元素，即为多结果回复。具体参考<a href="http://www.redis.cn/topics/protocol.html" target="_blank" rel="external">redis官网</a>。这里说下最简单的set mykey myvalue命令格式，这个命令会被转化为如下单引号字符串:
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">"*3<span class="symbol">\r</span><span class="symbol">\n</span>$3<span class="symbol">\r</span><span class="symbol">\n</span>SET<span class="symbol">\r</span><span class="symbol">\n</span>$5<span class="symbol">\r</span><span class="symbol">\n</span>mykey<span class="symbol">\r</span><span class="symbol">\n</span>$7<span class="symbol">\r</span><span class="symbol">\n</span>myvalue<span class="symbol">\r</span><span class="symbol">\n</span>"</div></pre></td></tr></table></figure></p>
+<p>这个是二进制安全的命令字符串格式，每个参数之前都有这个参数的字节数，这样及时碰到'\0'，也会按普通字符处理。在processInputBuffer函数中调用processMultibulkBuffer。redis还支持旧式命令字符串格式，这些字符串格式只有空格作为分隔符，所以如果碰到'\0'，字符串会提前终止，是二进制不安全的，在processInputBuffer中调用processInlineBuffer处理。通常在客户端为telnet时产生不安全的二进制字符串，可以在redis-cli和telnet分别分发送ping命令，并用tcpdump查看字节数即可知道。</p>
+<ol>
+<li>当使用telnet客户端，输入命令为ping时，tcpdump输出如下:
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">18<span class="selector-pseudo">:21</span><span class="selector-pseudo">:39.609411</span> <span class="selector-tag">IP</span> <span class="selector-tag">localhost</span><span class="selector-class">.37721</span> &gt; <span class="selector-tag">localhost</span><span class="selector-class">.6379</span>: <span class="selector-tag">Flags</span> <span class="selector-attr">[P.]</span>, <span class="selector-tag">seq</span> 2174951300<span class="selector-pseudo">:2174951306</span>, <span class="selector-tag">ack</span> 1980339778, <span class="selector-tag">win</span> 342, <span class="selector-tag">options</span> <span class="selector-attr">[nop,nop,TS val 7060488 ecr 7050263]</span>, <span class="selector-tag">length</span> 6</div></pre></td></tr></table></figure></li>
+</ol>
+<p>发出的字符串长度为6，说明字符串格式为&quot;ping\r\n&quot;;</p>
+<ol start="2">
+<li>当使用redis自带客户端，即redis-cli时，tcpdump输出如下:
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">18<span class="selector-pseudo">:26</span><span class="selector-pseudo">:17.986651</span> <span class="selector-tag">IP</span> <span class="selector-tag">localhost</span><span class="selector-class">.37728</span> &gt; <span class="selector-tag">localhost</span><span class="selector-class">.6379</span>: <span class="selector-tag">Flags</span> <span class="selector-attr">[P.]</span>, <span class="selector-tag">seq</span> 26<span class="selector-pseudo">:40</span>, <span class="selector-tag">ack</span> 41, <span class="selector-tag">win</span> 342, <span class="selector-tag">options</span> <span class="selector-attr">[nop,nop,TS val 7130083 ecr 7129312]</span>, <span class="selector-tag">length</span> 14</div></pre></td></tr></table></figure></li>
+</ol>
+<p>这时发出的字符串长度为14，此时的字符串格式为&quot;*1\r\n$4\r\nping\r\n&quot;</p>
+<p>在processInputBuffer函数中调用processMultibulkBuffer，将c-&gt;querybuf中的命令二进制字符串分解为字符串数组，并保存在redisClient属性中，例如
+<figure class="highlight taggerscript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">"*3<span class="symbol">\r</span><span class="symbol">\n</span>$3<span class="symbol">\r</span><span class="symbol">\n</span>SET<span class="symbol">\r</span><span class="symbol">\n</span>$5<span class="symbol">\r</span><span class="symbol">\n</span>mykey<span class="symbol">\r</span><span class="symbol">\n</span>$7<span class="symbol">\r</span><span class="symbol">\n</span>myvalue<span class="symbol">\r</span><span class="symbol">\n</span>"</div><div class="line">分割成字符数组保存在redisCLient数组中:</div><div class="line">c-&gt;argv[0]="set",c-&gt;argv[1]="mykey",c-&gt;argv[2]="myvalue"</div><div class="line">c-&gt;argc=3</div></pre></td></tr></table></figure></p>
+<p>接下来就调用processCommand(c)来处理这个命令，在这个函数中，分别讨论了很多中情况，例如是否集群模式。是否为事务执行等等，最关键的一行是
+<figure class="highlight gcode"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">call</span><span class="comment">(c,REDIS_CALL_FULL)</span>;</div></pre></td></tr></table></figure></p>
+<p>在call函数中，分别讨论了不同情况，我们也是找到最关键的一行代码:
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="title">c</span>-&gt;</span><span class="function"><span class="title">cmd</span>-&gt;</span>proc(c);</div></pre></td></tr></table></figure></p>
+<p>这行代码调用了当前执行命令的命令执行函数，对于set命令为setCommand函数,而set命令也有几种，例如set [nx][xx][ex &lt;seconds&gt;][px&lt;milliseconds&gt;],在这里，我们先关注最简单的set key value格式，在setCommand函数中调用setGenericCommand,在后者函数内部，调用
+<figure class="highlight erlang-repl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">setKey(c-&gt;db,key,val);</div><div class="line">addReply(c, ok_reply ? ok_reply : shared.ok);</div></pre></td></tr></table></figure></p>
+<p>setkey函数先查找db中是否有含有key的键值对，如果没有，则添加，如果有，则覆盖。最后调用addReply回复客户端。</p>
+<h1>回复客户端</h1>
+<p>当有需要返回给客户端时，调用addReply函数，在该函数中，先调用prepareClientToWrite函数给fd注册一个写事件，然后将回复字符串写进redisCLient输出缓存c-&gt;buf
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">int prepareClientToWrite(redisClient *<span class="built_in">c</span>) &#123;</div><div class="line">    <span class="comment">/*  ......    */</span></div><div class="line">    <span class="keyword">if</span> (aeCreateFileEvent(server.el, <span class="built_in">c</span>-&gt;fd, <span class="type">AE_WRITABLE</span>,</div><div class="line">                sendReplyToClient, <span class="built_in">c</span>) == <span class="type">AE_ERR</span>)</div><div class="line">        &#123;</div><div class="line">            freeClientAsync(<span class="built_in">c</span>);</div><div class="line">            <span class="keyword">return</span> <span class="type">REDIS_ERR</span>;</div><div class="line">        &#125;</div></pre></td></tr></table></figure></p>
+<p>这样在下一次事件循环中，即可通知c-&gt;fd可写事件，调用可写事件的回调函数sendReplyToClient，在该回调函数中，最要几行代码如下
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* .............  */</span></div><div class="line"><span class="function"><span class="title">nwritten</span> = write(fd,c-&gt;</span><span class="function"><span class="title">buf</span>+c-&gt;</span><span class="function"><span class="title">sentlen</span>,c-&gt;</span><span class="function"><span class="title">bufpos</span>-c-&gt;</span>sentlen);</div><div class="line"><span class="comment">/* ..............  */</span></div><div class="line">  <span class="function"><span class="title">if</span> (c-&gt;</span><span class="function"><span class="title">bufpos</span> == 0 &amp;&amp; listLength(c-&gt;</span>reply) == <span class="number">0</span>) &#123;</div><div class="line">        <span class="function"><span class="title">c</span>-&gt;</span>sentlen = <span class="number">0</span>;</div><div class="line">        <span class="function"><span class="title">aeDeleteFileEvent</span>(server.el,c-&gt;</span>fd,AE_WRITABLE);</div><div class="line"></div><div class="line">        <span class="comment">/* Close connection after entire reply has been sent. */</span></div><div class="line">        <span class="function"><span class="title">if</span> (c-&gt;</span>flags &amp; REDIS_CLOSE_AFTER_REPLY) freeClient(c);</div><div class="line">    &#125;</div></pre></td></tr></table></figure></p>
+<p>先是调用系统调用write将输出缓冲区的数据返回给客户端，最后再将这个客户端的写事件删除，因为以无数据可写，但是读事件还在，等待客户端下一次输入命令。</p>
+<p>到这里，一次命令执行就结束了，这里只是介绍简单的set命令，不同的命令执行函数不同，但是大部分命令执行流程都是一样的。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag">#redis</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/02/01/redis-startup/" rel="next" title="redis源码分析之启动过程">
+                <i class="fa fa-chevron-left"></i> redis源码分析之启动过程
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/02/13/redis-msglist/" rel="prev" title="redis消息队列之链表实现">
+                redis消息队列之链表实现 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/02/05/redis-procCom/"
+     data-title="redis源码分析之命令处理过程"
+     data-content=""
+     data-url="http://luodw.cc/2016/02/05/redis-procCom/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/02/05/redis-procCom/"
+           data-title="redis源码分析之命令处理过程" data-url="http://luodw.cc/2016/02/05/redis-procCom/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">命令执行过程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">客户端连接服务器</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">服务器执行命令过程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">回复客户端</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

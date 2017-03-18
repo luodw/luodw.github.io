@@ -1,0 +1,1105 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="memcache," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="前两篇文章，我分析了slab内存分配和item数据存储。接下来这篇文章，先分析下memcache的启动流程，这也是一个软件的整体框架。然后主要分析下memcache的线程模型。
+memcache的启动过程
+
+memcache是用纯c语言开发的，所以要查看启动过程，首先要找到main函数，然后一步一步往下执行。memcache的启动过程大致如下：
+
+初始化全局变量setting。memcache没有">
+<meta property="og:type" content="article">
+<meta property="og:title" content="memcache启动过程以及线程模型">
+<meta property="og:url" content="http://luodw.cc/2016/01/11/memcache-startup/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="前两篇文章，我分析了slab内存分配和item数据存储。接下来这篇文章，先分析下memcache的启动流程，这也是一个软件的整体框架。然后主要分析下memcache的线程模型。
+memcache的启动过程
+
+memcache是用纯c语言开发的，所以要查看启动过程，首先要找到main函数，然后一步一步往下执行。memcache的启动过程大致如下：
+
+初始化全局变量setting。memcache没有">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/20150114093937432.jpeg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="memcache启动过程以及线程模型">
+<meta name="twitter:description" content="前两篇文章，我分析了slab内存分配和item数据存储。接下来这篇文章，先分析下memcache的启动流程，这也是一个软件的整体框架。然后主要分析下memcache的线程模型。
+memcache的启动过程
+
+memcache是用纯c语言开发的，所以要查看启动过程，首先要找到main函数，然后一步一步往下执行。memcache的启动过程大致如下：
+
+初始化全局变量setting。memcache没有">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/20150114093937432.jpeg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/01/11/memcache-startup/"/>
+
+
+  <title> memcache启动过程以及线程模型 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                memcache启动过程以及线程模型
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-01-11T10:56:43+08:00" content="2016-01-11">
+              2016-01-11
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/memcache/" itemprop="url" rel="index">
+                    <span itemprop="name">memcache</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/01/11/memcache-startup/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/01/11/memcache-startup/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/01/11/memcache-startup/" class="leancloud_visitors" data-flag-title="memcache启动过程以及线程模型">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>前两篇文章，我分析了slab内存分配和item数据存储。接下来这篇文章，先分析下memcache的启动流程，这也是一个软件的整体框架。然后主要分析下memcache的线程模型。</p>
+<h1>memcache的启动过程</h1>
+<hr>
+<p>memcache是用纯c语言开发的，所以要查看启动过程，首先要找到main函数，然后一步一步往下执行。memcache的启动过程大致如下：</p>
+<ol>
+<li>初始化全局变量setting。memcache没有配置文件，所有的设置都是通过启动时跟在memcache后面的参数设置的。</li>
+<li>设置系统的参数信息，例如设置产生的core文件以及core文件的最大值。设置memcache能打开的最大文件描述符个数，也就是memcache并发的连接数。</li>
+<li>设置用户。 如果是普通用户执行，则无需设置用户选项，如果是root用户，必须设置用户选项。</li>
+<li>先忽略SIGHUP信号，然后开启守护进程的设置。这里解释下为什么要忽略SIGHUP信号。因为在daeonize函数里面，父进程先fork一个子进程p1，然后设置setsid。此时p1为会话头进程。因为这个会话头进程可能再次分配到一个控制终端，所以p1也执行一次fork，产生p1的子进程p2，然后p1退出，此时的p2不是会话的头进程，也就不会获取终端。但是之前的p1是会话头进程，他的退出会给他的子进程p2发送SIGHUP信号，而SIGHUP信号默认是退出程序，所以必须捕获忽略。而一开始fork时，子进程和父进程的信号处理函数指针是一样的，所以在父进程设置SIGHUP信号处理程序，子进程也是有影响的。</li>
+<li>通过stats_init,assoc_init,conn_init,slabs_init分别初始化memcache的状态信息，哈希表，连接数和slab内存分配信息。</li>
+<li>忽略SIGPIPE信号 因为当客户端向服务器发送FIN时，此时服务器缓冲区为空时，read调用将返回0，表示对端连接关闭。如果发送缓冲区没问题，第一次调用write会正确发送，但会导致客户端发送一个重置报文RST。第二次再调用writw(假设在收到RST之后)，则会产生SIGPIPE信号，导致进程退出。所以为了以防万一，必须忽略SIGPIPE信号。</li>
+<li>开启工作线程，后面详细介绍这个。</li>
+<li>接下来就是开启四个辅助线程，维护哈希表，slab,item四个公共管理数据的部分。但是这个四个线程会阻塞在一个条件变量上。</li>
+<li>初始化时钟事件 libevent也可以一个时钟事件。</li>
+<li>然后是网络模块  即设置监听TCP，UDP,UNIX域套接字。</li>
+<li>开启主线程循环  即开始轮询监听服务器端套接字，等待客户端的连接到来。</li>
+</ol>
+<h1>开启多线程</h1>
+<hr>
+<p>接下来，我们看下memcache是如何执行工作线程初始化的，首先还是先给出先模型：
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/20150114093937432.jpeg" alt="线程模型">
+先介绍下memcache接收到一个客户请求之后，是如何传递给子线程的。</p>
+<ol>
+<li>主线程主要是监听服务器端套接字，等待客户端的连接到来，子线程已经完成初始化，并且处于loop中，监听的套接字有与主线程通信管道的读端。</li>
+<li>假如此时来了一个客户端，主线程将选择一个空闲的子线程，并将这个fd封装成一个CQ_ITEM，然后将这个CQ_ITEM插入这个子线程的CQ_ITEM链表，最后给这个子线程的管道写端写入一个字符'c'；</li>
+<li>子线程在一次轮询中，得知管道可读，于是读取管道，如果读取的是字符'c'，则为这个客户端新建一个conn,并将这个客户端的套接字加入libevent事件循环中。之后，这个客户端就由这个子线程负责通信了。
+在memcache.c文件main函数中，通过调用memcached_thread_init函数来初始化工作线程
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div></pre></td><td class="code"><pre><div class="line">void memcached_thread_init(int nthreads, struct event_base *main_base) &#123;</div><div class="line">    int         i;</div><div class="line">    int         power;</div><div class="line">    <span class="regexp">/* 对多线程中使用到的锁和条件变量初始化  */</span></div><div class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; POWER_LARGEST; i++) &#123;</div><div class="line">        pthread_mutex_init(&amp;lru_locks[i], NULL);<span class="regexp">//</span>lru链表锁</div><div class="line">    &#125;</div><div class="line">    pthread_mutex_init(&amp;worker_hang_lock, NULL);<span class="regexp">//</span>可以让工作线程挂起</div><div class="line"></div><div class="line">    pthread_mutex_init(&amp;init_lock, NULL);<span class="regexp">//</span>工作线程初始化锁</div><div class="line">    pthread_cond_init(&amp;init_cond, NULL);<span class="regexp">//</span>初始化条件变量，用于主线程等待子线程完成初始化</div><div class="line"></div><div class="line">    pthread_mutex_init(&amp;cqi_freelist_lock, NULL);<span class="regexp">//</span>消息队列锁</div><div class="line">    cqi_freelist = NULL;<span class="regexp">//</span>这个为消息队列</div><div class="line"></div><div class="line">    <span class="regexp">/* 用于控制哈希表锁 */</span></div><div class="line">    <span class="keyword">if</span> (nthreads &lt; <span class="number">3</span>) &#123;</div><div class="line">        power = <span class="number">10</span>;</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (nthreads &lt; <span class="number">4</span>) &#123;</div><div class="line">        power = <span class="number">11</span>;</div><div class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (nthreads &lt; <span class="number">5</span>) &#123;</div><div class="line">        power = <span class="number">12</span>;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="regexp">/* 8192 buckets, and central locks don't scale much past 5 threads */</span></div><div class="line">        power = <span class="number">13</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (power &gt;= hashpower) &#123;</div><div class="line">        fprintf(stderr, <span class="string">"Hash table power size (%d) cannot be equal to or less than item lock table (%d)\n"</span>, hashpower, power);</div><div class="line">        fprintf(stderr, <span class="string">"Item lock table grows with `-t N` (worker threadcount)\n"</span>);</div><div class="line">        fprintf(stderr, <span class="string">"Hash table grows with `-o hashpower=N` \n"</span>);</div><div class="line">        <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    item_lock_count = hashsize(power);</div><div class="line">    item_lock_hashpower = power;</div><div class="line">   <span class="regexp">//</span>为哈希表分配锁数组空间</div><div class="line">    item_locks = calloc(item_lock_count, sizeof(pthread_mutex_t));</div><div class="line">    <span class="keyword">if</span> (! item_locks) &#123;</div><div class="line">        perror(<span class="string">"Can't allocate item locks"</span>);</div><div class="line">        <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; item_lock_count; i++) &#123;</div><div class="line">        pthread_mutex_init(&amp;item_locks[i], NULL);</div><div class="line">    &#125;</div><div class="line">    <span class="regexp">//</span>给工作线程分配空间，并初始化</div><div class="line">    threads = calloc(nthreads, sizeof(LIBEVENT_THREAD));</div><div class="line">    <span class="keyword">if</span> (! threads) &#123;</div><div class="line">        perror(<span class="string">"Can't allocate thread descriptors"</span>);</div><div class="line">        <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    dispatcher_thread.base = main_base;</div><div class="line">    dispatcher_thread.thread_id = pthread_self();</div><div class="line"></div><div class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; nthreads; i++) &#123;</div><div class="line">        int fds[<span class="number">2</span>];</div><div class="line">        <span class="keyword">if</span> (pipe(fds)) &#123;</div><div class="line">            perror(<span class="string">"Can't create notify pipe"</span>);</div><div class="line">            <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">        &#125;</div><div class="line">        <span class="regexp">//</span>主线程和子线程通信用的管道</div><div class="line">        threads[i].notify_receive_fd = fds[<span class="number">0</span>];</div><div class="line">        threads[i].notify_send_fd = fds[<span class="number">1</span>];</div><div class="line"></div><div class="line">        setup_thread(&amp;threads[i]);<span class="regexp">//</span>建立线程，即为初始化子线程的libevent,并监听管道的</div><div class="line">      <span class="regexp">//</span> 读端，初始化子线程的消息队列等待</div><div class="line">        <span class="regexp">/* Reserve three fds for the libevent base, and two for the pipe */</span></div><div class="line">        stats.reserved_fds += <span class="number">5</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="regexp">/* Create threads after we've done all the libevent setup. */</span></div><div class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; nthreads; i++) &#123;</div><div class="line">        create_worker(worker_libevent, &amp;threads[i]);<span class="regexp">//</span>开启子线程执行</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="regexp">/* 下面中间那个函数作用是等待子线程初始化完毕 */</span></div><div class="line">    pthread_mutex_lock(&amp;init_lock);</div><div class="line">    wait_for_thread_registration(nthreads);</div><div class="line">    pthread_mutex_unlock(&amp;init_lock);</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>这个函数主要是完成n个子线程的初始化以及开启执行。其中setup_thread函数完成线程结构体LIBEVENT_THREAD成员初始化，</p>
+<ol>
+<li>首先将给子线程分配一个libevent实例，然后将notify_receive_fd加入这个libevent的可读事件。</li>
+<li>接着为了这个子线程的消息队列分配内存，并初始化。</li>
+<li>最后为这个子线程创建后缀缓存，暂时还不知道这缓存的用处。</li>
+</ol>
+<p>create_worker函数用于开启子线程，第一个参数为回调函数，第二个参数为回调函数的参数。回调函数即线程执行函数。在这个回调函数worker_libevent又调用了register_thread_initialized这个函数，注册这个子线程。最后调用libevent的event_base_loop函数开启子线程的事件循环。
+<figure class="highlight zephir"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> void setup_thread(LIBEVENT_THREAD *me) &#123;</div><div class="line">    me-&gt;base = event_init();<span class="comment">//分配一个libevent实例</span></div><div class="line">    <span class="keyword">if</span> (! me-&gt;base) &#123;</div><div class="line">        fprintf(stderr, <span class="string">"Can't allocate event base\n"</span>);</div><div class="line">        <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">/* Listen for notifications from other threads */</span></div><div class="line">    event_set(&amp;me-&gt;notify_event, me-&gt;notify_receive_fd,</div><div class="line">              EV_READ | EV_PERSIST, thread_libevent_process, me);</div><div class="line">    event_base_set(me-&gt;base, &amp;me-&gt;notify_event);</div><div class="line">    <span class="comment">//将管道添加libevent事件循环中</span></div><div class="line">    <span class="keyword">if</span> (event_add(&amp;me-&gt;notify_event, <span class="number">0</span>) == <span class="number">-1</span>) &#123;</div><div class="line">        fprintf(stderr, <span class="string">"Can't monitor libevent notify pipe\n"</span>);</div><div class="line">        <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//给消息队列分配内存</span></div><div class="line">    me-&gt;new_conn_queue = malloc(sizeof(struct conn_queue));</div><div class="line">    <span class="keyword">if</span> (me-&gt;new_conn_queue == <span class="keyword">NULL</span>) &#123;</div><div class="line">        perror(<span class="string">"Failed to allocate memory for connection queue"</span>);</div><div class="line">        <span class="keyword">exit</span>(EXIT_FAILURE);</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//初始化消息队列，将head和tail初始化为NULL</span></div><div class="line">    cq_init(me-&gt;new_conn_queue);</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (pthread_mutex_init(&amp;me-&gt;stats.mutex, <span class="keyword">NULL</span>) != <span class="number">0</span>) &#123;</div><div class="line">        perror(<span class="string">"Failed to initialize mutex"</span>);</div><div class="line">        <span class="keyword">exit</span>(EXIT_FAILURE);</div><div class="line">    &#125;</div><div class="line">   <span class="comment">//分配缓存</span></div><div class="line">    me-&gt;suffix_cache = cache_create(<span class="string">"suffix"</span>, SUFFIX_SIZE, sizeof(<span class="keyword">char</span>*),</div><div class="line">                                    <span class="keyword">NULL</span>, <span class="keyword">NULL</span>);</div><div class="line">    <span class="keyword">if</span> (me-&gt;suffix_cache == <span class="keyword">NULL</span>) &#123;</div><div class="line">        fprintf(stderr, <span class="string">"Failed to create suffix cache\n"</span>);</div><div class="line">        <span class="keyword">exit</span>(EXIT_FAILURE);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="comment">/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/</span></div><div class="line"><span class="keyword">static</span> void create_worker(void *(*func)(void *), void *arg) &#123;</div><div class="line">    pthread_t       thread;</div><div class="line">    pthread_attr_t  attr;</div><div class="line">    <span class="keyword">int</span>             ret;</div><div class="line"></div><div class="line">    pthread_attr_init(&amp;attr);</div><div class="line">    <span class="comment">//开启子线程执行，子线程函数为回调函数func</span></div><div class="line">    <span class="keyword">if</span> ((ret = pthread_create(&amp;thread, &amp;attr, func, arg)) != <span class="number">0</span>) &#123;</div><div class="line">        fprintf(stderr, <span class="string">"Can't create thread: %s\n"</span>,</div><div class="line">                strerror(ret));</div><div class="line">        <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="comment">/*++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/</span></div><div class="line"><span class="keyword">static</span> void *worker_libevent(void *arg) &#123;</div><div class="line">    LIBEVENT_THREAD *me = arg;</div><div class="line"></div><div class="line">    <span class="comment">/* Any per-thread setup can happen here; memcached_thread_init() will block until</span></div><div class="line">     * all threads have finished initializing.</div><div class="line">     */</div><div class="line"></div><div class="line">    register_thread_initialized();</div><div class="line">    <span class="comment">//开启事件循环</span></div><div class="line">    event_base_loop(me-&gt;base, <span class="number">0</span>);</div><div class="line">    <span class="keyword">return</span> <span class="keyword">NULL</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>困扰我的一个问题</h1>
+<hr>
+<p>在看线程这部分源码的过程中，有一个地方困惑了我好久。先来看下源码，涉及以下两个函数：
+<figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">memcached_thread_init</span>函数最后三行：</div><div class="line">    <span class="selector-tag">pthread_mutex_lock</span>(&amp;init_lock);</div><div class="line">    <span class="selector-tag">wait_for_thread_registration</span>(nthreads);</div><div class="line">    <span class="selector-tag">pthread_mutex_unlock</span>(&amp;init_lock);</div><div class="line"><span class="comment">/* ++++++++++++++++++++++++++++++++++++++++++++++++++ */</span></div><div class="line"><span class="selector-tag">static</span> <span class="selector-tag">void</span> <span class="selector-tag">wait_for_thread_registration</span>(int nthreads) &#123;</div><div class="line">    <span class="selector-tag">while</span> (init_count &lt; nthreads) &#123;</div><div class="line">        <span class="selector-tag">pthread_cond_wait</span>(&amp;init_cond, &amp;init_lock);</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"><span class="comment">/* +++++++++++++++++++++++++++++++++++++++++++++++++++ */</span></div><div class="line"><span class="selector-tag">static</span> <span class="selector-tag">void</span> <span class="selector-tag">register_thread_initialized</span>(void) &#123;</div><div class="line">    <span class="selector-tag">pthread_mutex_lock</span>(&amp;init_lock);</div><div class="line">    <span class="selector-tag">init_count</span>++;</div><div class="line">    <span class="selector-tag">pthread_cond_signal</span>(&amp;init_cond);</div><div class="line">    <span class="selector-tag">pthread_mutex_unlock</span>(&amp;init_lock);</div><div class="line">    <span class="comment">/* Force worker threads to pile up if someone wants us to */</span></div><div class="line">    <span class="selector-tag">pthread_mutex_lock</span>(&amp;worker_hang_lock);</div><div class="line">    <span class="selector-tag">pthread_mutex_unlock</span>(&amp;worker_hang_lock);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在memcached_thread_init函数中调用wait_for_thread_registration等待所有的子线程建立完毕。我之前的困惑是，因为主线程有调用pthread_mutex_lock(&amp;init_lock)然后睡眠在wait_for_thread_registration函数里面的pthread_cond_wait中。如果主线执行更快，而且占有init_lock这把锁，那么在执行redister_thread_initialized函数中，没有一个子线程可以获取init_lock了，这样的话，主线程在等待init_count的值增长到5，子线程在等待被主线程占有的init_lock，那么程序就卡死，无法继续往下执行了。</p>
+<p>后来，我查阅资料，发现是我不了解pthread_cond_wait这个函数。pthread_cond_wait函数在调用时，会先将锁给释放了，然后才投入睡眠；当收到pthread_cond_signal发送的消息时，这时线程从pthread_cond_wait总被唤醒，并且重新获取锁。这样就可以解释之前的问题了。主线程调用pthread_cond_wait投入睡眠，释放锁，然后子线程在redister_thread_initialized中获得锁，将init_count值+1，接着调用pthread_cond_signal唤醒主线程，主线程重新获得锁，再判断init_count&lt;nthreads，这样的好处是除了在子线程保护init_count操作原子性，在主线程在判断init_count时，也是原子的。</p>
+<p>到此为止，子线程就建立完毕，此时，子线程都已经处于libevent的事件循环当中，而且只有管道的可读一个事件。接下来，主线调用网络模块，监听套接字，最后主线程的libevent实例也处于事件循环中，此时的套接字有服务器端监听的TCP和域套接字，UDP套接字已经分配给子线程负责了，因为udp无需建立连接。接来看来一个客户端达到之后，是如何传递给子线程，子线程是如何接收的。</p>
+<h1>主线程给子线程传递套接字</h1>
+<hr>
+<p>要查看主线程是如何给子线程传递套接字，只需要找到tcp套接字的回调函数；查看子线程是如何接收套接字，只需要查看管道的读端的回调函数即可。</p>
+<p>当服务器到达一个客户端，服务器端调用dispatch_conn_new函数来将客户端的套接字分配给子线程：
+<figure class="highlight crystal"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line">void dispatch_conn_new(int sfd, <span class="class"><span class="keyword">enum</span> <span class="title">conn_states</span> <span class="title">init_state</span>, <span class="title">int</span> <span class="title">event_flags</span>,</span></div><div class="line">                       int read_buffer_size, <span class="class"><span class="keyword">enum</span> <span class="title">network_transport</span> <span class="title">transport</span>) &#123;</span></div><div class="line">    CQ_ITEM *item = cqi_new();<span class="regexp">//</span>新建一个消息实例</div><div class="line">    char buf[<span class="number">1</span>];</div><div class="line">    <span class="keyword">if</span> (item == NULL) &#123;</div><div class="line">        close(sfd);</div><div class="line">        <span class="regexp">/* given that malloc failed this may also fail, but let's try */</span></div><div class="line">        fprintf(stderr, <span class="string">"Failed to allocate memory for connection object\n"</span>);</div><div class="line">        <span class="keyword">return</span> ;</div><div class="line">    &#125;</div><div class="line">    /<span class="regexp">/选择子线程</span></div><div class="line">    int tid = (last_thread + 1) % settings.num_threads;</div><div class="line"></div><div class="line">    LIBEVENT_THREAD *thread = threads + tid;</div><div class="line"></div><div class="line">    last_thread = tid;</div><div class="line">    /<span class="regexp">/初始化消息实例</span></div><div class="line">    item-&gt;sfd = sfd;</div><div class="line">    item-&gt;init_state = init_state;</div><div class="line">    item-&gt;event_flags = event_flags;</div><div class="line">    item-&gt;read_buffer_size = read_buffer_size;</div><div class="line">    item-&gt;transport = transport;</div><div class="line">    /<span class="regexp">/将消息实例插入选择的子线程的消息队列中</span></div><div class="line">    cq_push(thread-&gt;new_conn_queue, item);</div><div class="line"></div><div class="line">    MEMCACHED_CONN_DISPATCH(sfd, thread-&gt;thread_id);</div><div class="line">    buf[0] = 'c';</div><div class="line">    /<span class="regexp">/给这个子线程发送一个字符，激活管道可读事件。</span></div><div class="line">    if (write(thread-&gt;notify_send_fd, buf, 1) != 1) &#123;</div><div class="line">        perror("Writing to thread notify pipe");</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>memcache的消息是预先分配的，默认先分配64个CQ_ITEM消息实例，这样可以避免较多的内存碎片产生。所以CQ_ITEM *item = cqi_new()如果是第一次调用，则先分配64个CQ_ITEM实例，然后返回第一个；之后再次调用这个函数时，则是直接从预先分配的CQ_ITEM链表中获取。</p>
+<p>子线程的选择是采用轮询的方式，每次选择的线程总是上次选择线程的下一个线程。</p>
+<h1>子线程接收套接字</h1>
+<hr>
+<p>子线程接收父进程的套接字，管道的可读事件的回调函数为thread_libevent_process:
+<figure class="highlight zephir"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> void thread_libevent_process(<span class="keyword">int</span> fd, short which, void *arg) &#123;</div><div class="line">    LIBEVENT_THREAD *me = arg;</div><div class="line">    CQ_ITEM *item;</div><div class="line">    <span class="keyword">char</span> buf[<span class="number">1</span>];</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (read(fd, buf, <span class="number">1</span>) != <span class="number">1</span>)</div><div class="line">        <span class="keyword">if</span> (settings.verbose &gt; <span class="number">0</span>)</div><div class="line">            fprintf(stderr, <span class="string">"Can't read from libevent pipe\n"</span>);</div><div class="line"></div><div class="line">    <span class="keyword">switch</span> (buf[<span class="number">0</span>]) &#123;</div><div class="line">    <span class="keyword">case</span> <span class="string">'c'</span>:</div><div class="line">    item = cq_pop(me-&gt;new_conn_queue);</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (<span class="keyword">NULL</span> != item) &#123;</div><div class="line">        conn *c = conn_new(item-&gt;sfd, item-&gt;init_state, item-&gt;event_flags,</div><div class="line">                           item-&gt;read_buffer_size, item-&gt;transport, me-&gt;base);</div><div class="line">        <span class="keyword">if</span> (c == <span class="keyword">NULL</span>) &#123;</div><div class="line">            <span class="keyword">if</span> (IS_UDP(item-&gt;transport)) &#123;</div><div class="line">                fprintf(stderr, <span class="string">"Can't listen for events on UDP socket\n"</span>);</div><div class="line">                <span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                <span class="keyword">if</span> (settings.verbose &gt; <span class="number">0</span>) &#123;</div><div class="line">                    fprintf(stderr, <span class="string">"Can't listen for events on fd %d\n"</span>,</div><div class="line">                        item-&gt;sfd);</div><div class="line">                &#125;</div><div class="line">                close(item-&gt;sfd);</div><div class="line">            &#125;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            c-&gt;thread = me;<span class="comment">//这个'c'出现的很诡异</span></div><div class="line">        &#125;</div><div class="line">        cqi_free(item);</div><div class="line">    &#125;</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    <span class="comment">/* we were told to pause and report in */</span></div><div class="line">    <span class="keyword">case</span> <span class="string">'p'</span>:</div><div class="line">    register_thread_initialized();</div><div class="line">        <span class="keyword">break</span>;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数简单地将消息从消息队列取出，并且调用conn_new函数，获取一个conn实例，这个实例主要是用于存储客户端发来的消息以及存储发往客户端的消息。conn_new函数还将这个客户端的fd添加进这个子线程的Libevent事件循环中。</p>
+<p>接下来就是等待客户端发送命令，处理业务。这部分很复杂，涉及memcache状态机，下篇文章在好好分析。。。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/memcache/" rel="tag">#memcache</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/01/10/memcache-item/" rel="next" title="memcache源码分析之item">
+                <i class="fa fa-chevron-left"></i> memcache源码分析之item
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/01/12/memcache-drive-machine/" rel="prev" title="memcache源码分析之状态机">
+                memcache源码分析之状态机 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/01/11/memcache-startup/"
+     data-title="memcache启动过程以及线程模型"
+     data-content=""
+     data-url="http://luodw.cc/2016/01/11/memcache-startup/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/01/11/memcache-startup/"
+           data-title="memcache启动过程以及线程模型" data-url="http://luodw.cc/2016/01/11/memcache-startup/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">memcache的启动过程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">开启多线程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">困扰我的一个问题</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">主线程给子线程传递套接字</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">子线程接收套接字</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

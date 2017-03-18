@@ -1,0 +1,1115 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="STL,C/C++,list," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="上篇文章分析了vector的实现原理，今天就来来看看list的源码实现。STL用环状双向链表来实现list，方法和leveldb的缓存环状链表一样，链表持有一个傀儡节点，不存储数据，只为这个链表的入口。迭代链表时，首先通过链表获得这个这个傀儡节点，然后通过next迭代所有数据。
+STL将链表的傀儡节点作为链表的end节点，傀儡节点的next为begin节点，这样以来，就可以用[begin,end)">
+<meta property="og:type" content="article">
+<meta property="og:title" content="STL源码分析之list">
+<meta property="og:url" content="http://luodw.cc/2015/10/28/STL-list/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="上篇文章分析了vector的实现原理，今天就来来看看list的源码实现。STL用环状双向链表来实现list，方法和leveldb的缓存环状链表一样，链表持有一个傀儡节点，不存储数据，只为这个链表的入口。迭代链表时，首先通过链表获得这个这个傀儡节点，然后通过next迭代所有数据。
+STL将链表的傀儡节点作为链表的end节点，傀儡节点的next为begin节点，这样以来，就可以用[begin,end)">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_022.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.121Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="STL源码分析之list">
+<meta name="twitter:description" content="上篇文章分析了vector的实现原理，今天就来来看看list的源码实现。STL用环状双向链表来实现list，方法和leveldb的缓存环状链表一样，链表持有一个傀儡节点，不存储数据，只为这个链表的入口。迭代链表时，首先通过链表获得这个这个傀儡节点，然后通过next迭代所有数据。
+STL将链表的傀儡节点作为链表的end节点，傀儡节点的next为begin节点，这样以来，就可以用[begin,end)">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_022.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/28/STL-list/"/>
+
+
+  <title> STL源码分析之list | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                STL源码分析之list
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-28T19:13:23+08:00" content="2015-10-28">
+              2015-10-28
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/STL/" itemprop="url" rel="index">
+                    <span itemprop="name">STL</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/28/STL-list/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/28/STL-list/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/28/STL-list/" class="leancloud_visitors" data-flag-title="STL源码分析之list">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>上篇文章分析了vector的实现原理，今天就来来看看list的源码实现。STL用环状双向链表来实现list，方法和leveldb的缓存环状链表一样，链表持有一个傀儡节点，不存储数据，只为这个链表的入口。迭代链表时，首先通过链表获得这个这个傀儡节点，然后通过next迭代所有数据。</p>
+<p>STL将链表的傀儡节点作为链表的end节点，傀儡节点的next为begin节点，这样以来，就可以用[begin,end)这种左闭右开的形式来表示迭代器范围，和其他容器保持一致。</p>
+<h1>list节点结构</h1>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div><div class="line"><span class="keyword">struct</span> __list_node &#123;</div><div class="line">  <span class="keyword">typedef</span> <span class="keyword">void</span>* void_pointer;</div><div class="line">  void_pointer next;  <span class="comment">// 为void*类型，其实可以是__list_node&lt;T&gt;*</span></div><div class="line">  void_pointer prev;</div><div class="line">  T data;<span class="comment">//存储数据</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>因为是双向链表，所以有两个指针，分别指向前向指针和后向指针。</p>
+<h1>迭代器类型</h1>
+<p>因为list数据不是存储在连续的内存内，所以不能通过指针的加１减一来实现迭代器。list数据是通过指针链表结合在一起的，所以为了迭代所有数据，必须通过上个节点找到下个节点的地址，进而访问下个节点。list迭代器就是用这个原理，实现如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Ref, <span class="keyword">class</span> Ptr&gt;</div><div class="line"><span class="keyword">struct</span> __list_iterator &#123;</div><div class="line"> </div><div class="line">  <span class="keyword">typedef</span> __list_node&lt;T&gt;* link_type;</div><div class="line"></div><div class="line">  link_type node;  <span class="comment">// 这个迭代器指向的节点</span></div><div class="line"></div><div class="line">  <span class="comment">// 迭代器构造函数</span></div><div class="line">  __list_iterator(link_type x) : node(x) &#123;&#125;</div><div class="line">  __list_iterator() &#123;&#125;</div><div class="line">  __list_iterator(<span class="keyword">const</span> iterator&amp; x) : node(x.node) &#123;&#125;</div><div class="line"></div><div class="line">  <span class="comment">// 迭代器必要的行为实现</span></div><div class="line">  <span class="keyword">bool</span> <span class="keyword">operator</span>==(<span class="keyword">const</span> self&amp; x) <span class="keyword">const</span> &#123; <span class="keyword">return</span> node == x.node; &#125;</div><div class="line">  <span class="keyword">bool</span> <span class="keyword">operator</span>!=(<span class="keyword">const</span> self&amp; x) <span class="keyword">const</span> &#123; <span class="keyword">return</span> node != x.node; &#125;</div><div class="line">  <span class="comment">//迭起器取值，取得是节点的值</span></div><div class="line">  reference <span class="keyword">operator</span>*() <span class="keyword">const</span> &#123; <span class="keyword">return</span> (*node).data; &#125;	</div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __SGI_STL_NO_ARROW_OPERATOR</span></div><div class="line">  <span class="comment">//成员调用操作符</span></div><div class="line">  pointer <span class="keyword">operator</span>-&gt;() <span class="keyword">const</span> &#123; <span class="keyword">return</span> &amp;(<span class="keyword">operator</span>*()); &#125;</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* __SGI_STL_NO_ARROW_OPERATOR */</span></span></div><div class="line"></div><div class="line">  <span class="comment">// 先加１，再返回，类似与++i</span></div><div class="line">  self&amp; <span class="keyword">operator</span>++() &#123; </div><div class="line">    node = (link_type)((*node).next);  	</div><div class="line">    <span class="keyword">return</span> *<span class="keyword">this</span>;</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//先加１，然后返回加１前的数据，类似与i++</span></div><div class="line">  self <span class="keyword">operator</span>++(<span class="keyword">int</span>) &#123; </div><div class="line">    self tmp = *<span class="keyword">this</span>;</div><div class="line">    ++*<span class="keyword">this</span>;</div><div class="line">    <span class="keyword">return</span> tmp;</div><div class="line">  &#125;</div><div class="line">  <span class="comment">// 先减１，再返回，类似于--i</span></div><div class="line">  self&amp; <span class="keyword">operator</span>--() &#123; </div><div class="line">    node = (link_type)((*node).prev); 	</div><div class="line">    <span class="keyword">return</span> *<span class="keyword">this</span>;</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//先减１，再返回减１前的数据，类似于i--</span></div><div class="line">  self <span class="keyword">operator</span>--(<span class="keyword">int</span>) &#123; </div><div class="line">    self tmp = *<span class="keyword">this</span>;</div><div class="line">    --*<span class="keyword">this</span>;</div><div class="line">    <span class="keyword">return</span> tmp;</div><div class="line">  &#125;</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>以上就是list的迭代器实现，只实现了迭代器的++,--，取值，成员调用四个基本操作，并没有像vector迭代器那样的+n操作，主要是因为地址不连续。</p>
+<h1>list实现</h1>
+<p>接下来看下list实现，list只有一个成员变量，就是那个傀儡节点，也是end节点。</p>
+<p>先来看构造函数:
+<figure class="highlight crmsh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">list() &#123; empty_initialize(); &#125; </div><div class="line">void empty_initialize() &#123; </div><div class="line">  <span class="keyword">node</span> <span class="title">= get_node</span>();	//创建一个节点，就是调用配置器分配内存 </div><div class="line">  <span class="keyword">node</span><span class="title">-&gt;next</span> = <span class="keyword">node</span><span class="title">;	//傀儡节点的前后都指向自己，形成一个环</span></div><div class="line">  node-&gt;prev = <span class="keyword">node</span><span class="title">;　</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个构造函数为默认构造函数，就是创建一个节点，然后前后指向自己而已。说到配置器，由于list用的是自己定义节点结构体，所以也定义了相应类型的配置器。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> simple_alloc&lt;list_node, Alloc&gt; list_node_allocator;</div></pre></td></tr></table></figure></p>
+<p>list还定义几种构造函数，用n个值来初始化list，将另一个list的一部分数据来初始化list和复制构造函数。
+<figure class="highlight excel"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">list(size_type <span class="built_in">n</span>, const <span class="built_in">T</span>&amp; <span class="built_in">value</span>) &#123; fill_initialize(<span class="built_in">n</span>, <span class="built_in">value</span>); &#125;</div><div class="line">list(<span class="built_in">int</span> <span class="built_in">n</span>, const <span class="built_in">T</span>&amp; <span class="built_in">value</span>) &#123; fill_initialize(<span class="built_in">n</span>, <span class="built_in">value</span>); &#125;</div><div class="line">list(long <span class="built_in">n</span>, const <span class="built_in">T</span>&amp; <span class="built_in">value</span>) &#123; fill_initialize(<span class="built_in">n</span>, <span class="built_in">value</span>); &#125;</div><div class="line">explicit list(size_type <span class="built_in">n</span>) &#123; fill_initialize(<span class="built_in">n</span>, <span class="built_in">T</span>()); &#125;</div><div class="line">  list(const_iterator first, const_iterator last) &#123;</div><div class="line">  range_initialize(first, last);</div><div class="line">&#125;</div><div class="line">  list(const list&lt;<span class="built_in">T</span>, Alloc&gt;&amp; x) &#123;</div><div class="line">  range_initialize(x.begin(), x.end());</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这几个函数调用了fill_initialize和range_initialize，来看下这两个函数。
+<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">void fill_initialize(size_type n, const T&amp; value) &#123;</div><div class="line">  empty_initialize();</div><div class="line">  __STL_TRY &#123;</div><div class="line">    <span class="keyword">insert</span>(<span class="keyword">begin</span>(), n, <span class="keyword">value</span>);</div><div class="line">  &#125;</div><div class="line">  __STL_UNWIND(clear(); put_node(node));</div><div class="line">&#125;</div><div class="line"> void range_initialize(InputIterator first, InputIterator last) &#123;</div><div class="line">  empty_initialize();</div><div class="line">  __STL_TRY &#123;</div><div class="line">    <span class="keyword">insert</span>(<span class="keyword">begin</span>(), <span class="keyword">first</span>, <span class="keyword">last</span>);</div><div class="line">  &#125;</div><div class="line">  __STL_UNWIND(clear(); put_node(node));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这两个函数最后分别调用了insert函数的不同版本。一起来看下这两个insert函数。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc&gt;</div><div class="line"><span class="keyword">void</span> <span class="built_in">list</span>&lt;T, Alloc&gt;::insert(iterator position, size_type n, <span class="keyword">const</span> T&amp; x) &#123;</div><div class="line">  <span class="keyword">for</span> ( ; n &gt; <span class="number">0</span>; --n)</div><div class="line">    insert(position, x);</div><div class="line">&#125;</div><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc&gt; <span class="keyword">template</span> &lt;<span class="keyword">class</span> InputIterator&gt;</div><div class="line"><span class="keyword">void</span> <span class="built_in">list</span>&lt;T, Alloc&gt;::insert(iterator position,</div><div class="line">                            InputIterator first, InputIterator last) &#123;</div><div class="line">  <span class="keyword">for</span> ( ; first != last; ++first)</div><div class="line">    insert(position, *first);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这两个函数通过循环调用 iterator insert(iterator position, const T&amp; x) 这个insert版本，将数据一个一个插入到position之前，初始时就是插入到傀儡节点后面，形成初始链表，源码如下:
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">iterator insert(iterator position, const T&amp; x) &#123;</div><div class="line">  link_type tmp = create_node(x); <span class="comment">//用x初始化构造一个节点</span></div><div class="line">  <span class="comment">// 将节点插入到position之前，更新前后关系</span></div><div class="line">  <span class="function"><span class="title">tmp</span>-&gt;</span>next = position.node;</div><div class="line">  <span class="function"><span class="title">tmp</span>-&gt;</span><span class="function"><span class="title">prev</span> = position.node-&gt;</span>prev;</div><div class="line">  (<span class="function"><span class="title">link_type</span>(position.node-&gt;</span><span class="function"><span class="title">prev</span>))-&gt;</span>next = tmp;</div><div class="line">  <span class="function"><span class="title">position</span>.node-&gt;</span>prev = tmp;</div><div class="line">  return tmp;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>最后看下析构函数
+<figure class="highlight crmsh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">~list() &#123;</div><div class="line">  clear();</div><div class="line">  put_node(<span class="keyword">node</span><span class="title">);</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这两个函数，clear是清空链表所有数据，然后put_node是将傀儡节点回收了。</p>
+<h1>一些小函数</h1>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="function">iterator <span class="title">begin</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> (link_type)((*node).next); &#125;</div><div class="line"> <span class="function">const_iterator <span class="title">begin</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123; <span class="keyword">return</span> (link_type)((*node).next); &#125;</div><div class="line"> <span class="comment">// begin函数返回的是傀儡节点的下一个节点</span></div><div class="line"> <span class="function">iterator <span class="title">end</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> node; &#125;	</div><div class="line">   <span class="function">const_iterator <span class="title">end</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123; <span class="keyword">return</span> node; &#125;</div><div class="line"> <span class="function">reverse_iterator <span class="title">rbegin</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> reverse_iterator(end()); &#125;</div><div class="line"> <span class="function">const_reverse_iterator <span class="title">rbegin</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123; </div><div class="line">   <span class="keyword">return</span> const_reverse_iterator(end()); </div><div class="line"> &#125;</div><div class="line"> <span class="function">reverse_iterator <span class="title">rend</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> reverse_iterator(begin()); &#125;</div><div class="line"> <span class="function">const_reverse_iterator <span class="title">rend</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123; </div><div class="line">   <span class="keyword">return</span> const_reverse_iterator(begin());</div><div class="line"> &#125; </div><div class="line"> <span class="comment">//当傀儡节点的下一个节点等于自己的时候，链表为空</span></div><div class="line"> <span class="function"><span class="keyword">bool</span> <span class="title">empty</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123; <span class="keyword">return</span> node-&gt;next == node; &#125;</div><div class="line"> <span class="comment">//链表元素个数，通过调用distance函数求值</span></div><div class="line"> <span class="function">size_type <span class="title">size</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123;</div><div class="line">   size_type result = <span class="number">0</span>;</div><div class="line">   distance(begin(), end(), result);</div><div class="line">   <span class="keyword">return</span> result;</div><div class="line"> &#125;</div><div class="line"> <span class="function">size_type <span class="title">max_size</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123; <span class="keyword">return</span> size_type(<span class="number">-1</span>); &#125;</div><div class="line"> <span class="comment">//链表最多能存储节点数</span></div><div class="line"> <span class="function">reference <span class="title">front</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> *begin(); &#125;  </div><div class="line"> <span class="function">const_reference <span class="title">front</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123; <span class="keyword">return</span> *begin(); &#125;</div><div class="line"> <span class="comment">// 取节点的内容，为引用。</span></div><div class="line"> <span class="function">reference <span class="title">back</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> *(--end()); &#125; </div><div class="line"> <span class="function">const_reference <span class="title">back</span><span class="params">()</span> <span class="keyword">const</span> </span>&#123; <span class="keyword">return</span> *(--end()); &#125;</div><div class="line"> <span class="function"><span class="keyword">void</span> <span class="title">swap</span><span class="params">(<span class="built_in">list</span>&lt;T, Alloc&gt;&amp; x)</span> </span>&#123; __STD::swap(node, x.node); &#125;</div></pre></td></tr></table></figure></p>
+<p>最后一个交换两个链表，只需要通过标准函数库的swap函数，交换两个傀儡节点即可，因为傀儡节点是每个链表的入口。</p>
+<h1>一些常用函数</h1>
+<ol>
+<li>
+<p>往链表前插一个元素，通过调用insert完成。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">push_front</span><span class="params">(<span class="keyword">const</span> T&amp; x)</span> </span>&#123; insert(begin(), x); &#125;</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>往链表尾巴插一个元素，也是通过insert函数完成。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">push_back</span><span class="params">(<span class="keyword">const</span> T&amp; x)</span> </span>&#123; insert(end(), x); &#125;</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>移除一个元素
+<figure class="highlight elm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="title">iterator</span> erase(iterator position) &#123;</div><div class="line">  link_<span class="keyword">type</span> next_node = link_type(position.node-&gt;next);</div><div class="line">  link_<span class="keyword">type</span> prev_node = link_type(position.node-&gt;prev);</div><div class="line">  prev_node-&gt;next = next_node;</div><div class="line">  next_node-&gt;prev = prev_node;</div><div class="line">  destroy_node(position.node);</div><div class="line">  return iterator(next_node);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>这个函数也很简单，只需要将被移除节点的前后节点跳过当前节点即可。</p>
+<ol start="4">
+<li>前后删除一个节点，用erase函数实现:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">pop_front</span><span class="params">()</span> </span>&#123; erase(begin()); &#125;<span class="comment">//删除第一元素</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">pop_back</span><span class="params">()</span> </span>&#123; </div><div class="line">  iterator tmp = end();</div><div class="line">  erase(--tmp);<span class="comment">//删除傀儡节点前一个元素</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<h1>transfer函数</h1>
+<p>这个函数是很多list接口调用的函数。这个函数有点难看懂，我把《STL源码剖析》上的图截下来，容易理解:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_022.png" alt="transfer函数示意图">;</p>
+<p>源码如下:
+<figure class="highlight q"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//将[first,last)区间内的所有元素搬移到position之前</span></div><div class="line">void transfer(iterator position, iterator <span class="built_in">first</span>, iterator last) &#123;</div><div class="line">  if (position != last) &#123;</div><div class="line">    (*(link_type((*last.node).<span class="built_in">prev</span>))).<span class="built_in">next</span> = position.node;	　　　　<span class="comment">// (1)</span></div><div class="line">    (*(link_type((*<span class="built_in">first</span>.node).<span class="built_in">prev</span>))).<span class="built_in">next</span> = last.node;		<span class="comment">// (2)</span></div><div class="line">    (*(link_type((*position.node).<span class="built_in">prev</span>))).<span class="built_in">next</span> = <span class="built_in">first</span>.node;  	<span class="comment">// (3)</span></div><div class="line">    link_type tmp = link_type((*position.node).<span class="built_in">prev</span>);			<span class="comment">// (4)</span></div><div class="line">    (*position.node).<span class="built_in">prev</span> = (*last.node).<span class="built_in">prev</span>;			<span class="comment">// (5)</span></div><div class="line">    (*last.node).<span class="built_in">prev</span> = (*<span class="built_in">first</span>.node).<span class="built_in">prev</span>; 				<span class="comment">// (6)</span></div><div class="line">    (*<span class="built_in">first</span>.node).<span class="built_in">prev</span> = tmp;						<span class="comment">// (7)</span></div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>按着序号来读那个示意图，应该能看懂，本质上就那几个关键节点的前后关系。</p>
+<p>有了这个函数之后，就出现了一些很有用的函数:
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">//将x链表的所有元素插入到当前list的<span class="built_in">position</span>处</div><div class="line">void <span class="built_in">splice</span>(iterator <span class="built_in">position</span>, list&amp; x) &#123;</div><div class="line">  <span class="keyword">if</span> (!x.empty()) </div><div class="line">    transfer(<span class="built_in">position</span>, x.begin(), x.end());</div><div class="line">&#125;</div><div class="line">//将i处节点插到<span class="built_in">position</span>之前，i和<span class="built_in">position</span>可能来自同一个链表</div><div class="line">void <span class="built_in">splice</span>(iterator <span class="built_in">position</span>, list&amp;, iterator i) &#123;</div><div class="line">  iterator j = i;</div><div class="line">  ++j;</div><div class="line">  <span class="keyword">if</span> (<span class="built_in">position</span> == i || <span class="built_in">position</span> == j) <span class="built_in">return</span>;</div><div class="line">  transfer(<span class="built_in">position</span>, i, j);</div><div class="line">&#125;</div><div class="line">// 将[<span class="built_in">first</span>,<span class="built_in">last</span>) 內的所有元素结合于 <span class="built_in">position</span> 所指位置之前。</div><div class="line">// <span class="built_in">position</span> 和[<span class="built_in">first</span>,<span class="built_in">last</span>)可指向同一個list，</div><div class="line">// 但<span class="built_in">position</span>不能位于[<span class="built_in">first</span>,<span class="built_in">last</span>)之內。</div><div class="line">void <span class="built_in">splice</span>(iterator <span class="built_in">position</span>, list&amp;, iterator <span class="built_in">first</span>, iterator <span class="built_in">last</span>)  &#123;</div><div class="line">  <span class="keyword">if</span> (<span class="built_in">first</span> != <span class="built_in">last</span>) </div><div class="line">    transfer(<span class="built_in">position</span>, <span class="built_in">first</span>, <span class="built_in">last</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>remove函数</h1>
+<p>将数值为value的所有元素移除:
+<figure class="highlight q"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">template &lt;class T, class Alloc&gt;</div><div class="line">void list&lt;T, Alloc&gt;::remove(const T&amp; <span class="built_in">value</span>) &#123;</div><div class="line">  iterator <span class="built_in">first</span> = begin();</div><div class="line">  iterator last = end();</div><div class="line">  <span class="keyword">while</span> (<span class="built_in">first</span> != last) &#123;	<span class="comment">// 通过前后节点来迭代所有节点</span></div><div class="line">    iterator <span class="built_in">next</span> = <span class="built_in">first</span>;</div><div class="line">    ++<span class="built_in">next</span>;</div><div class="line">    if (*<span class="built_in">first</span> == <span class="built_in">value</span>) erase(<span class="built_in">first</span>); 	<span class="comment">// 找到就移除</span></div><div class="line">    <span class="built_in">first</span> = <span class="built_in">next</span>;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>merge函数</h1>
+<p>合并两个链表，前提是两个链表必须有序，合并之后的链表也是有序的。merge之后，x链表被清空了。
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc&gt;</div><div class="line"><span class="keyword">void</span> list&lt;T, Alloc&gt;::merge(list&lt;T, Alloc&gt;&amp; x) &#123;</div><div class="line">  iterator first1 = <span class="built_in">begin</span>();</div><div class="line">  iterator last1 = <span class="built_in">end</span>();</div><div class="line">  iterator first2 = x.<span class="built_in">begin</span>();</div><div class="line">  iterator last2 = x.<span class="built_in">end</span>();</div><div class="line"></div><div class="line">  <span class="built_in">while</span> (first1 != last1 &amp;&amp; first2 != last2)</div><div class="line">    <span class="built_in">if</span> (*first2 &lt; *first1) &#123;</div><div class="line">      iterator next = first2;</div><div class="line">      <span class="built_in">transfer</span>(first1, first2, ++next);</div><div class="line">      first2 = next;</div><div class="line">    &#125;</div><div class="line">    <span class="built_in">else</span></div><div class="line">      ++first1;</div><div class="line">  <span class="built_in">if</span> (first2 != last2) <span class="built_in">transfer</span>(last1, first2, last2);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>reverse函数</h1>
+<p>这个函数是用于将链表数据反序:
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">template &lt;<span class="class"><span class="keyword">class</span> <span class="title">T</span>, <span class="title">class</span> <span class="title">Alloc</span>&gt;</span></div><div class="line">void list&lt;T, Alloc&gt;<span class="symbol">:</span><span class="symbol">:reverse</span>() &#123;</div><div class="line">  <span class="regexp">//</span>如果元素个数为０或１，啥都不做</div><div class="line">  <span class="keyword">if</span> (node-&gt;<span class="keyword">next</span> == node <span class="params">||</span> link_type(node-&gt;<span class="keyword">next</span>)-&gt;<span class="keyword">next</span> == node) <span class="keyword">return</span>;</div><div class="line">  iterator first = <span class="keyword">begin</span>();</div><div class="line">  ++first;</div><div class="line">  <span class="keyword">while</span> (first != <span class="keyword">end</span>()) &#123;</div><div class="line">    iterator old = first;</div><div class="line">    ++first;</div><div class="line">    transfer(<span class="keyword">begin</span>(), old, first);<span class="regexp">//</span>从链表<span class="keyword">begin</span>开始，一个一个插入<span class="keyword">begin</span>之前</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这里要注意的是，在链表begin前插入元素，都将改变链表的begin。</p>
+<h1>sort函数</h1>
+<p>list不能使用STL的sort算法，因为STL的sort算法必须接受RamdonAccessIterator，而sort的迭代器为Bidirectional iterators，所以list自己实现了这个sort算法:
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc&gt;</div><div class="line"><span class="keyword">void</span> list&lt;T, Alloc&gt;::sort() &#123;</div><div class="line">  <span class="comment">//元素个数为0或1时，啥都不做</span></div><div class="line">  <span class="built_in">if</span> (node-&gt;next == node || link_type(node-&gt;next)-&gt;next == node) <span class="built_in">return</span>;</div><div class="line"></div><div class="line">  <span class="comment">// 一些新的list做临时存储</span></div><div class="line">  list&lt;T, Alloc&gt; carry;</div><div class="line">  list&lt;T, Alloc&gt; counter[<span class="number">64</span>];</div><div class="line">  <span class="keyword">int</span> <span class="built_in">fill</span> = <span class="number">0</span>;</div><div class="line">  <span class="built_in">while</span> (!empty()) &#123;</div><div class="line">    carry.splice(carry.<span class="built_in">begin</span>(), *<span class="keyword">this</span>, <span class="built_in">begin</span>());</div><div class="line">    <span class="keyword">int</span> i = <span class="number">0</span>;</div><div class="line">    <span class="built_in">while</span>(i &lt; <span class="built_in">fill</span> &amp;&amp; !counter[i].empty()) &#123;</div><div class="line">      counter[i].merge(carry);</div><div class="line">      carry.swap(counter[i++]);</div><div class="line">    &#125;</div><div class="line">    carry.swap(counter[i]);         </div><div class="line">    <span class="built_in">if</span> (i == <span class="built_in">fill</span>) ++<span class="built_in">fill</span>;</div><div class="line">  &#125; </div><div class="line"></div><div class="line">  <span class="built_in">for</span> (<span class="keyword">int</span> i = <span class="number">1</span>; i &lt; <span class="built_in">fill</span>; ++i) </div><div class="line">     counter[i].merge(counter[i<span class="number">-1</span>]);</div><div class="line">  swap(counter[<span class="built_in">fill</span><span class="number">-1</span>]);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个排序算法，本人看的也不是很懂，看了<a href="http://m.blog.csdn.net/blog/yusiguyuan/38875429" target="_blank" rel="external">鱼思故渊</a>的博客，略懂程序执行流程。大家可以看他的博客。</p>
+<p>当然list还提供了带自定义比较的上述函数
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> Predicate&gt; <span class="function"><span class="keyword">void</span> <span class="title">remove_if</span><span class="params">(Predicate)</span></span>;</div><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> BinaryPredicate&gt; <span class="function"><span class="keyword">void</span> <span class="title">unique</span><span class="params">(BinaryPredicate)</span></span>;</div><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> StrictWeakOrdering&gt; <span class="function"><span class="keyword">void</span> <span class="title">merge</span><span class="params">(<span class="built_in">list</span>&amp;, StrictWeakOrdering)</span></span>;</div><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> StrictWeakOrdering&gt; <span class="function"><span class="keyword">void</span> <span class="title">sort</span><span class="params">(StrictWeakOrdering)</span></span>;</div></pre></td></tr></table></figure></p>
+<p>list大概就这些就这些了。</p>
+<p>看STL源码真心可以学到东西，首先把基本数据结构复习了一遍，而且SGI里的数据结构比平时写的数据结构优秀多了。其次好好掌握了STL模板库用法。最后就是学到一些细节的东西，比如int(),double()表示这种类型的默认值。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/STL/" rel="tag">#STL</a>
+          
+            <a href="/tags/C-C/" rel="tag">#C/C++</a>
+          
+            <a href="/tags/list/" rel="tag">#list</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/27/STL-vec/" rel="next" title="STL源码分析之vector">
+                <i class="fa fa-chevron-left"></i> STL源码分析之vector
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/30/leveldb-14/" rel="prev" title="leveldb源码分析之WriteBatch">
+                leveldb源码分析之WriteBatch <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/28/STL-list/"
+     data-title="STL源码分析之list"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/28/STL-list/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/28/STL-list/"
+           data-title="STL源码分析之list" data-url="http://luodw.cc/2015/10/28/STL-list/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">list节点结构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">迭代器类型</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">list实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">一些小函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">一些常用函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">6.</span> <span class="nav-text">transfer函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">7.</span> <span class="nav-text">remove函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">8.</span> <span class="nav-text">merge函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">9.</span> <span class="nav-text">reverse函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">10.</span> <span class="nav-text">sort函数</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

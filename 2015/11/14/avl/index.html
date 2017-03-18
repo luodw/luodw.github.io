@@ -1,0 +1,1092 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="avl," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="继上次二叉搜索树分析之后，今天分析下平衡二叉树．平衡二叉树是二叉搜索树进化而来的，因为二叉搜索树的期望高度为log2n，各项操作的时间复杂度的期望也是log2n，但是在极端情况下，二叉搜索树将退化为链表（有序插入时），这时的时间复杂度将退化为n，所以二叉搜索树实际用的并不是很多，实际中用的较多的是平衡二叉树和红黑树．例如C++STL中的map,set,mutilset,mutilmap的底层都是用">
+<meta property="og:type" content="article">
+<meta property="og:title" content="平衡二叉树(avl)分析与实现">
+<meta property="og:url" content="http://luodw.cc/2015/11/14/avl/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="继上次二叉搜索树分析之后，今天分析下平衡二叉树．平衡二叉树是二叉搜索树进化而来的，因为二叉搜索树的期望高度为log2n，各项操作的时间复杂度的期望也是log2n，但是在极端情况下，二叉搜索树将退化为链表（有序插入时），这时的时间复杂度将退化为n，所以二叉搜索树实际用的并不是很多，实际中用的较多的是平衡二叉树和红黑树．例如C++STL中的map,set,mutilset,mutilmap的底层都是用">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_035.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_036.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_037.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-123.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.121Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="平衡二叉树(avl)分析与实现">
+<meta name="twitter:description" content="继上次二叉搜索树分析之后，今天分析下平衡二叉树．平衡二叉树是二叉搜索树进化而来的，因为二叉搜索树的期望高度为log2n，各项操作的时间复杂度的期望也是log2n，但是在极端情况下，二叉搜索树将退化为链表（有序插入时），这时的时间复杂度将退化为n，所以二叉搜索树实际用的并不是很多，实际中用的较多的是平衡二叉树和红黑树．例如C++STL中的map,set,mutilset,mutilmap的底层都是用">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_035.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/11/14/avl/"/>
+
+
+  <title> 平衡二叉树(avl)分析与实现 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                平衡二叉树(avl)分析与实现
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-11-14T15:35:22+08:00" content="2015-11-14">
+              2015-11-14
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/data-structure/" itemprop="url" rel="index">
+                    <span itemprop="name">data_structure</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/11/14/avl/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/11/14/avl/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/11/14/avl/" class="leancloud_visitors" data-flag-title="平衡二叉树(avl)分析与实现">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>继上次二叉搜索树分析之后，今天分析下平衡二叉树．平衡二叉树是二叉搜索树进化而来的，因为二叉搜索树的期望高度为log2n，各项操作的时间复杂度的期望也是log2n，但是在极端情况下，二叉搜索树将退化为链表（有序插入时），这时的时间复杂度将退化为n，所以二叉搜索树实际用的并不是很多，实际中用的较多的是平衡二叉树和红黑树．例如C++STL中的map,set,mutilset,mutilmap的底层都是用红黑树实现的．</p>
+<p>平衡二叉树的主要性质：它是一棵空树或者它的左右子树的高度差的绝对值不超过１，并且左右两棵子树都是平衡二叉树．</p>
+<p>平衡二叉树的实现:平衡二叉树本质上也是一棵二叉搜索树，所以如果只是读取的话，是不会改变平衡二叉树的，所以二叉搜索树的读取方法可以直接用在平衡二叉树上，但是插入和删除会改变平衡二叉树的左右子树的高度，导致左右子树的高度差大于等于２，这时树就不平衡．AVL树是通过旋转来实现插入和删除之后的平衡．</p>
+<p>对于子树的旋转网上有很多博客讲解，我就不多说了，我这里引用其中一篇博客的图片，因为我觉得那篇博客的图片画的很好，图片来自<a href="http://www.cppblog.com/cxiaojia/archive/2012/08/20/187776.html" target="_blank" rel="external">C小加的博客</a>
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_035.png" alt="avl旋转四种情况"></p>
+<ol>
+<li>6节点的左子树3节点高度比右子树7节点大2，左子树3节点的左子树1节点高度大于右子树4节点，这种情况成为左左。</li>
+<li>6节点的左子树2节点高度比右子树7节点大2，左子树2节点的左子树1节点高度小于右子树4节点，这种情况成为左右。</li>
+<li>2节点的左子树1节点高度比右子树5节点小2，右子树5节点的左子树3节点高度大于右子树6节点，这种情况成为右左。</li>
+<li>2节点的左子树1节点高度比右子树4节点小2，右子树4节点的左子树3节点高度小于右子树6节点，这种情况成为右右。</li>
+</ol>
+<p>从图2中可以可以看出，1和4两种情况是对称的，这两种情况的旋转算法是一致的，只需要经过一次旋转就可以达到目标，我们称之为单旋转。2和3两种情况也是对称的，这两种情况的旋转算法也是一致的，需要进行两次旋转，我们称之为双旋转。</p>
+<p>AVL树就这四种旋转情况，具体怎么旋转，就百度了．我主要是分析下如何实现．</p>
+<h1>AVL树定义</h1>
+<hr>
+<p>AVL树节点主要由值，高度，左子树，右子树组成，我之前加了父亲成员，但是发现难度加大了，而且经常错误，所以以上属性足够了．
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="keyword">int</span> ValueType;</div><div class="line"><span class="keyword">struct</span> avl_node</div><div class="line">&#123;</div><div class="line">	ValueType data;</div><div class="line">	<span class="keyword">int</span> <span class="built_in">height</span>;</div><div class="line">	<span class="keyword">struct</span> avl_node *left;</div><div class="line">	<span class="keyword">struct</span> avl_node *right;</div><div class="line">&#125;;</div><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> avl_node* node;</div></pre></td></tr></table></figure></p>
+<h1>两个辅助函数</h1>
+<hr>
+<p>这里定义两个函数，用于求子树的高度和取两个子树高度的最大值．
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">Height</span><span class="params">(node p)</span></span></div><div class="line">&#123;</div><div class="line">	<span class="keyword">if</span>(p==<span class="literal">NULL</span>)</div><div class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</div><div class="line">	<span class="keyword">else</span></div><div class="line">		<span class="keyword">return</span> p-&gt;height;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">Max</span><span class="params">(<span class="keyword">int</span> lhs,<span class="keyword">int</span> rhs)</span></span></div><div class="line">&#123;</div><div class="line">	<span class="keyword">return</span> lhs&gt;rhs?lhs:rhs;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这里定义NULL节点的高度为-1，这样以来，叶子节点的高度就为0．</p>
+<h1>四种情况下的旋转函数</h1>
+<hr>
+<p>再次从C小加的博客中拿了两张图，用于说明旋转函数实现:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_036.png" alt="左左情况下旋转示意图">
+如上图，k2的左子树比右子树高２，所以不平衡，我们需要把k1提到k2的位置，然后k2下降到k1的右子树，最后还有把k1的右子树放到k2的左子树即可．至于y为什么要放到k2的左子树了？因为y大于k1小于k2，当k1升到k2位置时，k1已经有右子树k2，所以只能把y放到k2的左子树，符合二叉搜索树性质．代码如下:
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">static node SingleRotateLeft(node &amp;p1)</div><div class="line">&#123;</div><div class="line">	<span class="function"><span class="title">node</span> p2=p1-&gt;</span>left;<span class="comment">//找到p1的左子树</span></div><div class="line">	<span class="function"><span class="title">p1</span>-&gt;</span><span class="function"><span class="title">left</span>=p2-&gt;</span>right;<span class="comment">//将p2的右子树移至p1的左子树</span></div><div class="line">	<span class="function"><span class="title">p2</span>-&gt;</span>right=p1;<span class="comment">//建立p2和p1的关系</span></div><div class="line">	<span class="comment">//更新p1和p2的高度，因为p2高度依赖p1，所以先更新p1</span></div><div class="line">	<span class="function"><span class="title">p1</span>-&gt;</span><span class="function"><span class="title">height</span>=Max(Height(p1-&gt;</span><span class="function"><span class="title">left</span>),Height(p1-&gt;</span>right))+<span class="number">1</span>;</div><div class="line">	<span class="function"><span class="title">p2</span>-&gt;</span><span class="function"><span class="title">height</span>=Max(Height(p2-&gt;</span><span class="function"><span class="title">left</span>),Height(p2-&gt;</span>right))+<span class="number">1</span>;</div><div class="line">	return p2;</div><div class="line">&#125;</div><div class="line"><span class="comment">//右右情况的旋转和左左的对称，所以原理类似</span></div><div class="line">static node SingleRotateRight(node &amp;p1)</div><div class="line">&#123;</div><div class="line"></div><div class="line">	<span class="function"><span class="title">node</span> p2=p1-&gt;</span>right;</div><div class="line">	<span class="function"><span class="title">p1</span>-&gt;</span><span class="function"><span class="title">right</span>=p2-&gt;</span>left;</div><div class="line">	<span class="function"><span class="title">p2</span>-&gt;</span>left=p1;</div><div class="line">	<span class="function"><span class="title">p1</span>-&gt;</span><span class="function"><span class="title">height</span>=Max(Height(p1-&gt;</span><span class="function"><span class="title">left</span>),Height(p1-&gt;</span>right))+<span class="number">1</span>;</div><div class="line">	<span class="function"><span class="title">p2</span>-&gt;</span><span class="function"><span class="title">height</span>=Max(Height(p2-&gt;</span><span class="function"><span class="title">left</span>),Height(p2-&gt;</span>right))+<span class="number">1</span>;</div><div class="line">	return p2;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>还有左右和右左旋转情况，图示如下:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_037.png" alt="左右情况下的旋转"></p>
+<p>左右情况下的旋转，先以k3的左子树为根节点执行一次左左旋转，然后以k3的根节点，执行一次右右旋转即可．右左情况和左右对称．
+<figure class="highlight crmsh"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">static <span class="keyword">node</span> <span class="title">DoubleRotateLR</span>(<span class="keyword">node</span> <span class="title">&amp;p1</span>)</div><div class="line">&#123;</div><div class="line">	p1-&gt;<span class="attr">left=</span>SingleRotateRight(p1-&gt;left);</div><div class="line">	return SingleRotateLeft(p1);</div><div class="line">&#125;</div><div class="line"></div><div class="line">static <span class="keyword">node</span> <span class="title">DoubleRotateRL</span>(<span class="keyword">node</span> <span class="title">&amp;p1</span>)</div><div class="line">&#123;</div><div class="line">	p1-&gt;<span class="attr">right=</span>SingleRotateLeft(p1-&gt;right);</div><div class="line">	return SingleRotateRight(p1);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>AVL树插入操作</h1>
+<hr>
+<p>AVL树插入时，会破坏平衡性，所以没当插入一个数据时，都要从插入点往上，一步一步检测是否出现两棵子树高度差等于2，如果等于2，则要做相应的旋转．
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div></pre></td><td class="code"><pre><div class="line">static node Insert(node root,node parent,ValueType x)</div><div class="line">&#123;</div><div class="line">	<span class="comment">//判断是否为根节点，以及当判断是否为插入点</span></div><div class="line">	<span class="keyword">if</span>(root==NULL)</div><div class="line">	&#123;</div><div class="line">		root=(node)malloc(sizeof(struct avl_node));</div><div class="line">		<span class="function"><span class="title">root</span>-&gt;</span><span class="keyword">data</span>=x;</div><div class="line">		<span class="function"><span class="title">root</span>-&gt;</span>height=<span class="number">0</span>;</div><div class="line">		<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">left</span>=root-&gt;</span>right=NULL;</div><div class="line">	&#125;</div><div class="line">	<span class="comment">//当插入值比当前节点值小时，则往左子树插入</span></div><div class="line">	<span class="function"><span class="title">else</span> <span class="keyword">if</span>(x&lt;root-&gt;</span><span class="keyword">data</span>)</div><div class="line">	&#123;</div><div class="line">		<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">left</span>=Insert(root-&gt;</span>left,root,x);<span class="comment">//递归插入</span></div><div class="line">		<span class="function"><span class="title">if</span>(Height(root-&gt;</span><span class="function"><span class="title">left</span>)-Height(root-&gt;</span>right)==<span class="number">2</span>)<span class="comment">//判断子树是否平衡</span></div><div class="line">		&#123;</div><div class="line">			<span class="function"><span class="title">if</span>(x&lt;root-&gt;</span><span class="function"><span class="title">left</span>-&gt;</span><span class="keyword">data</span>)<span class="comment">//插入值小于当前节点的左节点的值，则为左左情况</span></div><div class="line">				root=SingleRotateLeft(root);</div><div class="line">			<span class="keyword">else</span><span class="comment">//否则为左右情况</span></div><div class="line">				root=DoubleRotateLR(root);</div><div class="line">		&#125;</div><div class="line">	&#125;<span class="function"><span class="title">else</span> <span class="keyword">if</span>(x&gt;root-&gt;</span><span class="keyword">data</span>)<span class="comment">//插入值比当前节点大时，往右子树插入</span></div><div class="line">	&#123;</div><div class="line">		<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">right</span>=Insert(root-&gt;</span>right,root,x);</div><div class="line">		<span class="function"><span class="title">if</span>(Height(root-&gt;</span><span class="function"><span class="title">right</span>)-Height(root-&gt;</span>left)==<span class="number">2</span>)</div><div class="line">		&#123;</div><div class="line">			<span class="function"><span class="title">if</span>(x&gt;root-&gt;</span><span class="function"><span class="title">right</span>-&gt;</span><span class="keyword">data</span>)</div><div class="line">				root=SingleRotateRight(root);</div><div class="line">			<span class="keyword">else</span></div><div class="line">				root=DoubleRotateRL(root);</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="comment">//更新当前节点的高度</span></div><div class="line">	<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">height</span>=Max(Height(root-&gt;</span><span class="function"><span class="title">left</span>),Height(root-&gt;</span>right))+<span class="number">1</span>;</div><div class="line">	return root;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>AVL树的删除</h1>
+<hr>
+<p>AVL树插入操作相对较简单，但是AVL删除操作就相对复杂了．AVL树删除操作也要分为四种情况，</p>
+<ol>
+<li>删除节点两个子树都非空</li>
+<li>删除节点左子树非空，右子树空</li>
+<li>删除节点右子树非空，左子树空</li>
+<li>删除节点左右子树都为空
+但是真正要考虑的只有右子树为空和非空的情况，因为右子树非空的话，要找到后继几点；其他情况，直接指针更新即可．
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div></pre></td><td class="code"><pre><div class="line">node delete_node(node root,ValueType x)</div><div class="line">&#123;</div><div class="line">	<span class="keyword">if</span>(root==NULL)<span class="comment">//空树直接返回</span></div><div class="line">		return NULL;</div><div class="line">	<span class="function"><span class="title">if</span>(x&lt;root-&gt;</span><span class="keyword">data</span>)<span class="comment">//删除值小于当前节点，说明删除节点在当前节点左侧</span></div><div class="line">	&#123;</div><div class="line">		<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">left</span>=delete_node(root-&gt;</span>left,x);</div><div class="line">		<span class="function"><span class="title">if</span>(Height(root-&gt;</span><span class="function"><span class="title">right</span>)-Height(root-&gt;</span>left)==<span class="number">2</span>)</div><div class="line">		&#123;</div><div class="line">			<span class="function"><span class="title">if</span>(Height(root-&gt;</span><span class="function"><span class="title">right</span>-&gt;</span><span class="function"><span class="title">left</span>)&gt;Height(root-&gt;</span><span class="function"><span class="title">right</span>-&gt;</span>right))</div><div class="line">				root=DoubleRotateRL(root);</div><div class="line">			<span class="keyword">else</span></div><div class="line">				root=SingleRotateRight(root);</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="function"><span class="title">else</span> <span class="keyword">if</span>(x&gt;root-&gt;</span><span class="keyword">data</span>)<span class="comment">//删除节点在当前节点右侧</span></div><div class="line">	&#123;</div><div class="line">		<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">right</span>=delete_node(root-&gt;</span>right,x);</div><div class="line">		<span class="function"><span class="title">if</span>(Height(root-&gt;</span><span class="function"><span class="title">left</span>)-Height(root-&gt;</span>right)==<span class="number">2</span>)</div><div class="line">		&#123;</div><div class="line">			<span class="function"><span class="title">if</span>(Height(root-&gt;</span><span class="function"><span class="title">left</span>-&gt;</span><span class="function"><span class="title">right</span>)&gt;Height(root-&gt;</span><span class="function"><span class="title">left</span>-&gt;</span>left))</div><div class="line">				root=DoubleRotateLR(root);</div><div class="line">			<span class="keyword">else</span></div><div class="line">				root=SingleRotateLeft(root);</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">else</span><span class="comment">//找到删除节点</span></div><div class="line">	&#123;</div><div class="line">		<span class="function"><span class="title">if</span>(root-&gt;</span>right)</div><div class="line">		&#123;<span class="comment">//右子树不为空的情况</span></div><div class="line">			<span class="function"><span class="title">node</span> temp=root-&gt;</span>right;</div><div class="line">			<span class="function"><span class="title">while</span>(temp-&gt;</span><span class="function"><span class="title">left</span>!=NULL) temp=temp-&gt;</span>left;</div><div class="line">			<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">data</span>=temp-&gt;</span><span class="keyword">data</span>;</div><div class="line">			<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">height</span>=temp-&gt;</span>height;</div><div class="line">			<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">right</span>=delete_node(root-&gt;</span><span class="function"><span class="title">right</span>,temp-&gt;</span><span class="keyword">data</span>);<span class="comment">//删除后继节点</span></div><div class="line">		&#125;</div><div class="line">		<span class="keyword">else</span></div><div class="line">		&#123;<span class="comment">//右子树为空的情况，free节点，返回被删除节点的左节点</span></div><div class="line">		<span class="comment">//这也是真正删除节点的地方</span></div><div class="line">			node temp=root;</div><div class="line">			<span class="function"><span class="title">root</span>=root-&gt;</span>left;</div><div class="line">			free(temp);</div><div class="line">			return root;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="comment">//每次删除之后，都要更新节点的高度</span></div><div class="line">	<span class="function"><span class="title">root</span>-&gt;</span><span class="function"><span class="title">height</span>=Max(Height(root-&gt;</span><span class="function"><span class="title">left</span>),Height(root-&gt;</span>right))+<span class="number">1</span>;</div><div class="line">	return root;</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>这几天研究平衡二叉树的体会就是，插入和删除函数一定要返回当前节点，因为不返回当前节点的话，删除时就要加入父亲成员，而加入父亲成员，程序的复杂度又加大了，所以这个程序的实现应该是最简单了．</p>
+<p>平衡二叉树的其他操作和二叉搜索树一样，像查找，遍历，前驱和后继等等，因为这些操作都不改变二叉树，所以可以直接拿来用．</p>
+<p>下面是我写的检测程序:
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">int main(void)</div><div class="line">&#123;</div><div class="line">	int arr[<span class="number">10</span>]=&#123;<span class="number">9</span>,<span class="number">3</span>,<span class="number">5</span>,<span class="number">7</span>,<span class="number">1</span>,<span class="number">0</span>,<span class="number">2</span>,<span class="number">4</span>,<span class="number">8</span>,<span class="number">6</span>&#125;;</div><div class="line">	int i=<span class="number">0</span>;</div><div class="line">	node root=NULL;</div><div class="line">	for(;i&lt;<span class="number">10</span>;i++)</div><div class="line">		root=Insert(root,NULL,arr[i]);</div><div class="line">	print_avl(root);</div><div class="line">	printf(<span class="string">"input delete node key:  "</span>);</div><div class="line">	while((scanf(<span class="string">"%d"</span>,&amp;i))!=<span class="literal">EOF</span>)</div><div class="line">	&#123;</div><div class="line">		delete_node(root,i);</div><div class="line">		print_avl(root);</div><div class="line">		printf(<span class="string">"input delete node key:  "</span>);</div><div class="line">	&#125;</div><div class="line">	printf(<span class="string">"<span class="subst">\n</span>"</span>);</div><div class="line">	return <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>假设删除程序删除９，则可得到如下结果:
+<figure class="highlight nix"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">charles@charles-Lenovo:~/mydir/algorithm$ ./avl</div><div class="line"><span class="attr">data=0</span>  <span class="attr">height=0:</span> </div><div class="line"><span class="attr">data=1</span>  <span class="attr">height=2:</span> left <span class="attr">child=0,right</span> <span class="attr">child=3</span></div><div class="line"><span class="attr">data=2</span>  <span class="attr">height=0:</span> </div><div class="line"><span class="attr">data=3</span>  <span class="attr">height=1:</span> left <span class="attr">child=2,right</span> <span class="attr">child=4</span></div><div class="line"><span class="attr">data=4</span>  <span class="attr">height=0:</span> </div><div class="line"><span class="attr">data=5</span>  <span class="attr">height=3:</span> left <span class="attr">child=1,right</span> <span class="attr">child=8</span></div><div class="line"><span class="attr">data=6</span>  <span class="attr">height=0:</span> </div><div class="line"><span class="attr">data=7</span>  <span class="attr">height=1:</span> left <span class="attr">child=6,</span></div><div class="line"><span class="attr">data=8</span>  <span class="attr">height=2:</span> left <span class="attr">child=7,right</span> <span class="attr">child=9</span></div><div class="line"><span class="attr">data=9</span>  <span class="attr">height=0:</span> </div><div class="line">input delete node key:  <span class="number">9</span></div><div class="line"><span class="attr">data=0</span>  <span class="attr">height=0:</span> </div><div class="line"><span class="attr">data=1</span>  <span class="attr">height=2:</span> left <span class="attr">child=0,right</span> <span class="attr">child=3</span></div><div class="line"><span class="attr">data=2</span>  <span class="attr">height=0:</span> </div><div class="line"><span class="attr">data=3</span>  <span class="attr">height=1:</span> left <span class="attr">child=2,right</span> <span class="attr">child=4</span></div><div class="line"><span class="attr">data=4</span>  <span class="attr">height=0:</span> </div><div class="line"><span class="attr">data=5</span>  <span class="attr">height=3:</span> left <span class="attr">child=1,right</span> <span class="attr">child=7</span></div><div class="line"><span class="attr">data=6</span>  <span class="attr">height=0:</span> </div><div class="line"><span class="attr">data=7</span>  <span class="attr">height=1:</span> left <span class="attr">child=6,right</span> <span class="attr">child=8</span></div><div class="line"><span class="attr">data=8</span>  <span class="attr">height=0:</span></div></pre></td></tr></table></figure></p>
+<p>删除9之后，8节点左子树比右子树高2，所以要进行左左旋转．示意图如下:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-123.jpg" alt="删除节点之后"></p>
+<p>平衡二叉树先研究到这吧，下篇文章最后把红黑树研究下...</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/avl/" rel="tag">#avl</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/11/12/bst/" rel="next" title="二叉搜索树分析与实现">
+                <i class="fa fa-chevron-left"></i> 二叉搜索树分析与实现
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/11/19/STL-map/" rel="prev" title="STL分析之map和set">
+                STL分析之map和set <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/11/14/avl/"
+     data-title="平衡二叉树(avl)分析与实现"
+     data-content=""
+     data-url="http://luodw.cc/2015/11/14/avl/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/11/14/avl/"
+           data-title="平衡二叉树(avl)分析与实现" data-url="http://luodw.cc/2015/11/14/avl/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">AVL树定义</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">两个辅助函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">四种情况下的旋转函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">AVL树插入操作</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">AVL树的删除</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

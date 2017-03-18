@@ -1,0 +1,1157 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="tfs," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="最近在实习,接触了tfs文件系统,刚好之前有决定往数据存储方向发展,因此很认真的看了tfs安装部署,以及源码.不得不说,tfs源码真心不是很容易看懂的,因为用了C++很多继承多态,回调机制,地处底层封装等等,我也是花了大概好几天天的时间才把DataServer整体部分看懂了;因此必须写篇博客记录下...
+文件系统
+
+学过计算机的朋友 ，都有听说过文件系统，简要地说，文件系统就是操作系统组织磁盘文件">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TFS之DataServer启动执行过程">
+<meta property="og:url" content="http://luodw.cc/2016/05/20/tfs01/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="最近在实习,接触了tfs文件系统,刚好之前有决定往数据存储方向发展,因此很认真的看了tfs安装部署,以及源码.不得不说,tfs源码真心不是很容易看懂的,因为用了C++很多继承多态,回调机制,地处底层封装等等,我也是花了大概好几天天的时间才把DataServer整体部分看懂了;因此必须写篇博客记录下...
+文件系统
+
+学过计算机的朋友 ，都有听说过文件系统，简要地说，文件系统就是操作系统组织磁盘文件">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-tfs01.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="TFS之DataServer启动执行过程">
+<meta name="twitter:description" content="最近在实习,接触了tfs文件系统,刚好之前有决定往数据存储方向发展,因此很认真的看了tfs安装部署,以及源码.不得不说,tfs源码真心不是很容易看懂的,因为用了C++很多继承多态,回调机制,地处底层封装等等,我也是花了大概好几天天的时间才把DataServer整体部分看懂了;因此必须写篇博客记录下...
+文件系统
+
+学过计算机的朋友 ，都有听说过文件系统，简要地说，文件系统就是操作系统组织磁盘文件">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-tfs01.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/05/20/tfs01/"/>
+
+
+  <title> TFS之DataServer启动执行过程 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                TFS之DataServer启动执行过程
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-05-20T20:20:01+08:00" content="2016-05-20">
+              2016-05-20
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/tfs/" itemprop="url" rel="index">
+                    <span itemprop="name">tfs</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/05/20/tfs01/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/05/20/tfs01/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/05/20/tfs01/" class="leancloud_visitors" data-flag-title="TFS之DataServer启动执行过程">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>最近在实习,接触了tfs文件系统,刚好之前有决定往数据存储方向发展,因此很认真的看了tfs安装部署,以及源码.不得不说,tfs源码真心不是很容易看懂的,因为用了C++很多继承多态,回调机制,地处底层封装等等,我也是花了大概好几天天的时间才把DataServer整体部分看懂了;因此必须写篇博客记录下...</p>
+<h1>文件系统</h1>
+<hr>
+<p>学过计算机的朋友 ，都有听说过文件系统，简要地说，文件系统就是操作系统组织磁盘文件的一种方式，因为磁盘就是一个物理设备，只知道存储二进制的比特位，但是并不知道存储的是文件还是目录，因此操作系统要规划好如何将文件存入磁盘以及如何从磁盘取文件等等，这就是文件系统做的事；关于文件系统的介绍，《linux鸟哥的私房菜》前几章有很好的介绍。</p>
+<p>当然对于linux来说，一切都是文件，因为在linux下面，文件系统的概念更广，有传统的基于磁盘的ext4,ext3...，有基于网络的sockfs，有基于内存的pipefs和procfs等等。通过一层虚拟文件系统vfs，屏蔽各个文件系统的差异，为用户提供统一的访问接口open,write,read,close等等；</p>
+<p>分布式文件系统是属于用户态的文件系统，最终利用的还是操作系统内核的文件系统的存储功能；tfs将磁盘分成若干个块（其实就是大文件），一个块一般较大，可以存储较多的小文件；tfs就是将小文件存储在某个块中，也是从块中取小文件；我的理解就是操作系统文件系统单个文件为单位存储单个文件的数据，而分布式文件系统以块为单位存储各个小文件的数据。常见的分布式文件系统有GFS,HDFS,GridFS,TFS,FastFS等等；</p>
+<h1>TFS简要概述</h1>
+<hr>
+<p>最近两个星期都在看TFS文件系统dataserver部分源码，感受最深的就是快吐了，由于是C++写的，代码里面充斥太多的继承多态，回调，以及各种底层封装，反正就是一个字“乱”，也可能正如林老湿所说，“是时候换个姿势了”。经过我的坚持和林老湿的指导，最终还是把整个dataserver的执行过程看懂了，因此今天写篇博客总结下。</p>
+<p>TFS（Taobao !FileSystem）是一个高可扩展、高可用、高性能、面向互联网服务的分布式文件系统，主要针对海量的非结构化数据，它构筑在普通的Linux机器集群上，关于tfs的介绍可以看<a href="%22http://code.taobao.org/p/tfs/wiki/intro/%22">官方文档</a></p>
+<p>先给出TFS整体框架图<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-tfs01.png" alt="TFS整体框架">
+正如图所示，NameServer负责管理各个block和dataserver之间的对应关系，并不存储实际数据，而DataServer用于存储具体的数据，当应用程序要存储一个文件时，</p>
+<ol>
+<li>首先在客户端根据文件名解析出文件该文件所对应的block_id和file_id，接着访问NameServer，NameServer向客户端返回这个block_id对应块所在的dataserver地址链表（有一个是primary_ds,其他为了冗余存储），</li>
+<li>客户端接着访问primary_ds，请求在block_id块存储file_id文件，把文件写入block_id对应块中；</li>
+<li>primary_ds将数据写入块之后，再给其他slave数据服务器发送在block_id块存储file_id的消息，实现同步；slave服务器成功写入返回之后，primary_ds通过心跳机制给ns报告块的使用情况；</li>
+<li>primary_ds给客户端回复数据成功写入；</li>
+</ol>
+<p>当客户端需要读取文件时，</p>
+<ol>
+<li>首先在客户端根据文件名解析出文件所对应的block_id和file_id，然后访问NameServer获取这个block所对应的dataserver地址链表；</li>
+<li>接着客户端访问primary_ds读取数据；</li>
+</ol>
+<p>以上就客户端存储和读取数据的简要过程，之后会深入介绍文件存储和读取，本篇文章主要是介绍DataServer执行过程；</p>
+<h1>DataServer启动过程</h1>
+<hr>
+<p>首先来看下DataServer启动过程，稍后再分析DataServer处理业务过程。</p>
+<ol>
+<li>服务器要开启，首先要找到main函数，DataServer的main函数在/dataserver/service.cpp下面
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span>* argv[])</span></span></div><div class="line">&#123;</div><div class="line">  tfs::dataserver::DataService service;</div><div class="line">  <span class="keyword">return</span> service.main(argc, argv);</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>从代码可以看出先是实例化一个DataService类，然后调用DataService这个类的main函数，接着我们自然而然的会去DataService中查找main函数，接着会发现并没有！这里要先介绍类的继承关系：
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">DataService</span>继承自/<span class="meta">common</span>/<span class="keyword">BaseService</span></div><div class="line"><span class="keyword">BaseService继承自/common/BaseMain</span></div></pre></td></tr></table></figure></p>
+<p>因此我们向上查找，在BaseMain类中找到了main方法，在main方法中，主要处理的是运行程序时，跟在程序后面的参数，最后在main方法中调用start方法
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">iret</span> = start(argc , argv, daemonize);</div></pre></td></tr></table></figure></p>
+<p>start方法也是在/common/base_main.cpp文件中，主要做的任务就是处理服务器配置文件以及初始化工作目录，pid目录以及日志目录，最后调用run函数
+<figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">iret = <span class="keyword">run</span><span class="bash">(argc, argv);</span></div></pre></td></tr></table></figure></p>
+<ol start="2">
+<li>而这个run函数在/common/base_service.cpp的BaseService类中，run函数主要任务就是首先通过调用函数
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">int32_t iret = initialize_network(<span class="name">argv</span>[<span class="number">0</span>])<span class="comment">;</span></div></pre></td></tr></table></figure></li>
+</ol>
+<p>开启网络模块tbnet两个线程，一个是eventloop线程，负责事件监听，另一个是timeoutLoop线程，负责监控各个客户端连接的情况。在run函数中，接着开启4工作线程，工作线程个数可配置,以及一个时间监控线程（我暂时不知道有啥用），最后调用initialize函数，到达具体服务的初始化操作；</p>
+<ol start="3">
+<li>之前是tfs为各个服务抽象出来的公共部分，通过initialize函数达到初始化具体服务的目的；在/dataserver/dataservice.cpp/DataService类中找到了initialize函数,这个函数主要就是初始化dataserver具体信息，比如初始化dataserver的私有目录，设置NameServer的地址，核对网络设备以及自身地址，同时再监听本dataserver端口+1的端口，也就是说一个dataserver监听着两个端口，假如第一个是8200，那么还有端口是8201。在initialize函数中，最后步骤就是开启了2个心跳线程，1个校对线程，1个压缩线程，1个复制线程（可配置）。</li>
+</ol>
+<p>至此，dataserver就启动完毕，等待客户端的连接，请求数据。</p>
+<p>dataserver默认是有13个线程，我们可以通过pstack或者gdb info thread打印出来，而且除了main主线程，其他线程是根据开启时间，从上至下排列；
+<figure class="highlight clean"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div></pre></td><td class="code"><pre><div class="line">[root@meitu_6 luodw]# pstack <span class="number">3875</span></div><div class="line">Thread <span class="number">13</span> (Thread <span class="number">0x7f2ea1b96700</span> (LWP <span class="number">3876</span>)):<span class="comment">//tbnet的事件监听线程</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea1e96163</span> <span class="keyword">in</span> epoll_wait () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00000000004a61a9</span> <span class="keyword">in</span> tbnet::EPollSocketEvent::getEvents(int, tbnet::IOEvent*, int) ()</div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004a2c29</span> <span class="keyword">in</span> tbnet::Transport::eventLoop(tbnet::SocketEvent*) ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00000000004a3c49</span> <span class="keyword">in</span> tbsys::CThread::hook(void*) ()</div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">5</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">12</span> (Thread <span class="number">0x7f2ea1195700</span> (LWP <span class="number">3877</span>)):<span class="comment">// tbnet客户端监控超时监控事件</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea1e59cdd</span> <span class="keyword">in</span> nanosleep () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00007f2ea1e8ee54</span> <span class="keyword">in</span> usleep () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004a396a</span> <span class="keyword">in</span> tbnet::Transport::timeoutLoop() ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00000000004a3c49</span> <span class="keyword">in</span> tbsys::CThread::hook(void*) ()</div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">5</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">11</span> (Thread <span class="number">0x7f2e9bfff700</span> (LWP <span class="number">3881</span>)):<span class="comment">// 工作线程1</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea28da5bc</span> <span class="keyword">in</span> pthread_cond_wait@@GLIBC_2<span class="number">.3</span><span class="number">.2</span> () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00000000004a0267</span> <span class="keyword">in</span> tbnet::PacketQueueThread::run(tbsys::CThread*, void*) ()</div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004a3c49</span> <span class="keyword">in</span> tbsys::CThread::hook(void*) ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">10</span> (Thread <span class="number">0x7f2e9b5fe700</span> (LWP <span class="number">3883</span>)):<span class="comment">// 工作线程2</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea28da5bc</span> <span class="keyword">in</span> pthread_cond_wait@@GLIBC_2<span class="number">.3</span><span class="number">.2</span> () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00000000004a0267</span> <span class="keyword">in</span> tbnet::PacketQueueThread::run(tbsys::CThread*, void*) ()</div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004a3c49</span> <span class="keyword">in</span> tbsys::CThread::hook(void*) ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">9</span> (Thread <span class="number">0x7f2e9abfd700</span> (LWP <span class="number">3885</span>)):<span class="comment">// 工作线程3</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea28da5bc</span> <span class="keyword">in</span> pthread_cond_wait@@GLIBC_2<span class="number">.3</span><span class="number">.2</span> () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00000000004a0267</span> <span class="keyword">in</span> tbnet::PacketQueueThread::run(tbsys::CThread*, void*) ()</div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004a3c49</span> <span class="keyword">in</span> tbsys::CThread::hook(void*) ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">8</span> (Thread <span class="number">0x7f2e9a1fc700</span> (LWP <span class="number">3886</span>)):<span class="comment">// 工作线程4</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea28da5bc</span> <span class="keyword">in</span> pthread_cond_wait@@GLIBC_2<span class="number">.3</span><span class="number">.2</span> () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00000000004a0267</span> <span class="keyword">in</span> tbnet::PacketQueueThread::run(tbsys::CThread*, void*) ()</div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004a3c49</span> <span class="keyword">in</span> tbsys::CThread::hook(void*) ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">7</span> (Thread <span class="number">0x7f2e997fb700</span> (LWP <span class="number">3887</span>)):<span class="comment">//这就是我暂时不是很清楚的那个时间线程</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea28da98e</span> <span class="keyword">in</span> pthread_cond_timedwait@@GLIBC_2<span class="number">.3</span><span class="number">.2</span> () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00000000004baf04</span> <span class="keyword">in</span> bool tbutil::Cond::timedWaitImpl&lt;tbutil::Mutex&gt;(tbutil::Mutex const&amp;, tbutil::Time const&amp;) const ()</div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004ba145</span> <span class="keyword">in</span> tbutil::Monitor&lt;tbutil::Mutex&gt;::timedWait(tbutil::Time const&amp;) const ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00000000004b9459</span> <span class="keyword">in</span> tbutil::Timer::run() ()</div><div class="line">#<span class="number">4</span>  <span class="number">0x00000000004b5069</span> <span class="keyword">in</span> startHook ()</div><div class="line">#<span class="number">5</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">6</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">6</span> (Thread <span class="number">0x7f2e98dfa700</span> (LWP <span class="number">3892</span>)):<span class="comment">// 心跳线程1</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea1e59cdd</span> <span class="keyword">in</span> nanosleep () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00007f2ea1e8ee54</span> <span class="keyword">in</span> usleep () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">#<span class="number">2</span>  <span class="number">0x000000000043c53a</span> <span class="keyword">in</span> tfs::dataserver::DataService::run_heart(int) ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00000000004b5069</span> <span class="keyword">in</span> startHook ()</div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">5</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">5</span> (Thread <span class="number">0x7f2e983f9700</span> (LWP <span class="number">3894</span>)):<span class="comment">// 心跳线程2</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea1e59cdd</span> <span class="keyword">in</span> nanosleep () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00007f2ea1e8ee54</span> <span class="keyword">in</span> usleep () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">#<span class="number">2</span>  <span class="number">0x000000000043c476</span> <span class="keyword">in</span> tfs::dataserver::DataService::run_heart(int) ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00000000004b5069</span> <span class="keyword">in</span> startHook ()</div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">5</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">4</span> (Thread <span class="number">0x7f2e979f8700</span> (LWP <span class="number">3896</span>)):<span class="comment">// 校对线程</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea1e59cdd</span> <span class="keyword">in</span> nanosleep () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00007f2ea1e59b50</span> <span class="keyword">in</span> sleep () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">#<span class="number">2</span>  <span class="number">0x0000000000438633</span> <span class="keyword">in</span> tfs::dataserver::DataService::run_check() ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00000000004b5069</span> <span class="keyword">in</span> startHook ()</div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">5</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">3</span> (Thread <span class="number">0x7f2e96ff7700</span> (LWP <span class="number">3897</span>)):<span class="comment">// 压缩线程</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea28da5bc</span> <span class="keyword">in</span> pthread_cond_wait@@GLIBC_2<span class="number">.3</span><span class="number">.2</span> () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x000000000042f3a9</span> <span class="keyword">in</span> tfs::dataserver::CompactBlock::run_compact_block() ()</div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004b5069</span> <span class="keyword">in</span> startHook ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">2</span> (Thread <span class="number">0x7f2e8ffff700</span> (LWP <span class="number">3899</span>)):<span class="comment">// 复制线程</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea28da98e</span> <span class="keyword">in</span> pthread_cond_timedwait@@GLIBC_2<span class="number">.3</span><span class="number">.2</span> () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x000000000042b7ff</span> <span class="keyword">in</span> tfs::dataserver::ReplicateBlock::run_replicate_block() ()</div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004b5069</span> <span class="keyword">in</span> startHook ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x00007f2ea28d69d1</span> <span class="keyword">in</span> start_thread () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">4</span>  <span class="number">0x00007f2ea1e95b6d</span> <span class="keyword">in</span> clone () <span class="keyword">from</span> /lib64/libc.so<span class="number">.6</span></div><div class="line">Thread <span class="number">1</span> (Thread <span class="number">0x7f2ea2f02720</span> (LWP <span class="number">3875</span>)):<span class="comment">// 主线程</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007f2ea28da5bc</span> <span class="keyword">in</span> pthread_cond_wait@@GLIBC_2<span class="number">.3</span><span class="number">.2</span> () <span class="keyword">from</span> /lib64/libpthread.so<span class="number">.0</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x000000000048c4dc</span> <span class="keyword">in</span> tfs::common::BaseMain::wait_for_shutdown() ()</div><div class="line">#<span class="number">2</span>  <span class="number">0x000000000048d632</span> <span class="keyword">in</span> tfs::common::BaseMain::start(int, char**, bool) ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x000000000048db2d</span> <span class="keyword">in</span> tfs::common::BaseMain::main(int, char**) ()</div><div class="line">#<span class="number">4</span>  <span class="number">0x000000000040f0c0</span> <span class="keyword">in</span> main ()</div></pre></td></tr></table></figure></p>
+<p>因此，dataserver开启之后，总共有13个线程在跑着，最主要的线程是tbnet的事件监听线程和4个工作线程，因为这两个是处理客户端请求最主要的线程；</p>
+<h1>dataserver处理请求过程</h1>
+<hr>
+<p>dataserver处理客户端的请求过程可比dataserver启动过程复杂的多，先简要说下过程;</p>
+<blockquote>
+<p>tbnet线程监听到客户端有数据可读，读取数据并将数据封装成packet，放入队列中；之前的四个工作线程一开始都阻塞在条件变量上，当有个packet放入队列并唤醒一个工作线程处理这个packet，处理结束之后，把回复客户端的内容放入链接缓冲区中，并在这个连接上注册一个可写事件，在可读事件结束之后,直接执行可写事件,把消息回复给客户端.</p>
+</blockquote>
+<p>ok，我开始分析吧!</p>
+<p>这里就不分析网络模块的线程是怎么创建的，只分析处理过程，因为单独分析tbnet就可以写一篇文章。但是tfs如何创建线程估计就理解一小会，主要过程就是tbnet模块最主要类Transport通过调用start方法把自己传入CThread的start方法中，然后再回调Transport的run方法，实现创建线程的目的；</p>
+<p>我们来看下eventLoop线程主要事件回调代码：
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">bool rc = <span class="literal">true</span>;</div><div class="line"><span class="keyword">if</span> (events[i]._readOccurred) &#123;</div><div class="line">    <span class="function"><span class="title">rc</span> = ioc-&gt;</span>handleReadEvent();</div><div class="line">    <span class="comment">//ioc为iocomponent,即将与网络io相关的部分封装在一起，一个f客户端对应一个iocomponent</span></div><div class="line">&#125;</div><div class="line"><span class="keyword">if</span> (rc &amp;&amp; events[i]._writeOccurred) &#123;</div><div class="line">    <span class="function"><span class="title">rc</span> = ioc-&gt;</span>handleWriteEvent();</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>listenfd和clientfd对应的iocomponent是不一样的，对于listenfd对应的iocomponent为tcpacceptor.cpp/TCPAcceptor这个类，这个类只有handleReadEvent方法，即将接收的客户端加入事件监听中，并注册可写事件。而clientfd对应的iocomponent为tcpconnnection.cpp/TCPConnection类，这个类的handleReadEvent处理客户端的请求，而handleWriteEvent处理回复客户端事件。</p>
+<ol>
+<li>我们从clientfd的iocomponent--&gt;handleReadEvent开始说起：
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">bool</span> TCPComponent::handleReadEvent() &#123;</div><div class="line">    _lastUseTime = tbsys::CTimeUtil::getTime();</div><div class="line">    <span class="built_in">bool</span> rc = <span class="literal">false</span>;</div><div class="line">    <span class="keyword">if</span> (_state == TBNET_CONNECTED) &#123;</div><div class="line">        rc = _connection-&gt;readData();</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> rc;</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>可以看到在TCPComponent::handleReadEvent方法中，只是简单的调用对应的_connection&gt;readData()方法。接下来，我们深入_connection-&gt;readData()方法。在readData方法中，</p>
+<ul>
+<li>首先调用socket的read方法将客户端的数据读取进_input缓冲区中；</li>
+<li>接着调用方法_streamer-&gt;getPacketInfo，解析出包头;</li>
+<li>最后调用handlePacket方法处理包；</li>
+</ul>
+<p>这个handlePacket方法在TCPConnection类中是找不到的，而是存在该类的父类Connection中，在handlePacket方法中，最重要的就是解析出包，然后调用
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">rc</span> = _serverAdapter-&gt;handlePacket(this, packet);</div></pre></td></tr></table></figure></p>
+<p>来处理包；到这里，可能又要开始迷糊了，这个_serverAdapter是什么鬼？</p>
+<blockquote>
+<p>到这里需要先来介绍下tbnet模块的Transport类，为了tbnet模块接口的简单，tbnet就提供了Transport这类给其他模块调用，而这个类主要最主要就是listen方法和start方法；listen方法用于设置监听的套接字，start用于开启tbnet模块的两个线程；</p>
+</blockquote>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">IOComponent *Transport::listen(<span class="keyword">const</span> <span class="keyword">char</span> *spec, IPacketStreamer *streamer, IServerAdapter *serverAdapter)</div></pre></td></tr></table></figure></p>
+<p>这个listen方法第一个参数为监听套接字，第二个参数为转码用的streamer，第三个参数为每个服务器处理包的适配器，因此tbnet模块所有的serverAdapter都是从这个listen接口传进去的。我们来看下dataserver调用listen接口：
+<figure class="highlight elixir"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">tbnet:</span><span class="symbol">:IOComponent*</span> com = transport<span class="number">_</span>-&gt;listen(spec, streamer<span class="number">_</span>, this);</div></pre></td></tr></table></figure></p>
+<p>在DataService类调用listen方法时，把自己作为serverAdapter传入tbnet模块，因为DataService继承自base_service,而base_service继承自IServerAdapter，因此DataService可以作为IServerAdapter的子类传入tbnet模块中；现在我们可以看下DataService-&gt;handlePacket方法做了什么？</p>
+<ol start="2">
+<li>在DataService-&gt;handlePacket方法中，最要就是调用push方法，而push方法主要就是将packet存入工作线程队列中
+<figure class="highlight armasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">bool </span><span class="keyword">BaseService::push(BasePacket* </span>packet, <span class="keyword">bool </span><span class="keyword">block)</span></div><div class="line">    &#123;</div><div class="line">      return main_workers_.<span class="keyword">push(packet, </span>work_queue_size_, <span class="keyword">block);</span></div><div class="line">    &#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>在main_workers_为tbnet的PacketQueueThread类，我们定位到该类的push方法，在push方法中，最重要的就是</p>
+<p><figure class="highlight sqf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="variable">_cond</span>.<span class="built_in">lock</span>();</div><div class="line">  <span class="variable">_queue</span>.push(packet);</div><div class="line">  <span class="variable">_cond</span>.unlock();</div><div class="line">  <span class="variable">_cond</span>.signal();</div></pre></td></tr></table></figure></p>
+<p>将packet存入队列中，并且调用_cond.signal方法唤醒一个工作线程；到这时，tbnet的eventLoop线程即处理结束一个客户端的请求，接下来的处理就交给工作线程处理。</p>
+<ol start="3">
+<li>之前有提到，工作线程当初调用/PacketQueueThread/run方法，阻塞在条件变量中，因此可以和eventLoop线程共享packet队列。我们看下某个线程被唤醒后，做了什么？</li>
+</ol>
+<p>可以在run方法中，可以看到最重要的一行代码为:
+<figure class="highlight sqf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">if</span> (<span class="variable">_handler</span>) &#123;</div><div class="line">           ret = <span class="variable">_handler</span>-&gt;handlePacketQueue(packet, <span class="variable">_args</span>);</div><div class="line">       &#125;</div></pre></td></tr></table></figure></p>
+<p>即调用handler-&gt;handlePacketQueue方法，之前有提到过，这个_handler即为DataService类，可以定位到DataService-&gt;handlePacketQueue方法，在该方法中，根据packet的类型，执行不同的操作：</p>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">bool</span> DataService::handlePacketQueue(tbnet::Packet* packet, <span class="keyword">void</span>* args)</div><div class="line">   &#123;</div><div class="line">     <span class="keyword">bool</span> bret = BaseService::handlePacketQueue(packet, args);</div><div class="line">     <span class="keyword">if</span> (bret)</div><div class="line">     &#123;</div><div class="line">       <span class="keyword">int32_t</span> pcode = packet-&gt;getPCode();</div><div class="line">       <span class="keyword">int32_t</span> ret = LOCAL_PACKET == pcode ? TFS_ERROR : TFS_SUCCESS;</div><div class="line">       <span class="keyword">if</span> (TFS_SUCCESS == ret)</div><div class="line">       &#123;</div><div class="line">         <span class="keyword">switch</span> (pcode)</div><div class="line">         &#123;</div><div class="line">           <span class="keyword">case</span> CREATE_FILENAME_MESSAGE:</div><div class="line">             ret = create_file_number(<span class="keyword">dynamic_cast</span>&lt;CreateFilenameMessage*&gt;(packet));</div><div class="line">             <span class="keyword">break</span>;</div><div class="line">           <span class="keyword">case</span> WRITE_DATA_MESSAGE:</div><div class="line">             ret = write_data(<span class="keyword">dynamic_cast</span>&lt;WriteDataMessage*&gt;(packet));</div><div class="line">             <span class="keyword">break</span>;</div><div class="line">           <span class="keyword">case</span> CLOSE_FILE_MESSAGE:</div><div class="line">             ret = close_write_file(<span class="keyword">dynamic_cast</span>&lt;CloseFileMessage*&gt;(packet));</div><div class="line">             <span class="keyword">break</span>;</div><div class="line">    .........................</div></pre></td></tr></table></figure></p>
+<p>我们以创建一个文件为例，此时执行的是create_file_number方法，在该方法中首先调用DataManagement-&gt;create_file方法，执行创建文件的操作；DataManagement专门负责DataServer文件存储各种方法调用，后面再写一篇文章，专门介绍DataServer如何存储文件。</p>
+<p>在create_file_number方法中，接下来先定义一个回复给客户端的消息类，并且执行请求消息的reply方法将消息准备回复给客户端。
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">RespCreateFilenameMessage* resp_cfn_msg = new RespCreateFilenameMessage()<span class="comment">;</span></div><div class="line">      resp_cfn_msg-&gt;set_block_id(<span class="name">block_id</span>)<span class="comment">;</span></div><div class="line">      resp_cfn_msg-&gt;set_file_id(<span class="name">file_id</span>)<span class="comment">;</span></div><div class="line">      resp_cfn_msg-&gt;set_file_number(<span class="name">file_number</span>)<span class="comment">;</span></div><div class="line">      message-&gt;reply(<span class="name">resp_cfn_msg</span>)<span class="comment">;</span></div></pre></td></tr></table></figure></p>
+<p>此时的message是一个BasePacket的子类，我们定位到BasePacket-&gt;reply方法。</p>
+<p>在reply方法中，一开始是先设置回复消息类的一些属性，然后最重要的是调用_connection-&gt;postPacket方法:
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">bool </span><span class="keyword">bret= </span>connection_-&gt;postPacket(packet)<span class="comment">;</span></div></pre></td></tr></table></figure></p>
+<p>在postPacket方法中，我们提取出最重要的两行代码
+<figure class="highlight sqf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// 将回复客户端的消息packet存入输出队列中</span></div><div class="line"> <span class="variable">_outputQueue</span>.push(packet);</div><div class="line"><span class="comment">// 注册当前连接的可写事件</span></div><div class="line"> <span class="variable">_iocomponent</span>-&gt;enableWrite(<span class="literal">true</span>);</div></pre></td></tr></table></figure></p>
+<ol start="4">
+<li>因为eventLoop的事件监听中，先执行可读事件，紧接着执行可写事件，因此上述注册可写事件之后，即可直接执行可写事件，把消息回复给客户端。</li>
+</ol>
+<p>可写事件的回调函数是</p>
+<p><figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">rc</span> = ioc-&gt;handleWriteEvent()<span class="comment">;</span></div></pre></td></tr></table></figure></p>
+<p>ok，我们定位到TCPComponent-&gt;handleWriteEvent方法，可以看到最主要还是执行TCPConnection-&gt;writedata方法</p>
+<p><figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">rc</span> = _connection-&gt;writeData()<span class="comment">;</span></div></pre></td></tr></table></figure></p>
+<p>在TCPConnection-&gt;writeData方法中，去除输出队列的第一个消息包，然后调用</p>
+<p><figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ret = _socket-&gt;write(<span class="name">_output</span>.getData(), _output.getDataLen())<span class="comment">;</span></div></pre></td></tr></table></figure></p>
+<p>把消息回复给客户端。</p>
+<p>上述就是客户端和DataServer一次完整的交互过程。</p>
+<p>如果要按编程模型分类，DataServer属于多线程模型，这种多线程模型又区别于memcache，它是某个线程监听所有套接字，然后将客户端的请求封装成消息包，放入公共队列中；接着由4个工作线程同步地去除消息队列的第一个消息包，并执行；这种模式可缺点就是公共队列要加锁同步，有一定开销；优点就是eventLoop线程可以很快的返回，加快处理客户端的请求，然后把可能消耗大量时间的业务处理放在了工作线程，极大加快系统的响应速度，这点和linux内核中断上下文原理类似。</p>
+<p>DataServer整体的执行过程就先分析到这，后续可能会分析tbnet模块和DataServer存储数据过程。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/tfs/" rel="tag">#tfs</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/04/29/HighLinux/" rel="next" title="学习Linux高性能服务器编程的一些收获">
+                <i class="fa fa-chevron-left"></i> 学习Linux高性能服务器编程的一些收获
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/06/21/libtask/" rel="prev" title="聊聊golang的前身libtask">
+                聊聊golang的前身libtask <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/05/20/tfs01/"
+     data-title="TFS之DataServer启动执行过程"
+     data-content=""
+     data-url="http://luodw.cc/2016/05/20/tfs01/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/05/20/tfs01/"
+           data-title="TFS之DataServer启动执行过程" data-url="http://luodw.cc/2016/05/20/tfs01/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">文件系统</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">TFS简要概述</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">DataServer启动过程</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">dataserver处理请求过程</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

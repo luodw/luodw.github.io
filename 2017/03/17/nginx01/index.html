@@ -1,0 +1,1127 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="nginx," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="很早之前就有看nginx的冲动，但是一直被一些事耽搁着，最近在繁忙之中，抽出点时间，看了下nginx代码，发现整体上并不是很难看懂，而且刚好想学习nginx+lua开发，因此，决定在今后一段时间内，对技术的时间投入都放在nginx+lua了。nginx在互联网公司使用很广，最重要的功能当属反向代理和负载均衡了吧，当然还有缓存；所以对nginx的熟悉使用和深入了解，对于一名后台开发人员，至关重要。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="nginx是这么运行的">
+<meta property="og:url" content="http://luodw.cc/2017/03/17/nginx01/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="很早之前就有看nginx的冲动，但是一直被一些事耽搁着，最近在繁忙之中，抽出点时间，看了下nginx代码，发现整体上并不是很难看懂，而且刚好想学习nginx+lua开发，因此，决定在今后一段时间内，对技术的时间投入都放在nginx+lua了。nginx在互联网公司使用很广，最重要的功能当属反向代理和负载均衡了吧，当然还有缓存；所以对nginx的熟悉使用和深入了解，对于一名后台开发人员，至关重要。">
+<meta property="og:updated_time" content="2017-03-18T13:51:11.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="nginx是这么运行的">
+<meta name="twitter:description" content="很早之前就有看nginx的冲动，但是一直被一些事耽搁着，最近在繁忙之中，抽出点时间，看了下nginx代码，发现整体上并不是很难看懂，而且刚好想学习nginx+lua开发，因此，决定在今后一段时间内，对技术的时间投入都放在nginx+lua了。nginx在互联网公司使用很广，最重要的功能当属反向代理和负载均衡了吧，当然还有缓存；所以对nginx的熟悉使用和深入了解，对于一名后台开发人员，至关重要。">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2017/03/17/nginx01/"/>
+
+
+  <title> nginx是这么运行的 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                nginx是这么运行的
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-03-17T11:19:36+08:00" content="2017-03-17">
+              2017-03-17
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/nginx/" itemprop="url" rel="index">
+                    <span itemprop="name">nginx</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/03/17/nginx01/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/17/nginx01/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/03/17/nginx01/" class="leancloud_visitors" data-flag-title="nginx是这么运行的">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>很早之前就有看nginx的冲动，但是一直被一些事耽搁着，最近在繁忙之中，抽出点时间，看了下nginx代码，发现整体上并不是很难看懂，而且刚好想学习nginx+lua开发，因此，决定在今后一段时间内，对技术的时间投入都放在nginx+lua了。nginx在互联网公司使用很广，最重要的功能当属反向代理和负载均衡了吧，当然还有缓存；所以对nginx的熟悉使用和深入了解，对于一名后台开发人员，至关重要。</p>
+<p>记得我之前在很多文章有提到，后台组件框架主要有三种：redis单进程单线程，memcache单进程多线程，nginx多进程；等看了nginx之后，我也算集齐了；nginx以模块化方式开发，比如核心模块，event模块，http模块，然后为了支持多平台，event模块下又有对各大平台的封装支持，例如linux平台epoll，mac平台kqueue等等；然后http模块也被拆分成了很多子模块。</p>
+<p>这篇文章算是我自己做的笔记吧，把之前研究的东西记录下。也许是之前看过redis和golang以及python的http框架，nginx整体框架比较容易就看懂了，当然很多细节还需后面慢慢看；这篇文章主要介绍nginx是如何开启，以及请求是怎么执行的，所以这篇文章主要就是以下两点：</p>
+<ol>
+<li>nginx开启流程;</li>
+<li>重要回调函数设置；</li>
+<li>nginx处理http请求；</li>
+</ol>
+<h2>nginx开启流程</h2>
+<hr>
+<p>nginx体量很大，想要在较短时间内看完所有代码很难，而且我看得时间也不是很多，所以，这里主要站在宏观角度，对nginx做个整体剖析；其实如果直接从main函数直接开始看，其实也是可以看懂大部分，但是nginx回调函数太多了，看着看着，突然跑出一个回调函数，经常就懵逼了；因此，就需要用gdb来定点调试；</p>
+<p>要使用gdb，首先需要在gcc编译时，加入-g选项，可以如下操作：</p>
+<ol>
+<li>打开nginx目录/auto/cc/conf文件，然后更改ngx_compile_opt=&quot;-c&quot;选项，添加-g，即为ngx_compile_opt=&quot;-c -g&quot;;</li>
+<li>然后运行./configure和make即可编译生成可执行文件，在文件objs目录下;</li>
+</ol>
+<p>生成可执行文件nginx之后，直接在终端运行即可，nginx会加载默认配置文件，以daemon形式运行;</p>
+<p>nginx运行之后，即可通过gdb来调试;按如下命令开启gdb
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">gdb -<span class="selector-tag">q</span> -tui</div><div class="line"><span class="comment">// -q 安静模式，即不输出多余信息，-tui提供一个窗口显示代码</span></div></pre></td></tr></table></figure></p>
+<p>然后，通过pidof命令获取nginx进程号，即可attach，如下：
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">shell pidof nginx</span></div></pre></td></tr></table></figure></p>
+<p>nginx默认开启一个master进程和一个worker进程，因此上述命令会返回两个进程号，在我主机上8125和8126，较小是master进程，较大的是worker进程；接下来，先看下master进程，
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="section">attach</span> <span class="number">8125</span></div></pre></td></tr></table></figure></p>
+<p>这样就可以直接调试nginx的worker进程，用命令bt可以查看master进程的函数栈
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">(gdb) <span class="keyword">bt</span></div><div class="line">#<span class="number">0</span>  <span class="number">0x00007efd445d9f76</span> <span class="keyword">in</span> do_sigsuspend (set=<span class="number">0x7ffe517ce5d0</span>) <span class="meta">at</span> ../sysdeps/unix/sysv/linux/sigsuspend.c:<span class="number">31</span></div><div class="line">#<span class="number">1</span>  __GI___sigsuspend (set=set@entry=<span class="number">0x7ffe517ce5d0</span>) <span class="meta">at</span> ../sysdeps/unix/sysv/linux/sigsuspend.c:<span class="number">41</span></div><div class="line">#<span class="number">2</span>  <span class="number">0x000000000042cc12</span> <span class="keyword">in</span> ngx_master_process_cycle (cycle=cycle@entry=<span class="number">0x181f110</span>) <span class="meta">at</span> src/os/unix/ngx_process_cycle.c:<span class="number">163</span></div><div class="line">#<span class="number">3</span>  <span class="number">0x000000000040c83d</span> <span class="keyword">in</span> main (argc=&lt;optimized <span class="keyword">out</span>&gt;, argv=&lt;optimized <span class="keyword">out</span>&gt;) <span class="meta">at</span> src/core/nginx.c:<span class="number">367</span></div></pre></td></tr></table></figure></p>
+<p>nginx开启之后，首先启动的就是master进程，从main函数开始，</p>
+<ol>
+<li>main函数主要是做一些初始化操作，初始化启动参数，开启daemon，新建pid文件等等，然后调用ngx_master_process_cycle函数；</li>
+<li>在ngx_master_process_cycle函数中最重要就是开启子进程，然后调用sigsuspend函数，master进程则阻塞在在信号中；</li>
+</ol>
+<p>因此，master进程任务就是开启子进程，然后管理子进程；怎么管理了？</p>
+<p>信号，对，就是信号；当master进程收到一个信号之后，就把这个信号传递给worker进程，worker进程进而根据不同信号分别处理；那么问题又来了，master进程是如何把信号传递给worker进程的？</p>
+<p>管道，对，就是管道；原理和memcache的master线程和worker线程通信机制一样；即每个worker进程有两个文件描述符fd[0]和fd[1]，一个读端，一个写端；worker进程将读端加入epoll事件监听，当master进程收到一个信号后，在每个worker进程写端写入一个flag，然后worker进程触发读事件，读取flag，并根据flag做相应操作。</p>
+<p>因此nginx接收客户端请求以及处理客户端请求，主要是在worker进程，我们来看下，worker进程函数栈
+<figure class="highlight fortran"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">(gdb) attach <span class="number">8126</span></div><div class="line">(gdb) bt</div><div class="line">#<span class="number">0</span>  x00007efd4469d9f3 <span class="keyword">in</span> __epoll_wait_nocancel () at ../sysdeps/unix/syscall-template.S:<span class="number">81</span></div><div class="line">#<span class="number">1</span>  x000000000042dcae <span class="keyword">in</span> ngx_epoll_process_events (<span class="keyword">cycle</span>=x181f110, timer=<span class="number">18446744073709551615</span>, flags=<span class="number">1</span>) at src/event/modules/ngx_epoll_module.c:<span class="number">717</span></div><div class="line">#<span class="number">2</span>  x0000000000426225 <span class="keyword">in</span> ngx_process_events_and_timers (<span class="keyword">cycle</span>=<span class="keyword">cycle</span>@<span class="built_in">entry</span>=x181f110) at src/event/ngx_event.c:<span class="number">242</span></div><div class="line">#<span class="number">3</span>  x000000000042c15a <span class="keyword">in</span> ngx_worker_process_cycle (<span class="keyword">cycle</span>=x181f110, <span class="keyword">data</span>=&lt;optimized <span class="keyword">out</span>&gt;) at src/os/unix/ngx_process_cycle.c:<span class="number">753</span></div><div class="line">#<span class="number">4</span>  x000000000042ac46 <span class="keyword">in</span> ngx_spawn_process (<span class="keyword">cycle</span>=<span class="keyword">cycle</span>@<span class="built_in">entry</span>=x181f110, proc=proc@<span class="built_in">entry</span>=x42c0d9 &lt;ngx_worker_process_cycle&gt;, <span class="keyword">data</span>=<span class="keyword">data</span>@<span class="built_in">entry</span>=x0, </div><div class="line">    <span class="keyword">name</span>=<span class="keyword">name</span>@<span class="built_in">entry</span>=x47a4cf <span class="string">"worker process"</span>, respawn=respawn@<span class="built_in">entry</span>=-<span class="number">3</span>) at src/os/unix/ngx_process.c:<span class="number">198</span></div><div class="line">#<span class="number">5</span>  x000000000042c2b7 <span class="keyword">in</span> ngx_start_worker_processes (<span class="keyword">cycle</span>=<span class="keyword">cycle</span>@<span class="built_in">entry</span>=x181f110, n=<span class="number">1</span>, <span class="keyword">type</span>=<span class="keyword">type</span>@<span class="built_in">entry</span>=-<span class="number">3</span>) at src/os/unix/ngx_process_cycle.c:<span class="number">358</span></div><div class="line">#<span class="number">6</span>  x000000000042cb13 <span class="keyword">in</span> ngx_master_process_cycle (<span class="keyword">cycle</span>=<span class="keyword">cycle</span>@<span class="built_in">entry</span>=x181f110) at src/os/unix/ngx_process_cycle.c:<span class="number">130</span></div><div class="line">#<span class="number">7</span>  x000000000040c83d <span class="keyword">in</span> main (argc=&lt;optimized <span class="keyword">out</span>&gt;, argv=&lt;optimized <span class="keyword">out</span>&gt;) at src/core/nginx.c:<span class="number">367</span></div></pre></td></tr></table></figure></p>
+<p>因为worker进程是由master进程fork出来，因此worker进程包含master进程的函数栈；我们直接从#5函数开始看，</p>
+<ol>
+<li>ngx_start_worker_processes 函数调用ngx_spawn_process开启子进程，并且设置master进程和worker进程通信的管道；</li>
+<li>ngx_spawn_process函数主要是设置master进程和worker进程间通信管道，例如非阻塞等等，然后通过fork函数正式开启子进程；子进程调用通过参数传递进来的回调函数ngx_worker_process_cycle正式切入子进程部分，父进程则接着设置worker进程相关属性；</li>
+<li>ngx_worker_process_cycle一开始调用ngx_worker_process_init函数对worker进程做些初始化设置，包括设置进程优先级，worker进程允许打开的最大文件描述符，对阻塞信号的设置，初始化所有模块，将master进程和worker进程间通信管道添加到监听可读事件等等；然后在一个无限循环中，函数ngx_worker_process_cycle接着调用ngx_process_events_and_timers，开启事件监听循环；</li>
+<li>在ngx_process_events_and_timers函数中，先是获取锁，如果获取到锁，listenfd即可接收客户端，否则listenfd不可接收客户端事件；然后调用ngx_process_events函数，这个函数也就是ngx_epoll_process_events函数，开启开启事件监听；</li>
+</ol>
+<p>ok，worker进程此时已就绪，等待客户端连接以及请求数据；为了避免惊群现象以及实现worker进程负载均衡，每次有客户端连接时，所有worker进程会先争抢锁，如果某个worker进程获取到锁，即可执行接收客户端和客户端请求事件；如果worker进程没有争抢到锁，只执行客户端请求事件。</p>
+<h2>重要回调函数设置</h2>
+<hr>
+<p>当nginx的master进程和worker进程开启之后，客户端即可发送请求；接下来，就看看nginx是如何处理请求的；</p>
+<p>当客户端发送请求之后，首先是通过tcp三次握手建立连接；当连接建立成功之后，即执行listenfd的回调函数，但是listenfd的回调函数是哪个了？这对于新手来说，其实是很难发现listenfd回调函数；下面分析下；</p>
+<blockquote>
+<p>像listenfd的回调函数以及模块间是如何拼凑在一起，这些几乎都是在模块初始化时完成的。对于listenfd的回调函数即是在event模块初始化时或者调用event模块一些设置函数时设置；客户端连接上服务器之后，服务器收到请求之后的回调函数也是在http模块初始化时或者调用模http模块一些设置函数时设置的。</p>
+</blockquote>
+<p>在event模块初始化时，调用的是ngx_event_process_init函数，下面列出这个函数最重要的代码:
+<figure class="highlight php"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> ngx_int_t</div><div class="line">ngx_event_process_init(ngx_cycle_t *cycle)</div><div class="line">&#123;</div><div class="line">    <span class="comment">//.......</span></div><div class="line">    <span class="keyword">for</span> (m = <span class="number">0</span>; ngx_modules[m]; m++) &#123;</div><div class="line">        <span class="keyword">if</span> (ngx_modules[m]-&gt;type != NGX_EVENT_MODULE) &#123;</div><div class="line">            <span class="keyword">continue</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (ngx_modules[m]-&gt;ctx_index != ecf-&gt;use) &#123;</div><div class="line">            <span class="keyword">continue</span>;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        module = ngx_modules[m]-&gt;ctx;</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (module-&gt;actions.init(cycle, ngx_timer_resolution) != NGX_OK) &#123;</div><div class="line">            <span class="comment">/* fatal */</span></div><div class="line">            <span class="keyword">exit</span>(<span class="number">2</span>);</div><div class="line">        &#125;</div><div class="line"></div><div class="line">        <span class="keyword">break</span>;</div><div class="line">   　 &#125;</div><div class="line">    <span class="comment">//..........</span></div><div class="line">    <span class="keyword">for</span> (i = <span class="number">0</span>; i &lt; cycle-&gt;listening.nelts; i++) &#123;</div><div class="line">        rev-&gt;handler = ngx_event_accept;</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (ngx_use_accept_mutex) &#123;</div><div class="line">                <span class="keyword">continue</span>;</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="keyword">if</span> (ngx_event_flags &amp; NGX_USE_RTSIG_EVENT) &#123;</div><div class="line">                <span class="keyword">if</span> (ngx_add_conn(c) == NGX_ERROR) &#123;</div><div class="line">                    <span class="keyword">return</span> NGX_ERROR;</div><div class="line">                &#125;</div><div class="line"></div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                <span class="keyword">if</span> (ngx_add_event(rev, NGX_READ_EVENT, <span class="number">0</span>) == NGX_ERROR) &#123;</div><div class="line">                    <span class="keyword">return</span> NGX_ERROR;</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">    &#125;</div></pre></td></tr></table></figure></p>
+<p>在for循环中，迭代每个监听套接字，recv为listenfd连接对象的读事件，这里设置listenfd读事件的回调函数为ngx_event_accept函数，然后将每个listenfd添加到事件监听中，并设置为可读事件。</p>
+<p>ok，当我们去看ngx_add_conn和ngx_add_event的定义时，如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">define</span> ngx_add_event        ngx_event_actions.add</span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> ngx_add_conn         ngx_event_actions.add_conn</span></div></pre></td></tr></table></figure></p>
+<p>说明ngx_add_conn和ngx_add_event都是结构体ngx_event_actions结构体中设置的函数指针；其实这个ngx_event_actions就是nginx跨平台的关键，因为不同平台使用的事件监听器是不一样的，导致ngx_event_actions也就不一样。例如linux使用的是epoll，因此ngx_event_actions结构体就是在epoll模块加载时设置，在上述代码前半部分。我们来看下epoll模块actions.init函数：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="comment">// ngx_epoll_module.c</span></div><div class="line"><span class="function"><span class="keyword">static</span> ngx_int_t</span></div><div class="line"><span class="title">ngx_epoll_init</span><span class="params">(<span class="keyword">ngx_cycle_t</span> *cycle, <span class="keyword">ngx_msec_t</span> timer)</span></div><div class="line">&#123;</div><div class="line">    <span class="comment">//......</span></div><div class="line">    nevents = epcf-&gt;events;</div><div class="line">    ngx_io = ngx_os_io;</div><div class="line">    ngx_event_actions = ngx_epoll_module_ctx.actions;</div><div class="line">    <span class="comment">//......</span></div><div class="line">    <span class="keyword">return</span> NGX_OK;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从代码可以看出，ngx_event_actions被设置为ngx_epoll_module_ctx.actions，接着看下这个结构体:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">ngx_event_module_t</span>  ngx_epoll_module_ctx = &#123;</div><div class="line">    &amp;epoll_name,</div><div class="line">    ngx_epoll_create_conf,               <span class="comment">/* create configuration */</span></div><div class="line">    ngx_epoll_init_conf,                 <span class="comment">/* init configuration */</span></div><div class="line"></div><div class="line">    &#123;<span class="comment">// actions</span></div><div class="line">        ngx_epoll_add_event,             <span class="comment">/* add an event */</span></div><div class="line">        ngx_epoll_del_event,             <span class="comment">/* delete an event */</span></div><div class="line">        ngx_epoll_add_event,             <span class="comment">/* enable an event */</span></div><div class="line">        ngx_epoll_del_event,             <span class="comment">/* disable an event */</span></div><div class="line">        ngx_epoll_add_connection,        <span class="comment">/* add an connection */</span></div><div class="line">        ngx_epoll_del_connection,        <span class="comment">/* delete an connection */</span></div><div class="line">        <span class="literal">NULL</span>,                            <span class="comment">/* process the changes */</span></div><div class="line">        ngx_epoll_process_events,        <span class="comment">/* process the events */</span></div><div class="line">        ngx_epoll_init,                  <span class="comment">/* init the events */</span></div><div class="line">        ngx_epoll_done,                  <span class="comment">/* done the events */</span></div><div class="line">    &#125;</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>因此，当调用ngx_add_conn和ngx_add_event时，分别调用的是ngx_epoll_add_connection和ngx_epoll_add_event;如此一来，如果此时是mac平台，那么使用的事件监听器是kqueue，那么当调用ngx_add_event时，调用的就是ngx_kqueue_add_event。如果使用的poll监听器，那么调用将是ngx_poll_add_event等等。</p>
+<p>接下来，再分析一个很重要的回调函数，即客户端连上客户端之后，发送请求时的回调函数，先来看下，listenfd回调函数
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line">void</div><div class="line">ngx_event_accept(ngx_event_t *ev)</div><div class="line">&#123;</div><div class="line">    <span class="comment">//......</span></div><div class="line">    <span class="keyword">do</span> &#123;</div><div class="line">        socklen = NGX_SOCKADDRLEN;</div><div class="line">        <span class="comment">//......</span></div><div class="line">        <span class="function"><span class="title">s</span> = accept(lc-&gt;</span>fd, (struct sockaddr *) sa, &amp;socklen);</div><div class="line">        <span class="comment">//.......</span></div><div class="line">         <span class="function"><span class="title">ngx_accept_disabled</span> = ngx_cycle-&gt;</span>connection_n / <span class="number">8</span></div><div class="line">                              - <span class="function"><span class="title">ngx_cycle</span>-&gt;</span>free_connection_n;</div><div class="line"></div><div class="line">        <span class="function"><span class="title">c</span> = ngx_get_connection(s, ev-&gt;</span><span class="built_in">log</span>);</div><div class="line">        <span class="comment">//.......</span></div><div class="line">         <span class="keyword">if</span> (ngx_add_conn &amp;&amp; (ngx_event_flags &amp; NGX_USE_EPOLL_EVENT) == <span class="number">0</span>) &#123;</div><div class="line">            <span class="keyword">if</span> (ngx_add_conn(c) == NGX_ERROR) &#123;</div><div class="line">                ngx_close_accepted_connection(c);</div><div class="line">                return;</div><div class="line">            &#125;</div><div class="line">        &#125;</div><div class="line">        <span class="function"><span class="title">log</span>-&gt;</span><span class="keyword">data</span> = NULL;</div><div class="line">        <span class="function"><span class="title">log</span>-&gt;</span>handler = NULL;</div><div class="line"></div><div class="line">        <span class="function"><span class="title">ls</span>-&gt;</span>handler(c);</div><div class="line">        <span class="comment">//.....</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>当客户端连接服务器时，首先listenfd回调函数先是调用accept函数接收客户端请求，然后从对象池中获取一个封装客户端socket连接对象，如果目前使用的是epoll事件监听器，则调用ngx_add_conn(c)放入事件监听，最后调用ngx_listening_t的回调函数，对客户端连接进一步操作；ok，这个ls-&gt;handler(c)是个啥？我在第一次看代码时，一脸懵逼！！！还记得之前说的吗？模块之间的衔接，几乎都是在模块初始化或者调用模块一些设置函数时设置的，因此接下来，就来看看http模块初始化时做了什么。http模块并没有在模块初始化函数中设置ls-&gt;handler(c)，而是在当读取到&quot;http&quot;命令时，执行命令函数ngx_http_block中设置；
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">char</span> *</span></div><div class="line"><span class="title">ngx_http_block</span><span class="params">(<span class="keyword">ngx_conf_t</span> *cf, <span class="keyword">ngx_command_t</span> *cmd, <span class="keyword">void</span> *conf)</span></div><div class="line">&#123;</div><div class="line">    <span class="comment">//......</span></div><div class="line">    <span class="keyword">if</span> (ngx_http_optimize_servers(cf, cmcf, cmcf-&gt;ports) != NGX_OK) &#123;</div><div class="line">        <span class="keyword">return</span> NGX_CONF_ERROR;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//......</span></div><div class="line">&#125;</div><div class="line">------------------------------------------------------------------------</div><div class="line"><span class="function"><span class="keyword">static</span> ngx_int_t</span></div><div class="line"><span class="title">ngx_http_optimize_servers</span><span class="params">(<span class="keyword">ngx_conf_t</span> *cf, <span class="keyword">ngx_http_core_main_conf_t</span> *cmcf,</span></div><div class="line">    <span class="keyword">ngx_array_t</span> *ports)</div><div class="line">&#123;</div><div class="line">    <span class="comment">//........</span></div><div class="line">     <span class="keyword">if</span> (ngx_http_init_listening(cf, &amp;port[p]) != NGX_OK) &#123;</div><div class="line">            <span class="keyword">return</span> NGX_ERROR;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//.........</span></div><div class="line">&#125;</div><div class="line">--------------------------------------------------------------------------</div><div class="line"><span class="function"><span class="keyword">static</span> ngx_int_t</span></div><div class="line"><span class="title">ngx_http_init_listening</span><span class="params">(<span class="keyword">ngx_conf_t</span> *cf, <span class="keyword">ngx_http_conf_port_t</span> *port)</span></div><div class="line">&#123;</div><div class="line">    <span class="comment">//.........</span></div><div class="line">      ls = ngx_http_add_listening(cf, &amp;addr[i]);</div><div class="line">        <span class="keyword">if</span> (ls == <span class="literal">NULL</span>) &#123;</div><div class="line">            <span class="keyword">return</span> NGX_ERROR;</div><div class="line">        &#125;</div><div class="line">    <span class="comment">//.........</span></div><div class="line">&#125;</div><div class="line">------------------------------------------------------------------</div><div class="line"><span class="function"><span class="keyword">static</span> ngx_listening_t *</span></div><div class="line"><span class="title">ngx_http_add_listening</span><span class="params">(<span class="keyword">ngx_conf_t</span> *cf, <span class="keyword">ngx_http_conf_addr_t</span> *addr)</span></div><div class="line">&#123;</div><div class="line">    <span class="comment">//........................</span></div><div class="line">     ls-&gt;handler = ngx_http_init_connection;</div><div class="line">     <span class="comment">//.........................</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>真是藏的够深，经历了四个函数，终于看到ls-handler设置函数了，即为ngx_http_init_connection函数，而这个函数在http模块，为客户端http请求处理的入口函数；到此为止，我们可以知道服务器在接收到客户端之后，首先将客户端封装成ngx_connection_t结构体，然后交给http模块执行http请求。</p>
+<h2>nginx处理http请求</h2>
+<hr>
+<p>nginx处理http的请求是nginx最重要的职能，也是最复杂的一部分。可以大概说下执行流程：</p>
+<ol>
+<li>读取解析请求行；</li>
+<li>读取解析请求头；</li>
+<li>开始最重要的部分，即多阶段处理；nginx把请求处理划分成了11个阶段，也就是说当nginx读取了请求行和请求头之后，将请求封装了结构体ngx_http_request_t，然后每个阶段的handler都会根据这个ngx_http_request_t，对请求进行处理，例如重写uri，权限控制，路径查找，生成内容以及记录日志等等；</li>
+<li>将结果返回给客户端；</li>
+</ol>
+<p>多阶段处理是nginx模块最重要的部分，因为第三方模块也是注册在这；例如有人写了一个利用nginx和memcache做页面缓存的第三方模块，也可以把memcache换成redis集群等等；而且nginx多阶段处理有点类似python和golang　web框架的中间件，后者主要是用装饰器模式，对handler一层一层封装，而nginx是用数组（链表）形式组合多阶段handler，然后按handler链表执行即可；</p>
+<p>因为多阶段这块内容还没完全看懂，所以跟着网上教程，写了个最简单的第三方模块，用于设置定点调试，观察http阶段函数执行过程，步骤如下：</p>
+<ol>
+<li>在nginx目录下新建一个目录thm（third mudole），在新建一个foo目录（foo模块），然后在foo目录下新建ngx_http_foo_module.c
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;ngx_config.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;ngx_core.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;ngx_http.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> ngx_int_t <span class="title">ngx_http_foo_init</span><span class="params">(<span class="keyword">ngx_conf_t</span> *cf)</span></span>;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> ngx_int_t <span class="title">ngx_http_foo_handler</span><span class="params">(<span class="keyword">ngx_http_request_t</span> *r)</span></span>;</div><div class="line"></div><div class="line"><span class="keyword">static</span> <span class="keyword">ngx_http_module_t</span> ngx_http_foo_module_ctx = &#123;</div><div class="line">    <span class="literal">NULL</span>,                              <span class="comment">/* preconfiguration */</span></div><div class="line">    ngx_http_foo_init,                 <span class="comment">/* postconfiguration */</span></div><div class="line"></div><div class="line">    <span class="literal">NULL</span>,                              <span class="comment">/* create main configuration */</span></div><div class="line">    <span class="literal">NULL</span>,                              <span class="comment">/* init main configuration */</span></div><div class="line"></div><div class="line">    <span class="literal">NULL</span>,                              <span class="comment">/* create server configuration */</span></div><div class="line">    <span class="literal">NULL</span>,                              <span class="comment">/* merge server configuration */</span></div><div class="line"></div><div class="line">    <span class="literal">NULL</span>,                              <span class="comment">/* create location configuration */</span></div><div class="line">    <span class="literal">NULL</span>                               <span class="comment">/* merge location configuration */</span></div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="keyword">ngx_module_t</span>  ngx_http_foo_module = &#123;</div><div class="line">    NGX_MODULE_V1,</div><div class="line">    &amp;ngx_http_foo_module_ctx,                      <span class="comment">/* module context */</span></div><div class="line">    <span class="literal">NULL</span>,                                          <span class="comment">/* module directives */</span></div><div class="line">    NGX_HTTP_MODULE,                               <span class="comment">/* module type */</span></div><div class="line">    <span class="literal">NULL</span>,                                          <span class="comment">/* init master */</span></div><div class="line">    <span class="literal">NULL</span>,                                          <span class="comment">/* init module */</span></div><div class="line">    <span class="literal">NULL</span>,                                          <span class="comment">/* init process */</span></div><div class="line">    <span class="literal">NULL</span>,                                          <span class="comment">/* init thread */</span></div><div class="line">    <span class="literal">NULL</span>,                                          <span class="comment">/* exit thread */</span></div><div class="line">    <span class="literal">NULL</span>,                                          <span class="comment">/* exit process */</span></div><div class="line">    <span class="literal">NULL</span>,                                          <span class="comment">/* exit master */</span></div><div class="line">    NGX_MODULE_V1_PADDING</div><div class="line">&#125;;</div><div class="line"><span class="function"><span class="keyword">static</span> ngx_int_t</span></div><div class="line"><span class="title">ngx_http_foo_handler</span><span class="params">(<span class="keyword">ngx_http_request_t</span> *r)</span></div><div class="line">&#123;</div><div class="line">    ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;<span class="built_in">log</span>, <span class="number">0</span>,</div><div class="line">            <span class="string">"#### hello, this FOO module"</span>);</div><div class="line"></div><div class="line">    <span class="keyword">return</span> NGX_DECLINED;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> ngx_int_t</span></div><div class="line"><span class="title">ngx_http_foo_init</span><span class="params">(<span class="keyword">ngx_conf_t</span> *cf)</span></div><div class="line">&#123;</div><div class="line">    ngx_http_handler_pt               *h;</div><div class="line"></div><div class="line">    <span class="keyword">ngx_http_core_main_conf_t</span>         *cmcf;</div><div class="line"></div><div class="line">    cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);</div><div class="line"></div><div class="line">    h = ngx_array_push(&amp;cmcf-&gt;phases[NGX_HTTP_CONTENT_PHASE].handlers);</div><div class="line">    <span class="keyword">if</span> (h == <span class="literal">NULL</span>) &#123;</div><div class="line">        <span class="keyword">return</span> NGX_ERROR;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    *h = ngx_http_foo_handler;</div><div class="line"></div><div class="line">    <span class="keyword">return</span> NGX_OK;</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>然后同样是在foo目录下新建一个配置文件config
+<figure class="highlight ini"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="attr">ngx_addon_name</span>=ngx_http_foo_module</div><div class="line"><span class="attr">HTTP_MODULES</span>=<span class="string">"$HTTP_MODULES ngx_http_foo_module"</span></div><div class="line"><span class="attr">NGX_ADDON_SRCS</span>=<span class="string">"$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_foo_module.c"</span></div></pre></td></tr></table></figure></p>
+<p>这样，一个最简单的第三方模块就编写完成，上述两个函数很好理解，一个是初始化函数，将这个模块的handler注册到某个阶段中，这个例子是在阶段NGX_HTTP_CONTENT_PHASE，然后当程序执行到上述阶段时，即可执行foo模块；最后重新编译生成可执行文件即可。</p>
+<p>接下来，利用gdb来看下http执行过程，把定点设置在
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">(gdb) b ngx_http_foo_handler</div><div class="line">Breakpoint <span class="number">1</span> <span class="meta">at</span> <span class="number">0x47617e</span>: file ./thm/foo/ngx_http_foo_module.c, line <span class="number">41</span>.</div><div class="line">(gdb) c</div><div class="line">Continuing.</div><div class="line"></div><div class="line">Breakpoint <span class="number">1</span>, ngx_http_foo_handler (r=<span class="number">0x175bf70</span>) <span class="meta">at</span> ./thm/foo/ngx_http_foo_module.c:<span class="number">41</span></div><div class="line"><span class="number">41</span>	    ngx_log_error(NGX_LOG_ERR, r-&gt;connection-&gt;log, <span class="number">0</span>,</div><div class="line">(gdb) <span class="keyword">bt</span></div><div class="line">#<span class="number">0</span>  ngx_http_foo_handler (r=<span class="number">0x175bf70</span>) <span class="meta">at</span> ./thm/foo/ngx_http_foo_module.c:<span class="number">41</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x0000000000435f76</span> <span class="keyword">in</span> ngx_http_core_content_phase (r=<span class="number">0x175bf70</span>, ph=<span class="number">0x176f408</span>) <span class="meta">at</span> src/http/ngx_http_core_module.c:<span class="number">1377</span></div><div class="line">#<span class="number">2</span>  <span class="number">0x0000000000430f43</span> <span class="keyword">in</span> ngx_http_core_run_phases (r=r@entry=<span class="number">0x175bf70</span>) <span class="meta">at</span> src/http/ngx_http_core_module.c:<span class="number">847</span></div><div class="line">#<span class="number">3</span>  <span class="number">0x000000000043105c</span> <span class="keyword">in</span> ngx_http_handler (r=r@entry=<span class="number">0x175bf70</span>) <span class="meta">at</span> src/http/ngx_http_core_module.c:<span class="number">830</span></div><div class="line">#<span class="number">4</span>  <span class="number">0x0000000000438d66</span> <span class="keyword">in</span> ngx_http_process_request (r=r@entry=<span class="number">0x175bf70</span>) <span class="meta">at</span> src/http/ngx_http_request.c:<span class="number">1910</span></div><div class="line">#<span class="number">5</span>  <span class="number">0x000000000043add5</span> <span class="keyword">in</span> ngx_http_process_request_headers (rev=rev@entry=<span class="number">0x1776590</span>) <span class="meta">at</span> src/http/ngx_http_request.c:<span class="number">1342</span></div><div class="line">#<span class="number">6</span>  <span class="number">0x000000000043b083</span> <span class="keyword">in</span> ngx_http_process_request_line (rev=rev@entry=<span class="number">0x1776590</span>) <span class="meta">at</span> src/http/ngx_http_request.c:<span class="number">1022</span></div><div class="line">#<span class="number">7</span>  <span class="number">0x000000000043b767</span> <span class="keyword">in</span> ngx_http_wait_request_handler (rev=<span class="number">0x1776590</span>) <span class="meta">at</span> src/http/ngx_http_request.c:<span class="number">499</span></div><div class="line">#<span class="number">8</span>  <span class="number">0x000000000042de5c</span> <span class="keyword">in</span> ngx_epoll_process_events (cycle=&lt;optimized <span class="keyword">out</span>&gt;, timer=&lt;optimized <span class="keyword">out</span>&gt;, flags=&lt;optimized <span class="keyword">out</span>&gt;)</div><div class="line">    <span class="meta">at</span> src/event/modules/ngx_epoll_module.c:<span class="number">822</span></div><div class="line">#<span class="number">9</span>  <span class="number">0x0000000000426225</span> <span class="keyword">in</span> ngx_process_events_and_timers (cycle=cycle@entry=<span class="number">0x1751110</span>) <span class="meta">at</span> src/event/ngx_event.c:<span class="number">242</span></div><div class="line">#<span class="number">10</span> <span class="number">0x000000000042c15a</span> <span class="keyword">in</span> ngx_worker_process_cycle (cycle=<span class="number">0x1751110</span>, data=&lt;optimized <span class="keyword">out</span>&gt;) <span class="meta">at</span> src/os/unix/ngx_process_cycle.c:<span class="number">753</span></div><div class="line">#<span class="number">11</span> <span class="number">0x000000000042ac46</span> <span class="keyword">in</span> ngx_spawn_process (cycle=cycle@entry=<span class="number">0x1751110</span>, proc=proc@entry=<span class="number">0x42c0d9</span> &lt;ngx_worker_process_cycle&gt;, data=data@entry=<span class="number">0x0</span>, </div><div class="line">    name=name@entry=<span class="number">0x47a4cf</span> <span class="string">"worker process"</span>, respawn=respawn@entry=-<span class="number">3</span>) <span class="meta">at</span> src/os/unix/ngx_process.c:<span class="number">198</span></div><div class="line">#<span class="number">12</span> <span class="number">0x000000000042c2b7</span> <span class="keyword">in</span> ngx_start_worker_processes (cycle=cycle@entry=<span class="number">0x1751110</span>, n=<span class="number">1</span>, type=type@entry=-<span class="number">3</span>) <span class="meta">at</span> src/os/unix/ngx_process_cycle.c:<span class="number">358</span></div><div class="line">#<span class="number">13</span> <span class="number">0x000000000042cb13</span> <span class="keyword">in</span> ngx_master_process_cycle (cycle=cycle@entry=<span class="number">0x1751110</span>) <span class="meta">at</span> src/os/unix/ngx_process_cycle.c:<span class="number">130</span></div><div class="line">#<span class="number">14</span> <span class="number">0x000000000040c83d</span> <span class="keyword">in</span> main (argc=&lt;optimized <span class="keyword">out</span>&gt;, argv=&lt;optimized <span class="keyword">out</span>&gt;) <span class="meta">at</span> src/core/nginx.c:<span class="number">367</span></div></pre></td></tr></table></figure></p>
+<p>简要说明下上述函数，我阅读的版本和运行版本不一样，因此上述仅供参考:</p>
+<ol>
+<li>当有客户端发送tcp连接请求时，ngx_epoll_process_events返回listenfd可读事件，调用ngx_event_accept函数接收客户端请求，然后将请求封装成ngx_connection_t结构体，最后调用ngx_http_init_connection函数进入http处理；</li>
+<li>在新版nginx中，并没有看到ngx_http_wait_request_handler,而是改成了ngx_http_init_connection(ngx_connection_t *c)函数，然后在这个函数内部调用ngx_http_init_request函数初始化请求结构体ngx_http_request_t以及调用ngx_http_process_request_line函数；</li>
+<li>ngx_http_process_request_line函数内部先是调用ngx_http_read_request_header函数将请求行读取到缓存中，然后调用ngx_http_parse_request_line函数解析出请求行信息，最后调用ngx_http_process_request_header处理请求头；</li>
+<li>在函数ngx_http_process_request_header内部先是调用函数ngx_http_read_request_header读取请求头，然后调用ngx_http_parse_header_line函数解析出请求头，接着调用ngx_http_process_request_header函数对请求头进行必要的验证，最后调用ngx_http_process_request函数处理请求；</li>
+<li>在ngx_http_process_request函数内部调用ngx_http_handler(ngx_http_request_t *r)函数，而在ngx_http_handler(ngx_http_request_t *r)函数内部调用
+函数ngx_http_core_run_phases进行多阶段处理；</li>
+<li>我们来看下多阶段处理函数ngx_http_core_run_phases
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span></span></div><div class="line"><span class="title">ngx_http_core_run_phases</span><span class="params">(<span class="keyword">ngx_http_request_t</span> *r)</span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">ngx_int_t</span>                   rc;</div><div class="line">    <span class="keyword">ngx_http_phase_handler_t</span>   *ph;</div><div class="line">    <span class="keyword">ngx_http_core_main_conf_t</span>  *cmcf;</div><div class="line"></div><div class="line">    cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);</div><div class="line"></div><div class="line">    ph = cmcf-&gt;phase_engine.handlers;</div><div class="line"></div><div class="line">    <span class="keyword">while</span> (ph[r-&gt;phase_handler].checker) &#123;</div><div class="line"></div><div class="line">        rc = ph[r-&gt;phase_handler].checker(r, &amp;ph[r-&gt;phase_handler]);</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (rc == NGX_OK) &#123;</div><div class="line">            <span class="keyword">return</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>http多阶段处理，每个阶段可能对应一个handler，也可能对应多个handler，而每个阶段对应同一个checker，因此上述while循环中，迭代所有http模块handler，然后在handler函数中根据请求结构体ngx_http_request_t做出相应的处理；上述gdb调试结果，可以看出NGX_HTTP_CONTENT_PHASE阶段的checker函数为ngx_http_core_content_phase，然后再在这个checker函数内部执行foo模块的handler（ngx_http_foo_handler）。</p>
+<p>等到多阶段处理结束之后，最后再将response返回给客户端。</p>
+<h2>总结</h2>
+<p>这篇文章主要就是宏观分析下nginx整体运行流程，因为第一次看nginx时，有很多看不懂的地方，所以这篇文章也算是做笔记吧。后续还需认真看多阶段处理，因为第三方开发模块也是注册在多阶段过程，以及熟悉ngx+lua模块开发。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/nginx/" rel="tag">#nginx</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/02/18/mankind/" rel="next" title="《人类简史》和《未来简史》--赫拉利">
+                <i class="fa fa-chevron-left"></i> 《人类简史》和《未来简史》--赫拉利
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2017/03/17/nginx01/"
+     data-title="nginx是这么运行的"
+     data-content=""
+     data-url="http://luodw.cc/2017/03/17/nginx01/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/03/17/nginx01/"
+           data-title="nginx是这么运行的" data-url="http://luodw.cc/2017/03/17/nginx01/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">nginx开启流程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">重要回调函数设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">nginx处理http请求</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

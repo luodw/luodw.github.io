@@ -1,0 +1,1095 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="libtask," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="在实习期间，由于项目需要，接触了golang这门语言；经过一段时间的学习使用，我发现golang语言语法简单，有C/C++基础的同学，一个星期即可上手，当然要深入理解golang，还是要多使用，多学习底层机制；goroutine的引入，使得golang非常适合并发程序的开发；而我了，在学习一门语言或技术的时候，是一定要理解底层的实现原理，否则我会用的很盲目或者说难受．所以有了这篇文章．
+之前，在没">
+<meta property="og:type" content="article">
+<meta property="og:title" content="聊聊golang的前身libtask">
+<meta property="og:url" content="http://luodw.cc/2016/06/21/libtask/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="在实习期间，由于项目需要，接触了golang这门语言；经过一段时间的学习使用，我发现golang语言语法简单，有C/C++基础的同学，一个星期即可上手，当然要深入理解golang，还是要多使用，多学习底层机制；goroutine的引入，使得golang非常适合并发程序的开发；而我了，在学习一门语言或技术的时候，是一定要理解底层的实现原理，否则我会用的很盲目或者说难受．所以有了这篇文章．
+之前，在没">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="聊聊golang的前身libtask">
+<meta name="twitter:description" content="在实习期间，由于项目需要，接触了golang这门语言；经过一段时间的学习使用，我发现golang语言语法简单，有C/C++基础的同学，一个星期即可上手，当然要深入理解golang，还是要多使用，多学习底层机制；goroutine的引入，使得golang非常适合并发程序的开发；而我了，在学习一门语言或技术的时候，是一定要理解底层的实现原理，否则我会用的很盲目或者说难受．所以有了这篇文章．
+之前，在没">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/06/21/libtask/"/>
+
+
+  <title> 聊聊golang的前身libtask | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                聊聊golang的前身libtask
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-06-21T19:43:13+08:00" content="2016-06-21">
+              2016-06-21
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/libtask/" itemprop="url" rel="index">
+                    <span itemprop="name">libtask</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/06/21/libtask/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/06/21/libtask/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/06/21/libtask/" class="leancloud_visitors" data-flag-title="聊聊golang的前身libtask">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在实习期间，由于项目需要，接触了golang这门语言；经过一段时间的学习使用，我发现golang语言语法简单，有C/C++基础的同学，一个星期即可上手，当然要深入理解golang，还是要多使用，多学习底层机制；goroutine的引入，使得golang非常适合并发程序的开发；而我了，在学习一门语言或技术的时候，是一定要理解底层的实现原理，否则我会用的很盲目或者说难受．所以有了这篇文章．</p>
+<p>之前，在没接触golang时，在我的认知范围内，服务器开发架构大体就是类似redis的单线程，memcache多线程，ngnix多进程；在接触golang之后，我认识了协程这么一个概念，可以说这是我知识体系非常大的补充，因为服务器开发还可以采用协程实现；接下来，先简要介绍下协程的概念，然后在介绍golang前身libtask的实现原理；</p>
+<h1>协程是什么</h1>
+<p>协程，其实就是轻量级线程，粒度比线程还小，通俗点说就是用户态的一个函数块；一个进程或线程如果内存够大，就可以创建足够多的协程，但是在在内核层面，还是只有一个进程描述符，也就是说内核并不知道协程的存在，所以协程的调度执行完全需要用户态调度器来调度执行；协程有也有自己的栈，也有自己的上下文，所以协程可以在执行到一半的时候让出cpu，同时保存上下文，切换到其他协程，待其他协程执行结束之后，再切回来继续执行；</p>
+<p>对于Linux，</p>
+<ol>
+<li>进程切换是个耗时的工作，因为首先要程序要先嵌入到内核，保存当前进程的上下文到任务段，然后进程调度算法选择一个就绪进程，将这个就绪进程任务段保存的寄存器值恢复到CPU，切换页表，切换堆栈，刷新cpu中TLB和Cache缓存等；</li>
+<li>线程就是轻量级的进程，因为线程在内核里面也有进程描述符，也有内核堆栈；所以线程的切换，也需要嵌入内核，执行上下文切换以及堆栈切换等，但是同个进程中的线程切换不需要切换页表，不要刷新TLB，所以在一定程度上，线程切换代价是小于进程切换；</li>
+<li>协程的切换比进程，线程切换代价都小；linux下面，CPU调度最小的单位是线程(因为内核调度需要task_struct嘛)，所以对于一个进程或线程上的所有协程只能在同一个CPU上调度执行，而且只能一个协程执行结束之后再执行其他线程，除非某个协程显式让出CPU；因此，协程的调度不需要内核调度，而是由用户态调度器调度，而且只需要切换CPU硬件上下文，代价相对于进程线程是非常低的．</li>
+</ol>
+<p>当前，支持协程的语言越来越多，主流的有lua,golang,python,Erlang等；当然在远古时代，那时没有语言支持协程，有些大佬就用C语言自己封装实现用户态任务调度库，比较有代表性的就是golang的前身libtask，所以学习golang，libtask一定要看看，对于理解golang有很大的帮助．</p>
+<h1>说说libtask</h1>
+<p>libtask是一套用c语言编写的任务调度库，实现很简单，将创建的任务存入一个队列中，然后main函数主线程在一个for循环中，不断从队列头部开始调度任务，直到任务队列为空，直到所有任务调度完毕，进程退出；</p>
+<h2>libtask简单例子程序</h2>
+<p>这里先给个例子简单说明下libtask使用:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;task.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span></span></div><div class="line"><span class="title">counttask1</span><span class="params">(<span class="keyword">void</span> *arg)</span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> i;</div><div class="line">    <span class="keyword">for</span>( i = <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</div><div class="line">        <span class="built_in">printf</span>(<span class="string">"task1: %d\n"</span>, i);</div><div class="line">        taskyield();</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span></span></div><div class="line"><span class="title">counttask2</span><span class="params">(<span class="keyword">void</span> *arg)</span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> i;</div><div class="line">    <span class="keyword">for</span>( i = <span class="number">5</span>; i &lt; <span class="number">10</span>; i++) &#123;</div><div class="line">        <span class="built_in">printf</span>(<span class="string">"task2: %d\n"</span>, i);</div><div class="line">        taskyield();</div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span></span></div><div class="line"><span class="title">taskmain</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv)</span></div><div class="line">&#123;</div><div class="line">    taskcreate(counttask1, <span class="literal">NULL</span>, <span class="number">32768</span>);</div><div class="line">    taskcreate(counttask2, <span class="literal">NULL</span>, <span class="number">32768</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>编译这段代码时，需要加入动态链接库</p>
+<blockquote>
+<p>gcc example.c -o example -ltask</p>
+</blockquote>
+<p>最后执行结果如下:
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">charles<span class="meta">@charles</span>-<span class="string">Lenovo:</span>~/libtask$ gcc example.c -o example -ltask</div><div class="line">charles<span class="meta">@charles</span>-<span class="string">Lenovo:</span><span class="regexp">~/libtask$ ./</span>example</div><div class="line"><span class="string">task1:</span> <span class="number">0</span></div><div class="line"><span class="string">task2:</span> <span class="number">5</span></div><div class="line"><span class="string">task1:</span> <span class="number">1</span></div><div class="line"><span class="string">task2:</span> <span class="number">6</span></div><div class="line"><span class="string">task1:</span> <span class="number">2</span></div><div class="line"><span class="string">task2:</span> <span class="number">7</span></div><div class="line"><span class="string">task1:</span> <span class="number">3</span></div><div class="line"><span class="string">task2:</span> <span class="number">8</span></div><div class="line"><span class="string">task1:</span> <span class="number">4</span></div><div class="line"><span class="string">task2:</span> <span class="number">9</span></div></pre></td></tr></table></figure></p>
+<p>这个例子很简单，通过在taskmain函数中调用taskcreate创建两个任务，然后taskmain任务退出，开始执行counttask1和counttask2两个任务，并通过taskyield函数实现任务切换，主要就是让出CPU，实现交替执行，最终打印如上结果．</p>
+<p>可能有小伙伴会有疑问，怎么这段小程序没有main函数？因为开始学编程的时候，老师就说main函数是程序入口．带着疑问，查看源码发现，main函数已经集成在libtask库，在task.c文件中；我刚开始看时，也有疑惑，为什么不把main函数交给用户？通过查看源码，我的理解是，因为在main函数中，需要实现任务调度功能，如果把main函数交个用户，那就需要再提供一个接口给用户注册调度模块，这就无疑增加代码难度以及暴露太多的内部细节，例如任务队列以及任务结构等等；所以libtask库干脆封装main函数，并在main函数中实现调度器，这样只需提供创建任务的接口即可，内部实现细节全都隐藏了．</p>
+<h2>libtask实现原理</h2>
+<p>这里先给出如下图示说明libtask的执行过程，我以上述example.c为例
+<figure class="highlight brainfuck"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">              <span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">+</span></div><div class="line">              <span class="comment">|</span>  <span class="comment">Scheduler</span> <span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span>&gt;<span class="comment">主线程</span></div><div class="line">              <span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">+</span></div><div class="line">              <span class="comment">/</span>      <span class="comment">|</span>     <span class="comment">\</span></div><div class="line">             <span class="comment">/</span>       <span class="comment">|</span>      <span class="comment">\</span></div><div class="line">            <span class="comment">/</span>        <span class="comment">|</span>       <span class="comment">\</span></div><div class="line">           <span class="comment">/</span>         <span class="comment">|</span>        <span class="comment">\</span></div><div class="line"><span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">+</span>     <span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">+</span>    <span class="literal">+</span><span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">+</span></div><div class="line"><span class="comment">|</span> <span class="comment">taskmain</span> <span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span>&gt;<span class="comment">|</span> <span class="comment">task1</span> <span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span>&gt;<span class="comment">|</span> <span class="comment">task2</span> <span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span>&gt; <span class="string">.</span><span class="string">.</span><span class="string">.</span><span class="string">.</span><span class="string">.</span><span class="string">.</span><span class="string">.</span></div><div class="line"><span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">+</span>     <span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">+</span>    <span class="literal">+</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">-</span><span class="literal">+</span></div></pre></td></tr></table></figure></p>
+<ol>
+<li>在task.c文件main函数中，首先会创建taskmain任务，并放入任务队列中；</li>
+<li>接着mian函数主程序进入任务调度循环中，不断迭代并执行任务队列中的任务，直到任务队列为空；一开始只有taskmain任务，因此执行taskmain任务函数；</li>
+<li>一般情况下，我们会在taskmain任务函数中创建其他任务，并放入任务中；此时tasmain任务结束退出；</li>
+<li>此时任务队列中只有task1和task2，task1在队首，所以先执行，当遇到taskyield函数时，此时task1自愿放弃cpu，把自身放入任务队列末尾；执行任务切换，切换到调度器；</li>
+<li>此时调度器取出位于队首的task2执行，同样，遇到taskyield，放弃cpu,自身存入任务队列末尾，切换到调度器；</li>
+<li>调度器执行task1...</li>
+</ol>
+<p>以上就是例子example.c的执行过程，从中我们可以知道，libtask把真正的main函数隐藏了，也就是说调度器对用户是透明的，但是给用户提供了另一个main函数taskmain；因此我们在使用libtask时只需要把taskmain当做main函数即可，在libtask的真正main函数中会为这个taskmain创建一个任务并调度执行；所以除了调度器外，taskmain永远是第一个任务，后面的任务需要从taskmain任务创建衍生．</p>
+<h2>libtask源码解析</h2>
+<p>要实现任务切换，就必须能够保存当前任务的上下文，这样再次切回当前任务时，可以继续执行当前任务；在linux平台下面，主要用的就是ucontext.h，提供的getcontext,setcontext,swapcontext和makecontext函数，具体的上下文有结构体ucontext_t指定，包括任务的栈的大小，栈顶指针以及cpu内寄存器信息；简要介绍下四个函数，具体如何使用可以谷歌之．</p>
+<ol>
+<li>int getcontext(ucontext_t *ucp);函数用于获取当前任务的上下文，并存入ucp中；</li>
+<li>int setcontext(const ucontext_t *ucp);用于实现任务切换，即设置当前执行的上下文；</li>
+<li>void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...);用于创建一个上下文，存入ucp中，当执行这个上下文时，会跳转到func函数中执行；</li>
+<li>int swapcontext(ucontext_t *oucp, const ucontext_t *ucp);这个函数可以看成是setcontext好绕getcontext函数的合成，先保存当前上下文在oucp，然后跳转到ucp指定的上下文；当ucp任务执行结束之后，会回到swapcontext函数的下一行代码继续执行(实现可以思考uc_link)．</li>
+</ol>
+<p>接下来，从main函数开始，源码解析(省去一些不影响分析的代码)
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="keyword">int</span> taskargc;<span class="comment">//为了将用户输入的参数传进taskmain函数中</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">char</span> **taskargv<span class="comment">//所以设置了这两个变量</span></div><div class="line"><span class="keyword">int</span> mainstacksize;<span class="comment">// taskmain任务栈的大小</span></div><div class="line"></div><div class="line"><span class="comment">// taskmain主协程</span></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span></span></div><div class="line"><span class="title">taskmainstart</span><span class="params">(<span class="keyword">void</span> *v)</span></div><div class="line">&#123;</div><div class="line">	taskname(<span class="string">"taskmain"</span>);</div><div class="line">	taskmain(taskargc, taskargv);</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span></span></div><div class="line"><span class="title">main</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv)</span></div><div class="line">&#123;</div><div class="line">	<span class="comment">/*</span></div><div class="line">	  省去对信号处理函数</div><div class="line">	*/</div><div class="line">	argv0 = argv[<span class="number">0</span>];</div><div class="line">	taskargc = argc;</div><div class="line">	taskargv = argv;</div><div class="line"></div><div class="line">	<span class="keyword">if</span>(mainstacksize == <span class="number">0</span>)</div><div class="line">		mainstacksize = <span class="number">256</span>*<span class="number">1024</span>;<span class="comment">//设置taskmain栈大小</span></div><div class="line"></div><div class="line">    　　<span class="comment">/* 创建taskmain协程 */</span></div><div class="line">	taskcreate(taskmainstart, nil, mainstacksize);</div><div class="line">        <span class="comment">/* 进入协程调度 */</span></div><div class="line">	taskscheduler();</div><div class="line">	fprint(<span class="number">2</span>, <span class="string">"taskscheduler returned in main!\n"</span>);</div><div class="line">	<span class="built_in">abort</span>();</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>libtask代码写的很清晰，主程序主要是执行taskmain任务创建，接着进入任务调度模块；接下来先看下任务创建函数taskcreate
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">nt</div><div class="line">taskcreate(<span class="keyword">void</span> (*fn)(<span class="keyword">void</span>*), <span class="keyword">void</span> *arg, uint stack)</div><div class="line">&#123;</div><div class="line">	<span class="keyword">int</span> <span class="keyword">id</span>;</div><div class="line">	Task *t;</div><div class="line">	<span class="comment">/*　taskalloc函数主要执行任务结构体Task内存分配以及创建，初始化</span></div><div class="line">	　　任务栈信息，创建任务上下文　*/</div><div class="line">	t = taskalloc(fn, arg, stack);</div><div class="line">	taskcount++;</div><div class="line">	<span class="keyword">id</span> = t-&gt;<span class="keyword">id</span>;</div><div class="line">	<span class="keyword">if</span>(nalltask%<span class="number">64</span> == <span class="number">0</span>)&#123;<span class="comment">//nalltask变量标识所有任务的个数，如果任务超出64个</span></div><div class="line">				<span class="comment">//则需要重新分配内存，把任务数组大小增加64</span></div><div class="line">		alltask = realloc(alltask, (nalltask+<span class="number">64</span>)*<span class="keyword">sizeof</span>(alltask[<span class="number">0</span>]));</div><div class="line">		<span class="keyword">if</span>(alltask == <span class="literal">nil</span>)&#123;</div><div class="line">			fprint(<span class="number">2</span>, <span class="string">"out of memory\n"</span>);</div><div class="line">			abort();</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	t-&gt;alltaskslot = nalltask;</div><div class="line">	alltask[nalltask++] = t;</div><div class="line">	taskready(t);<span class="comment">//taskready将任务t标为就绪状态，并加入任务队列中</span></div><div class="line">	<span class="keyword">return</span> <span class="keyword">id</span>;</div><div class="line">&#125;</div><div class="line"><span class="comment">//----------------------------------------------------------------------</span></div><div class="line"><span class="keyword">void</span></div><div class="line">taskready(Task *t)</div><div class="line">&#123;</div><div class="line">	t-&gt;ready = <span class="number">1</span>;</div><div class="line">	addtask(&amp;taskrunqueue, t);<span class="comment">//将任务t加入taskrunqueue队列中</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>经过taskcreate函数创建maintask任务，并且放入任务队列taskrunqueue队列中之后，接下来，程序进入taskscheduler()调度函数中，我们直接看任务调度循环部分
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">for</span>(;;)&#123;</div><div class="line"></div><div class="line">	<span class="keyword">if</span>(taskcount == <span class="number">0</span>)</div><div class="line">		<span class="keyword">exit</span>(taskexitval);</div><div class="line">	<span class="regexp">/* 取出队首的任务 */</span></div><div class="line">	t = taskrunqueue.head;</div><div class="line">	<span class="keyword">if</span>(t == nil)&#123;</div><div class="line">		fprint(<span class="number">2</span>, <span class="string">"no runnable tasks! %d tasks stalled\n"</span>, taskcount);</div><div class="line">		<span class="keyword">exit</span>(<span class="number">1</span>);</div><div class="line">	&#125;</div><div class="line">	<span class="regexp">/* 从任务队列中删除该任务 */</span></div><div class="line">	deltask(&amp;taskrunqueue, t);</div><div class="line">	t-&gt;ready = <span class="number">0</span>;</div><div class="line">	taskrunning = t;<span class="regexp">/* 设置全局任务运行变量为当前执行任务t */</span></div><div class="line">	tasknswitch++; <span class="regexp">/* 任务切换次数+1 */</span></div><div class="line">	taskdebug(<span class="string">"run %d (%s)"</span>, t-&gt;id, t-&gt;name);</div><div class="line">	<span class="regexp">/* 执行任务切换 */</span></div><div class="line">	contextswitch(&amp;taskschedcontext, &amp;t-&gt;context);</div><div class="line">	taskrunning = nil;</div><div class="line"></div><div class="line">	<span class="keyword">if</span>(t-&gt;exiting)&#123;<span class="regexp">//</span>如果任务t执行完毕，即可在全局任务数组中删除</div><div class="line">		<span class="keyword">if</span>(!t-&gt;system)</div><div class="line">			taskcount--;</div><div class="line"></div><div class="line">		i = t-&gt;alltaskslot;</div><div class="line">		alltask[i] = alltask[--nalltask];</div><div class="line">		alltask[i]-&gt;alltaskslot = i;</div><div class="line">		free(t);</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在contextswitch函数中，执行swapcontext函数进行任务切换；在上述example.c例子中，由于一开始任务队列中只有taskmain任务，因此执行contextswitch之后，切换到taskmain任务执行；在taskmain函数中，创建两个任务task1和task2，并加入到taskrunqueue队列中，taskmain即运行结束，在任务启动函数taskstart函数的结尾，有个退出函数taskexit(0)，这个函数执行如下操作:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span></span></div><div class="line"><span class="title">taskexit</span><span class="params">(<span class="keyword">int</span> val)</span></div><div class="line">&#123;</div><div class="line">	taskexitval = val;</div><div class="line">	taskrunning-&gt;exiting = <span class="number">1</span>;</div><div class="line">	taskswitch();</div><div class="line">&#125;</div><div class="line"><span class="comment">// -----------------------------------------</span></div><div class="line"><span class="function"><span class="keyword">void</span></span></div><div class="line"><span class="title">taskswitch</span><span class="params">(<span class="keyword">void</span>)</span></div><div class="line">&#123;</div><div class="line">	needstack(<span class="number">0</span>);</div><div class="line">	contextswitch(&amp;taskrunning-&gt;context, &amp;taskschedcontext);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从这两个函数，我们可以看出在某个任务退出之后，会进行任务切换，将控制权交给任务调度器，然后由调度器调度队列中的下一个任务；因此，到目前为止，libtask的架构更加清晰明了，</p>
+<blockquote>
+<p>由调度器调度队首任务，并从任务队列中删除队首任务；队首任务执行结束之后，会切回调度器，接着由调度器调度新的队首任务，直到任务队列为空．</p>
+</blockquote>
+<blockquote>
+<p>当然有一种情况是遇到taskyield函数，这时当前任务会让出cpu，切换到调度器，并将自身放入任务队列末尾，等待调度器的再次调度．调度器即执行新的队首任务．</p>
+</blockquote>
+<p>这篇文章主要是分析了golang的前身libtask的实现原理，多多少少都有着golang的影子，当然听说golang改进了libtask任务调度机制，因为libtask每次某个任务执行结束都需要切换到调度器，再由调度器调度新的任务，显然，切换到调度器这过程是多余了；具体golang怎么实现，待我后续研究...</p>
+<p>下篇文章分析下libtask的channel的实现．</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/libtask/" rel="tag">#libtask</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/05/20/tfs01/" rel="next" title="TFS之DataServer启动执行过程">
+                <i class="fa fa-chevron-left"></i> TFS之DataServer启动执行过程
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/06/26/libtask01/" rel="prev" title="libtask之channel实现机制">
+                libtask之channel实现机制 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/06/21/libtask/"
+     data-title="聊聊golang的前身libtask"
+     data-content=""
+     data-url="http://luodw.cc/2016/06/21/libtask/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/06/21/libtask/"
+           data-title="聊聊golang的前身libtask" data-url="http://luodw.cc/2016/06/21/libtask/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">协程是什么</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">说说libtask</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.1.</span> <span class="nav-text">libtask简单例子程序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.2.</span> <span class="nav-text">libtask实现原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.3.</span> <span class="nav-text">libtask源码解析</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

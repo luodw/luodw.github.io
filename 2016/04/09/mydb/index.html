@@ -1,0 +1,1099 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="mydb," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="之前在用C++写NoSQL时,收获了一些经验也遇到了一些坑;今天想总结下这些经验和坑,避免以后重走弯路;mydb github地址为:https://github.com/luodw/MyDB
+为什么要写NoSQL?
+
+首先说明下为什么要写这个NoSQL了.因为研一开始,我就给自己定下了三步走计划,操作系统+编程语言+开源软件;因为了所有软件都是用某种编程语言编写,运行在某个操作系统之上,所以先学">
+<meta property="og:type" content="article">
+<meta property="og:title" content="写MyDB收获的经验和遇到的坑">
+<meta property="og:url" content="http://luodw.cc/2016/04/09/mydb/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="之前在用C++写NoSQL时,收获了一些经验也遇到了一些坑;今天想总结下这些经验和坑,避免以后重走弯路;mydb github地址为:https://github.com/luodw/MyDB
+为什么要写NoSQL?
+
+首先说明下为什么要写这个NoSQL了.因为研一开始,我就给自己定下了三步走计划,操作系统+编程语言+开源软件;因为了所有软件都是用某种编程语言编写,运行在某个操作系统之上,所以先学">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="写MyDB收获的经验和遇到的坑">
+<meta name="twitter:description" content="之前在用C++写NoSQL时,收获了一些经验也遇到了一些坑;今天想总结下这些经验和坑,避免以后重走弯路;mydb github地址为:https://github.com/luodw/MyDB
+为什么要写NoSQL?
+
+首先说明下为什么要写这个NoSQL了.因为研一开始,我就给自己定下了三步走计划,操作系统+编程语言+开源软件;因为了所有软件都是用某种编程语言编写,运行在某个操作系统之上,所以先学">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/04/09/mydb/"/>
+
+
+  <title> 写MyDB收获的经验和遇到的坑 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                写MyDB收获的经验和遇到的坑
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-04-09T14:52:27+08:00" content="2016-04-09">
+              2016-04-09
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/mydb/" itemprop="url" rel="index">
+                    <span itemprop="name">mydb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/04/09/mydb/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/04/09/mydb/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/04/09/mydb/" class="leancloud_visitors" data-flag-title="写MyDB收获的经验和遇到的坑">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>之前在用C++写NoSQL时,收获了一些经验也遇到了一些坑;今天想总结下这些经验和坑,避免以后重走弯路;mydb github地址为:<a href="https://github.com/luodw/MyDB" target="_blank" rel="external">https://github.com/luodw/MyDB</a></p>
+<h1>为什么要写NoSQL?</h1>
+<hr>
+<p>首先说明下为什么要写这个NoSQL了.因为研一开始,我就给自己定下了三步走计划,操作系统+编程语言+开源软件;因为了所有软件都是用某种编程语言编写,运行在某个操作系统之上,所以先学好操作系统特别关键,我推荐的是linux系统;</p>
+<p>操作系统要学哪些了?我当初是从基本的linxu命令开始,书本推荐的是<strong>Linux Shell脚本攻略</strong>和<strong>鸟哥的私房菜</strong>;然后看关于系统调用的书籍,如果是C++后台编程,系统调用是免不了的,入门级看,<strong>LINUX系统编程</strong>,然后才是apue和unp1,2.不推荐直接apue,过来人的忠告.最后看内核的东西,这是必须看的,否则对linux很多东西是理解不透彻.例如平时用的管道,了解管道是怎么实现的吗(pipefs)?fork子进程copy on write机制是什么?动态链接库是怎么实现的等等;理解这些原理,对实际的应用非常有帮助,可以说是得心应手;我推荐的书是<strong>Linux内核设计与实现</strong>,还有本厚的<strong>深入理解Linux内核</strong>,我看了部分.还有<a href="http://duartes.org/gustavo/blog/archives/" target="_blank" rel="external">Gustavo Duarte的博客</a>和<a href="https://pdos.csail.mit.edu/6.828/2008/readings/i386/toc.htm" target="_blank" rel="external">Intel 80386编程手册</a>,内核主要研究的就是文件系统,内存管理(虚拟地址和物理地址的映射非常重要,很多东西的理解都需要这块知识),进程调度,网络模块;</p>
+<p>编程语言,我选择的是C/C++;主要是这两门语言接近底层,可以控制内存,可以给用户编程极大的灵活性;就像当初选择linux编程学习而不是window一样;<strong>C++primer</strong> ,<strong>深入理解C++对象模型</strong>和<strong>STL源码剖析</strong>没看完这三本书,真得不敢说自己会C++.我不多说这个,看了都说好.</p>
+<p>还有开源软件,我目前有看源码的是leveldb,memcache和redis大部分;我推荐的就是这三个.leveldb整体的设计中包含了很多学习的亮点:内存池arena,缓存的设计,内存屏障,迭代器的设计等等;memcache学习的亮点最重要的就是多线程下的编程模型,当然还有slab内存池;redis这个真推荐,这是我觉得这三个框架里面,代码写的最优雅,思路最清晰,高度模块化；底层用C with class写，而且都是多态类型；事件驱动模块mainae(libevent针对不同平台的封装，代码量太长)，还有主从复制原理，心跳机制等等，看redis收获非常大．</p>
+<p>之前在知乎上看到陈硕大哥说的一句话：单进程单线程编程模型的巅峰是redis；单进程多线程编程模型的巅峰是memcache；多进程编程模型的ngnix；说的还是有点道理的；</p>
+<p>现在要说下为什么写NoSQL了．因为之前提到的都是看书得到，但是没有实战，很多东西理解的不够透彻；就像没有装个linux双系统来学习，命令很快就忘了．所以我必须将我所学的理论知识，通过实践转化为自己的能力；当然实践会遇到很多问题，这就需要记录下来，避免重蹈覆辙；</p>
+<h1>一些经验</h1>
+<hr>
+<ol>
+<li>使用C++11的function类来实现回调函数声明．一开始时，我在纳闷，C++怎么实现回调函数，用函数指针吧，感觉没脱离C的影子；用函数对象吧，感觉挺麻烦的，啥事都要写个类，所以最后选择了C++11function类；而且function类可以结合bind函数以及lambda函数非常灵活实用，我在给事件注册回调函数时，使用的就是lambda函数注册．</li>
+<li>使用nocopyable类来实现避免函数复制，这在**Effective C++**中也有提及，就是定义一个类，将复制构造函数和赋值操作符声明为private，其他类继承nocopyable即可实现避免函数复制；在C++11中可以使用=delete来实现类避免复制．</li>
+<li>使用C++ string而不是c字符数组．因为string使用的是copy on write机制，每次复制时，只是简单的复制成员变量，并没有重新开辟一块内存，而是当要更新字符串时，才重新分配内存，达到复制时间复杂度为常数时间．而且不用担心内存泄露(暂时没考虑return或者sigjmp造成的对象没有析构问题，即使有还可以使用智能指针)．相反，使用c字符数组时时都要想着内存有没释放，啥时释放；
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">clients[connfd].outbuf=<span class="type">string</span>(<span class="string">"usage:del key\r<span class="subst">\n</span>"</span>);</div></pre></td></tr></table></figure></li>
+</ol>
+<p>单看这行代码，等号右边生成一个临时string对象，然后左边的字符串调用赋值操作符，用右边临时字符串给自己赋值．而output并没有为字符串重新开辟内存，而是接管了临时string对象的字符串指针，临时string在这句代码之后就被回收了．而且之后每次给clients[connfd].outbuf赋值时，会先析构原先的字符串，然后才是指向新的字符串，所以不存在内存泄露的问题．</p>
+<ol start="4">
+<li>避免vector类型复制(赋值)．当vector存储大量拥有nontrival构造函数对象时，如果vector进行复制或赋值，那么每个对象都要执行构造函数生成对象，将会是非常耗时．所以一般采取的办法是先生成一个新的空的vector，然后新的空的vector调用swap函数与旧的vector进行交换，这样就可以避免新的vector存储对象执行构造函数，也可避免旧的vector存储的对象执行析构函数．如果是情况一个vector，也很适合用swap函数；</li>
+<li>在不需要排序的情况，尽量使用unordered_map，而不是map．因为unordered_map底层是用哈希表实现的，负载因子和哈希函数设计的好，则可实现查找操作在常数时间以内，而map底层是红黑树实现的，查找操作则需要O(logn)．</li>
+<li>STL函数库和lambda函数二者的集合，代码更加简练；原先为了输出一个vector中所有的变量，需要写一个输出仿函数
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;vector&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;algorithm&gt;</span></span></div><div class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</div><div class="line"></div><div class="line"><span class="keyword">class</span> output</div><div class="line">&#123;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">    <span class="function"><span class="keyword">void</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="keyword">const</span> <span class="keyword">int</span>&amp; x)</span></span></div><div class="line">    &#123;</div><div class="line">        <span class="built_in">cout</span>&lt;&lt;x&lt;&lt;<span class="string">" "</span>;</div><div class="line">    &#125;</div><div class="line">&#125;;</div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; v=&#123;<span class="number">5</span>,<span class="number">2</span>,<span class="number">4</span>,<span class="number">1</span>,<span class="number">7</span>,<span class="number">8</span>,<span class="number">3</span>&#125;;</div><div class="line">    for_each(v.begin(),v.end(),output());</div><div class="line">    <span class="built_in">cout</span>&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>但是C++11引入lambda函数之后，代码如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="built_in">vector</span>&lt;<span class="keyword">int</span>&gt; v=&#123;<span class="number">5</span>,<span class="number">2</span>,<span class="number">4</span>,<span class="number">1</span>,<span class="number">7</span>,<span class="number">8</span>,<span class="number">3</span>&#125;;</div><div class="line">    for_each(v.begin(),v.end(),[](<span class="keyword">const</span> <span class="keyword">int</span>&amp; x)</div><div class="line">    &#123;</div><div class="line">        <span class="built_in">cout</span>&lt;&lt;x&lt;&lt;<span class="string">" "</span>;</div><div class="line">    &#125;);</div><div class="line">    <span class="built_in">cout</span>&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">    <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>还有很多太细微的经验没列出来，而且我发现我在使用过程中，C++11真的带来了很多优秀的特性，给代码编写带来极大的便利．</p>
+<h1>一些坑</h1>
+<hr>
+<p>说是一些坑，但是我映像最深的还是segmentation fault (core dumped)，太可怕了，因为其他很多系统调用返回的错误，可以通过函数的返回值判断错误的类型，但是出现段错误之后，就直接退出了，经常是不好看出到底是哪行出现问题；我在写MyDB过程中，出现最多的就是段错误，不外乎就是内存访问错误，包括没有给数组分配内存，就访问更新数组元素；访问越界数组元素等等；</p>
+<p>数组没有分配内存，程序访问数组元素；例如原先我在定义Client这个结构时，没有给参数数组分配内存，因为后面在分解参数时，需要将每个参数赋给参数数组，就必须访问参数数组，这样就出现段错误了．
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> Client</div><div class="line">    &#123;</div><div class="line">        <span class="keyword">int</span> fd;<span class="comment">//这个客户端的fd</span></div><div class="line">        <span class="built_in">std</span>::<span class="built_in">string</span> outbuf;<span class="comment">//存储回复客户端的数据</span></div><div class="line">        <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="built_in">std</span>::<span class="built_in">string</span>&gt; args;<span class="comment">//存储用户输入的命令</span></div><div class="line">    &#125;;<span class="comment">//客户端结构体</span></div></pre></td></tr></table></figure></p>
+<p>因为目前暂时还不需要客户端对象执行函数，所以暂时使用了struct．结构体中的args只是调用默认构造函数，此时不含有任何对象；当解析出各个命令参数，使用索引下标存储时，则出现了段错误,如下：
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">➜  mydb ./mydb</div><div class="line">2016-04-10 15:47:16 360 ./<span class="keyword">net</span>/Ionet.<span class="keyword">cc</span> <span class="keyword">line</span>=240 [TRACE] Ionet: mydb init successfully!</div><div class="line">2016-04-10 15:47:18 360 ./<span class="keyword">net</span>/Ionet.<span class="keyword">cc</span> <span class="keyword">line</span>=173 [TRACE] Ionet: Accept a clientfd=5</div><div class="line">[1]    360 segmentation fault (core dumped)  ./mydb</div></pre></td></tr></table></figure></p>
+<p>而且错误提示很不友好，只是说明了出现了段错误，并没有具体指出哪出现问题了．所以调试代码也是一项能力，我原本对于小型的程序习惯用输出即可解决，但是对于大点的程序，逻辑稍微复杂点，输出调试就没那么简单了，所以这时就必须使用gdb了．</p>
+<p>我用gdb运行程序，然后出现错误之后，输出如下:
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">(gdb) r</div><div class="line">Starting <span class="string">program:</span> <span class="regexp">/home/</span>charles<span class="regexp">/mydir/</span>mywork<span class="regexp">/mydb/</span>mydb </div><div class="line"><span class="number">2016</span><span class="number">-04</span><span class="number">-10</span> <span class="number">15</span>:<span class="number">54</span>:<span class="number">59</span> <span class="number">2638</span> .<span class="regexp">/net/</span>Ionet.cc line=<span class="number">240</span> [TRACE] <span class="string">Ionet:</span> mydb init successfully!</div><div class="line"><span class="number">2016</span><span class="number">-04</span><span class="number">-10</span> <span class="number">15</span>:<span class="number">55</span>:<span class="number">05</span> <span class="number">2638</span> .<span class="regexp">/net/</span>Ionet.cc line=<span class="number">173</span> [TRACE] <span class="string">Ionet:</span> Accept a clientfd=<span class="number">5</span></div><div class="line"></div><div class="line">Program received signal SIGSEGV, Segmentation fault.</div><div class="line"><span class="number">0x00007ffff7b8f7e0</span> <span class="keyword">in</span> <span class="string">std:</span>:<span class="string">string:</span>:swap(<span class="string">std:</span>:string&amp;) () from <span class="regexp">/usr/</span>lib<span class="regexp">/x86_64-linux-gnu/</span>libstdc++.so<span class="number">.6</span></div><div class="line">(gdb)</div></pre></td></tr></table></figure></p>
+<p>看吧，这样虽然看出来是什么段错误，调用std::string::swap(std::string&amp;)函数出现了错误，我们可以猜测是由于std::string对象在调用swap函数时，原对象没有分配内存，但是从gdb目前提示的错误还看不出问题具体出在哪．</p>
+<p>所以这时就需要用到where或bt命令，输出调用的函数栈，可以看出问题出现在哪个函数调用上，如下:
+<figure class="highlight clean"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">(gdb) bt</div><div class="line">#<span class="number">0</span>  <span class="number">0x00007ffff7b8f7e0</span> <span class="keyword">in</span> std::string::swap(std::string&amp;) () <span class="keyword">from</span> /usr/lib/x86_64-linux-gnu/libstdc++.so<span class="number">.6</span></div><div class="line">#<span class="number">1</span>  <span class="number">0x00007ffff7b8f829</span> <span class="keyword">in</span> std::string::operator=(std::string&amp;&amp;) ()</div><div class="line">   <span class="keyword">from</span> /usr/lib/x86_64-linux-gnu/libstdc++.so<span class="number">.6</span></div><div class="line">#<span class="number">2</span>  <span class="number">0x00000000004101a5</span> <span class="keyword">in</span> ionet::Parse::parseArgs(ionet::Client&amp;) ()</div><div class="line">#<span class="number">3</span>  <span class="number">0x0000000000408b13</span> <span class="keyword">in</span> ionet::Ionet::FdHandler(int) ()</div><div class="line">#<span class="number">4</span>  <span class="number">0x000000000040bcb1</span> <span class="keyword">in</span> ionet::Ionet::FdAccept(int)::$_2::operator()(int) const ()</div><div class="line">#<span class="number">5</span>  <span class="number">0x000000000040ba33</span> <span class="keyword">in</span> std::_Function_handler&lt;void (int), ionet::Ionet::FdAccept(int)::$_2&gt;::_M_invoke(std::_Any_data const&amp;, int) ()</div><div class="line">#<span class="number">6</span>  <span class="number">0x000000000040821c</span> <span class="keyword">in</span> std::function&lt;void (int)&gt;::operator()(int) const ()</div><div class="line">#<span class="number">7</span>  <span class="number">0x000000000040808a</span> <span class="keyword">in</span> ionet::Fdevent::handler(int) ()</div><div class="line">#<span class="number">8</span>  <span class="number">0x0000000000404751</span> <span class="keyword">in</span> ionet::EventLoop::startLoop() ()</div><div class="line">#<span class="number">9</span>  <span class="number">0x000000000040b53e</span> <span class="keyword">in</span> ionet::Ionet::run() ()</div><div class="line">#<span class="number">10</span> <span class="number">0x0000000000402670</span> <span class="keyword">in</span> main ()</div><div class="line">(gdb)</div></pre></td></tr></table></figure></p>
+<p>这个输出从下到上是从最开始的main函数到出现问题的函数的函数栈．第0和第1个都是标准库string的成员函数，第2个才是我自己定义的函数，这样我就定位到错误出现的函数，我们定位到Parse::parseArgs这个函数
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">void <span class="keyword">Parse</span>::parseArgs(Client &amp;client)</div><div class="line">    &#123;</div><div class="line">        int i=0; <span class="keyword">char</span> *q=<span class="keyword">query</span>;</div><div class="line">        <span class="keyword">const</span> <span class="keyword">char</span>* delim=<span class="string">" "</span>;</div><div class="line">        <span class="keyword">char</span> *p=strtok(q,delim);</div><div class="line">        client.<span class="keyword">args</span>[i++]=<span class="built_in">string</span>(p);</div><div class="line">        <span class="comment">//strtok函数第二次调用时,必须传递NULL值,否则会无限迭代</span></div><div class="line">        <span class="keyword">while</span>((p=strtok(NULL,delim))!=NULL)</div><div class="line">        &#123;</div><div class="line">            client.<span class="keyword">args</span>[i++]=<span class="built_in">string</span>(p);</div><div class="line">        &#125;</div><div class="line">        i--;</div><div class="line">        size_t pos=client.<span class="keyword">args</span>[i].find(<span class="built_in">string</span>(<span class="string">"\r\n"</span>));</div><div class="line">        client.<span class="keyword">args</span>[i].<span class="keyword">erase</span>(pos);</div><div class="line">    &#125;</div></pre></td></tr></table></figure></p>
+<p>有之前的输出，我们知道错误是字符串的赋值错误，而在这个函数内部，就是给client.args参数数组赋值错误，所以我们可以把错误定位在这个client.args这个数组上，再结合段错误的一些原因，即可分析出错误的原因．</p>
+<p>如果还是不知道错误，可以在这函数内部采用输出调试或者定点单步调试．</p>
+<p>定点调试可以先定位到parse.cc这个文件
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">client.<span class="built_in">args</span>[i++]=<span class="built_in">string</span>(p);</div></pre></td></tr></table></figure></p>
+<p>然后执行程序到此，可以输出client.args[i++]这个变量，看看得出什么结果．
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">(gdb) b <span class="keyword">parse</span>.<span class="keyword">cc</span>:27 <span class="comment">//定位到赋值语句位置</span></div><div class="line">Breakpoint 1 at 0x40d9e1: <span class="keyword">file</span> ./util/<span class="keyword">parse</span>.<span class="keyword">cc</span>, <span class="keyword">line</span> 27.</div><div class="line">(gdb) <span class="built_in">r</span></div><div class="line">Starting <span class="keyword">program</span>: /home/charles/mydir/mywork/mydb/mydb </div><div class="line">2016-04-10 16:35:03 14443 ./<span class="keyword">net</span>/Ionet.<span class="keyword">cc</span> <span class="keyword">line</span>=240 [TRACE] Ionet: mydb init successfully!</div><div class="line">2016-04-10 16:35:07 14443 ./<span class="keyword">net</span>/Ionet.<span class="keyword">cc</span> <span class="keyword">line</span>=173 [TRACE] Ionet: Accept a clientfd=5</div><div class="line"></div><div class="line">Breakpoint 1, ionet::<span class="keyword">Parse</span>::parseArgs (this=0x7fffffffdd68, client=...) at ./util/<span class="keyword">parse</span>.<span class="keyword">cc</span>:27</div><div class="line">27	        client.<span class="keyword">args</span>[i++]=<span class="built_in">string</span>(p);</div><div class="line">(gdb)  p  client.<span class="keyword">args</span>[i++]</div><div class="line"><span class="variable">$1</span> = &lt;<span class="keyword">error</span> reading variable: Cannot access <span class="keyword">memory</span> at address 0x0&gt;</div><div class="line">(gdb) p client</div><div class="line"><span class="variable">$2</span> = (ionet::Client &amp;) @0x6183b0: &#123;fd = 5, outbuf = <span class="string">""</span>, <span class="keyword">args</span> = std::vector of length 0, capacity 0&#125;</div><div class="line">(gdb)</div></pre></td></tr></table></figure></p>
+<p>当输出client.args[i++]时，输出的错误，没看过vector源码可能理解不是很清楚，我把源码黏贴如下:
+<figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">const_reference</span> <span class="selector-tag">operator</span><span class="selector-attr">[]</span>(size_type n) <span class="selector-tag">const</span> &#123; <span class="selector-tag">return</span> *(begin() + n); &#125;</div><div class="line"><span class="comment">//========================================================================</span></div><div class="line"><span class="selector-tag">vector</span>() : <span class="selector-tag">start</span>(<span class="number">0</span>), <span class="selector-tag">finish</span>(<span class="number">0</span>), <span class="selector-tag">end_of_storage</span>(<span class="number">0</span>) &#123;&#125;</div></pre></td></tr></table></figure></p>
+<p>当调用clients.args[i++]时，会调用重载下标操作符函数，在重载下标函数内部，返回begin()迭代器向前移动n个位置元素的引用，而begin()返回是start迭代器，这个迭代器在没有参数的默认构造函数中初始为0，所以当输出client.args[i++]即输出start指向的值，就是位置0x0．</p>
+<p>从输出client也可以看出args长度为0．</p>
+<p>其他段错误也可以通过这种方法找出问题所在；如何调试段错误也是我写这篇文章最重要的原因，因为之前我对这不是很在行，所以需要记录下这过程，今后再出现段错误，可以快速解决问题．</p>
+<h1>聊聊gdb原理</h1>
+<hr>
+<p>之前实习面试时，一位面试官问了我gdb设断点的原理，我一下懵了，因为我之前就是使用，没想过这个问题，这激发我极大的好奇心，我通过查找资料，发现gdb的实现主要是靠ptrace这个函数．简单的说gdb ./mydb时，会在gdb程序中fork和execl(./mydb)这个子进程，当我们设置断点时，其实是将原先设置断点处的指令替换为int 3指令，这样当进程运行到断点处时，会给gdb进程发送SIGTRAP信号，子进程则阻塞；父进程接收到此信号之后，则根据用户的输入，做出相应的回答．</p>
+<p>ptrace这个系统调用还可以用来输出程序调用的系统调用，strace命令底层使用的就是这个系统调用．</p>
+<p>ptrace还可以用来输出函数栈，pstack命令底层就是使用pstrace函数实现的，我之前还一直以为是backtrace函数实现的．但是回过头来想想，backtrace只是个函数，他必须嵌入到程序中才能输出函数栈，所以pstack底层不可能是backtrace函数实现．</p>
+<p>理解了gdb的实现原理，再来使用gdb，会更加的得心应手...</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/mydb/" rel="tag">#mydb</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/03/15/innodb03/" rel="next" title="innodb_ruby工具使用">
+                <i class="fa fa-chevron-left"></i> innodb_ruby工具使用
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/04/29/HighLinux/" rel="prev" title="学习Linux高性能服务器编程的一些收获">
+                学习Linux高性能服务器编程的一些收获 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/04/09/mydb/"
+     data-title="写MyDB收获的经验和遇到的坑"
+     data-content=""
+     data-url="http://luodw.cc/2016/04/09/mydb/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/04/09/mydb/"
+           data-title="写MyDB收获的经验和遇到的坑" data-url="http://luodw.cc/2016/04/09/mydb/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">为什么要写NoSQL?</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">一些经验</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">一些坑</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">聊聊gdb原理</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

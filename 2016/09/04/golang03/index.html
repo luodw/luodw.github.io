@@ -1,0 +1,1100 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="golang," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="今天聊两个轻松的话题，golang相比与之前学习的C/C++，有很多新颖的特性，不知道大家的使用的时候，有没想过，这些特性是如何实现的？当然你可能会说，不了解这些特性好像也不影响自己使用golang；对，你说的也有道理；但是，多了解底层的实现原理，对于在使用golang时的眼界是完全不一样的，就类似于看过http的实现之后，再来使用http框架，和未看过http框架时的眼界是不一样的，当然，你如果">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从汇编角度理解golang多值返回和闭包">
+<meta property="og:url" content="http://luodw.cc/2016/09/04/golang03/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="今天聊两个轻松的话题，golang相比与之前学习的C/C++，有很多新颖的特性，不知道大家的使用的时候，有没想过，这些特性是如何实现的？当然你可能会说，不了解这些特性好像也不影响自己使用golang；对，你说的也有道理；但是，多了解底层的实现原理，对于在使用golang时的眼界是完全不一样的，就类似于看过http的实现之后，再来使用http框架，和未看过http框架时的眼界是不一样的，当然，你如果">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-0033033999475765_b.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从汇编角度理解golang多值返回和闭包">
+<meta name="twitter:description" content="今天聊两个轻松的话题，golang相比与之前学习的C/C++，有很多新颖的特性，不知道大家的使用的时候，有没想过，这些特性是如何实现的？当然你可能会说，不了解这些特性好像也不影响自己使用golang；对，你说的也有道理；但是，多了解底层的实现原理，对于在使用golang时的眼界是完全不一样的，就类似于看过http的实现之后，再来使用http框架，和未看过http框架时的眼界是不一样的，当然，你如果">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-0033033999475765_b.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/09/04/golang03/"/>
+
+
+  <title> 从汇编角度理解golang多值返回和闭包 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                从汇编角度理解golang多值返回和闭包
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-09-04T15:48:16+08:00" content="2016-09-04">
+              2016-09-04
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/09/04/golang03/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/09/04/golang03/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/09/04/golang03/" class="leancloud_visitors" data-flag-title="从汇编角度理解golang多值返回和闭包">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>今天聊两个轻松的话题，golang相比与之前学习的C/C++，有很多新颖的特性，不知道大家的使用的时候，有没想过，这些特性是如何实现的？当然你可能会说，不了解这些特性好像也不影响自己使用golang；对，你说的也有道理；但是，多了解底层的实现原理，对于在使用golang时的眼界是完全不一样的，就类似于看过http的实现之后，再来使用http框架，和未看过http框架时的眼界是不一样的，当然，你如果是一名it爱好者，求知欲自然会引导你去学习；知其然而不知其所以然，是很可怕的；</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-0033033999475765_b.jpg" alt="厦门世贸中心"></p>
+<p>相对于C/C++，golang有很多新颖的特性，例如goroutine,channel,defer,reflect,interface{}等等；这些特性其实从golang源码是可以理解其实现的原理；今天这篇文章主要来分析下golang多值返回以及闭包的实现，因为这两个实现golang源码中并不存在，我们必须从汇编的角度来窥探二者的实现；</p>
+<p>这篇文章主要就分析两点:</p>
+<ol>
+<li>golang多值返回的实现;</li>
+<li>golang闭包的实现;</li>
+<li>总结;</li>
+</ol>
+<h1>golang多值返回的实现</h1>
+<hr>
+<p>我们在学C/C++时，很多人应该有了解过C/C++函数调用过程，参数是通过寄存器di和si(假设就两个参数)传递给被调用的函数，被调用函数的返回结果只能是通过eax寄存器返回给调用函数，因此C/C++函数只能返回一个值，那么我们是不是可以想象，golang的多值返回是否可以通过多个寄存器来实现的，正如用多个寄存器来传参一样？</p>
+<p>这也是一种办法，但是golang并没有采用；我的理解是引入多个寄存器来存储返回值，会引起多个寄存器用途的重新约定，这无疑增加了复杂度；可以这么说，golang的ABI与C/C++非常不一样；</p>
+<p>在从汇编角度分析golang多值返回之前，需要先熟悉golang汇编代码的一些约定，<a href="https://golang.org/doc/asm" target="_blank" rel="external">golang官网</a>有说明，这里重点说明四个symbols，需要注意的是这里的寄存器是伪寄存器：</p>
+<ol>
+<li>FP　栈底寄存器，指向一个函数栈的顶部；</li>
+<li>PC  程序计数器，指向下一条执行指令;</li>
+<li>SB　指向静态数据的基指针，全局符号;</li>
+<li>SP　栈顶寄存器;</li>
+</ol>
+<p>这里面最重要的就是FP和SP，FP寄存器主要用于取参数以及存返回值，golang函数调用的实现很大程度上都是依赖这两个寄存器，这里先给出结果，</p>
+<p><figure class="highlight gherkin"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">                </div><div class="line">+-----------+---\</div><div class="line">|<span class="string">  返回值2  </span>|<span class="string">    \</span></div><div class="line">+-----------+     \</div><div class="line">|<span class="string">  返回值1  </span>|<span class="string">      \</span></div><div class="line">+---------+-+      </div><div class="line">|<span class="string">  参数2    </span>|<span class="string">      这些在调用函数中</span></div><div class="line">+-----------+       </div><div class="line">|<span class="string">  参数1    </span>|<span class="string">   　 /</span></div><div class="line">+-----------+     /</div><div class="line">|<span class="string">  返回地址 </span>|<span class="string">    /</span></div><div class="line">+-----------+--\/-----fp值</div><div class="line">|<span class="string">  局部变量 </span>|<span class="string">   \</span></div><div class="line">|<span class="string">    ...    </span>|<span class="string">   被调用数栈祯</span></div><div class="line">|<span class="string">           </span>|<span class="string">   /</span></div><div class="line">+-----------+--/+---sp值</div></pre></td></tr></table></figure></p>
+<p>这个就是golang的一个函数栈，也是说函数传参是通过fp+offset来实现的，而多个返回值也是通过fp+offset存储在调用函数的栈帧中；下面通过一个例子来分析
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">package main</div><div class="line"></div><div class="line">import <span class="string">"fmt"</span></div><div class="line"></div><div class="line">func test(<span class="selector-tag">i</span>, j int) (int, int) &#123;</div><div class="line">	<span class="selector-tag">a</span> := <span class="selector-tag">i</span> + j</div><div class="line">	<span class="selector-tag">b</span> := <span class="selector-tag">i</span> - j</div><div class="line">	return <span class="selector-tag">a</span>, <span class="selector-tag">b</span></div><div class="line">&#125;</div><div class="line"></div><div class="line">func main() &#123;</div><div class="line">	<span class="selector-tag">a</span>, <span class="selector-tag">b</span> := test(<span class="number">2</span>, <span class="number">1</span>)</div><div class="line">	fmt.Println(<span class="selector-tag">a</span>, b)</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个例子很简单，主要是为了说明golang多值返回的过程；我们通过下面命令编译该程序</p>
+<blockquote>
+<p>go tool compile -S test.go &gt; test.s</p>
+</blockquote>
+<p>然后，就可以打开test.s，来看下这个小程序的汇编代码。首先来看下test函数的汇编代码</p>
+<p><figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="string">""</span>.test t=<span class="number">1</span> size=<span class="number">32</span> value=<span class="number">0</span> args=<span class="number">0x20</span> locals=<span class="number">0x0</span></div><div class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        TEXT    <span class="string">""</span>.test(SB), <span class="number">$0</span>-<span class="number">32</span>//栈大小为<span class="number">32</span>字节</div><div class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">NOP</span></div><div class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">NOP</span></div><div class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">MOVQ</span>    <span class="string">""</span>.i+<span class="number">8</span>(FP), <span class="built_in">CX</span>//取第一个参数i</div><div class="line">        <span class="number">0x0005</span> <span class="number">00005</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">MOVQ</span>    <span class="string">""</span>.j+<span class="number">16</span>(FP), <span class="built_in">AX</span>//取第二个参数j</div><div class="line">        <span class="number">0x000a</span> <span class="number">00010</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        FUNCDATA        <span class="number">$0</span>, gclocals·a8eabfc4a4514ed6b3b0c61e9680e440(SB)</div><div class="line">        <span class="number">0x000a</span> <span class="number">00010</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        FUNCDATA        <span class="number">$1</span>, gclocals·33cdeccccebe80329f1fdbee7f5874cb(SB)</div><div class="line">        <span class="number">0x000a</span> <span class="number">00010</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">CX</span>, <span class="built_in">BX</span>//将i放入<span class="built_in">bx</span></div><div class="line">        <span class="number">0x000d</span> <span class="number">00013</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        ADDQ    <span class="built_in">AX</span>, <span class="built_in">CX</span>//i+j放入<span class="built_in">cx</span></div><div class="line">        <span class="number">0x0010</span> <span class="number">00016</span> (<span class="keyword">test</span>.go:<span class="number">7</span>)        SUBQ    <span class="built_in">AX</span>, <span class="built_in">BX</span>//i-j放入<span class="built_in">bx</span></div><div class="line">						//将返回结果存入调用函数栈帧</div><div class="line">        <span class="number">0x0013</span> <span class="number">00019</span> (<span class="keyword">test</span>.go:<span class="number">8</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">CX</span>, <span class="string">""</span>.~<span class="built_in">r2</span>+<span class="number">24</span>(FP)</div><div class="line">						//将返回结果存入调用函数栈帧</div><div class="line">        <span class="number">0x0018</span> <span class="number">00024</span> (<span class="keyword">test</span>.go:<span class="number">8</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">BX</span>, <span class="string">""</span>.~<span class="built_in">r3</span>+<span class="number">32</span>(FP)</div><div class="line">        <span class="number">0x001d</span> <span class="number">00029</span> (<span class="keyword">test</span>.go:<span class="number">8</span>)        <span class="keyword">RET</span></div></pre></td></tr></table></figure></p>
+<p>由这个汇编代码可以看出来，在test函数内部，是通过fp+8取第一个参数，fp+16取第二个参数；然后将返回的第一个值存入fp+24,返回的第二个值存入fp+32，和我上述所说完全一致；golang函数调用过程，是通过fp+offset来实现传参和返回值，而不像C/C++都是通过寄存器实现传参和返回值；</p>
+<p>但是，这里有个问题，我的变量都是int类型，为啥分配的都是8字节，这有待考证；</p>
+<p>本来想通过查看main函数的栈帧来验证之前的结论，但是golang对小函数自动转为内联函数，因此你们可以自己编译出来看看，main函数内部是没有调用test函数的，而是将test函数的汇编代码直接拷贝进main函数执行了；</p>
+<h1>golang闭包的实现</h1>
+<hr>
+<p>之前有去看了下C++11的lambda函数的实现，其实实现原理就是仿函数；编译器在编译lambda函数时，会生成一个匿名的仿函数类，然后执行这个lambda函数时，会调用编译生成的匿名仿函数类重载函数调用方法，这个方法也就是lambda函数中定义的方法；其实golang闭包的实现和这个类似，我们通过例子来说明
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> main</div><div class="line"></div><div class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">test</span><span class="params">(a <span class="keyword">int</span>)</span> <span class="title">func</span><span class="params">(i <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</div><div class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(i <span class="keyword">int</span>)</span> <span class="title">int</span></span> &#123;</div><div class="line">		a = a + i</div><div class="line">		<span class="keyword">return</span> a</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">	f := test(<span class="number">1</span>)</div><div class="line">	a := f(<span class="number">2</span>)</div><div class="line">	fmt.Println(a)</div><div class="line">	b := f(<span class="number">3</span>)</div><div class="line">	fmt.Println(b)</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个例子程序很简单，test函数传入一个整型参数a，返回一个函数类型；这个函数类型传入一个整型参数以及返回一个整型值；main函数调用test函数，返回一个闭包函数；ok，来看下test函数的汇编代码:</p>
+<p><figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line"><span class="string">""</span>.test t=<span class="number">1</span> size=<span class="number">160</span> value=<span class="number">0</span> args=<span class="number">0x10</span> locals=<span class="number">0x20</span></div><div class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        TEXT    <span class="string">""</span>.test(SB), <span class="number">$32</span>-<span class="number">16</span></div><div class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">MOVQ</span>    (TLS), <span class="built_in">CX</span></div><div class="line">        <span class="number">0x0009</span> <span class="number">00009</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        CMPQ    <span class="built_in">SP</span>, <span class="number">16</span>(<span class="built_in">CX</span>)</div><div class="line">        <span class="number">0x000d</span> <span class="number">00013</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        JLS     <span class="number">142</span></div><div class="line">        <span class="number">0x000f</span> <span class="number">00015</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        SUBQ    <span class="number">$32</span>, <span class="built_in">SP</span></div><div class="line">        <span class="number">0x0013</span> <span class="number">00019</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        FUNCDATA        <span class="number">$0</span>, gclocals·8edb5632446ada37b0a930d010725cc5(SB)</div><div class="line">        <span class="number">0x0013</span> <span class="number">00019</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        FUNCDATA        <span class="number">$1</span>, gclocals·008e235a1392cc90d1ed9ad2f7e76d87(SB)</div><div class="line">        <span class="number">0x0013</span> <span class="number">00019</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        LEAQ    type.int(SB), <span class="built_in">BX</span></div><div class="line">        <span class="number">0x001a</span> <span class="number">00026</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">BX</span>, (<span class="built_in">SP</span>)</div><div class="line">        <span class="number">0x001e</span> <span class="number">00030</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        PCDATA  <span class="number">$0</span>, <span class="number">$0</span></div><div class="line">					//生成一个<span class="keyword">int</span>型对象，即a</div><div class="line">        <span class="number">0x001e</span> <span class="number">00030</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">CALL</span>    runtime.newobject(SB)</div><div class="line">					//<span class="number">8</span>(<span class="built_in">sp</span>)即生成的a的地址，放入<span class="built_in">AX</span></div><div class="line">        <span class="number">0x0023</span> <span class="number">00035</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">MOVQ</span>    <span class="number">8</span>(<span class="built_in">SP</span>), <span class="built_in">AX</span></div><div class="line">					//将a的地址存入<span class="built_in">sp</span>+<span class="number">24</span>的位置</div><div class="line">        <span class="number">0x0028</span> <span class="number">00040</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">AX</span>, <span class="string">""</span>.&amp;a+<span class="number">24</span>(<span class="built_in">SP</span>)</div><div class="line">					//取出main函数传入的第一个参数，即a</div><div class="line">        <span class="number">0x002d</span> <span class="number">00045</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">MOVQ</span>    <span class="string">""</span>.a+<span class="number">40</span>(FP), <span class="built_in">BP</span></div><div class="line">					//将a放入(<span class="built_in">AX</span>)指向的内存，即上述新生成的<span class="keyword">int</span>型对象</div><div class="line">        <span class="number">0x0032</span> <span class="number">00050</span> (<span class="keyword">test</span>.go:<span class="number">5</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">BP</span>, (<span class="built_in">AX</span>)</div><div class="line">        <span class="number">0x0035</span> <span class="number">00053</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        LEAQ    type.struct &#123; F uintptr<span class="comment">; a *int &#125;(SB), BX</span></div><div class="line">        <span class="number">0x003c</span> <span class="number">00060</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">BX</span>, (<span class="built_in">SP</span>)</div><div class="line">        <span class="number">0x0040</span> <span class="number">00064</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        PCDATA  <span class="number">$0</span>, <span class="number">$1</span></div><div class="line">        <span class="number">0x0040</span> <span class="number">00064</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">CALL</span>    runtime.newobject(SB)</div><div class="line">					//<span class="number">8</span>(<span class="built_in">sp</span>)这就是上述生成的struct对象地址</div><div class="line">        <span class="number">0x0045</span> <span class="number">00069</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">MOVQ</span>    <span class="number">8</span>(<span class="built_in">SP</span>), <span class="built_in">AX</span></div><div class="line">        <span class="number">0x004a</span> <span class="number">00074</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">NOP</span></div><div class="line">					//<span class="keyword">test</span>内部匿名函数地址存入<span class="built_in">BP</span></div><div class="line">        <span class="number">0x004a</span> <span class="number">00074</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        LEAQ    <span class="string">""</span>.test.func1(SB), <span class="built_in">BP</span></div><div class="line">					//将匿名函数地址放入(<span class="built_in">AX</span>)指向的地址，即给上述</div><div class="line">					//F uintptr赋值</div><div class="line">        <span class="number">0x0051</span> <span class="number">00081</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">BP</span>, (<span class="built_in">AX</span>)</div><div class="line">        <span class="number">0x0054</span> <span class="number">00084</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">AX</span>, <span class="string">""</span>.autotmp_0001+<span class="number">16</span>(<span class="built_in">SP</span>)</div><div class="line">        <span class="number">0x0059</span> <span class="number">00089</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">NOP</span>	</div><div class="line">					//将上述生成的整型对象a的地址存入<span class="built_in">BP</span></div><div class="line">        <span class="number">0x0059</span> <span class="number">00089</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">MOVQ</span>    <span class="string">""</span>.&amp;a+<span class="number">24</span>(<span class="built_in">SP</span>), <span class="built_in">BP</span></div><div class="line">        <span class="number">0x005e</span> <span class="number">00094</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        CMPB    runtime.writeBarrier(SB), <span class="number">$0</span></div><div class="line">        <span class="number">0x0065</span> <span class="number">00101</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">JNE</span>     <span class="number">$0</span>, <span class="number">117</span></div><div class="line">					//将a地址存入<span class="built_in">AX</span>指向内存+<span class="number">8</span>，</div><div class="line">					//即为上述结构体a *<span class="keyword">int</span>赋值</div><div class="line">        <span class="number">0x0067</span> <span class="number">00103</span> (<span class="keyword">test</span>.go:<span class="number">6</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">BP</span>, <span class="number">8</span>(<span class="built_in">AX</span>)</div><div class="line">					//将上述结构体的地址存入main函数栈帧中；</div><div class="line">        <span class="number">0x006b</span> <span class="number">00107</span> (<span class="keyword">test</span>.go:<span class="number">9</span>)        <span class="keyword">MOVQ</span>    <span class="built_in">AX</span>, <span class="string">""</span>.~<span class="built_in">r1</span>+<span class="number">48</span>(FP)</div><div class="line">        <span class="number">0x0070</span> <span class="number">00112</span> (<span class="keyword">test</span>.go:<span class="number">9</span>)        ADDQ    <span class="number">$32</span>, <span class="built_in">SP</span></div><div class="line">        <span class="number">0x0074</span> <span class="number">00116</span> (<span class="keyword">test</span>.go:<span class="number">9</span>)        <span class="keyword">RET</span></div></pre></td></tr></table></figure></p>
+<p>之前有看到一句话，很形象地描述了闭包</p>
+<blockquote>
+<p>类是有行为的数据，而闭包是有数据的行为；</p>
+</blockquote>
+<p>也就是说闭包是有上下文的，我们以测试例子为例，通过test函数生成的闭包函数，都有各自的a，这个a就是闭包的上下文数据，而且这个a一直伴随着他的闭包函数，每调用一次，a都会发生变化；</p>
+<p>我们分析了上述汇编代码，来看下闭包实现原理；在这个测试例子中，由于a是闭包的上下文数据，因此a必须在堆上分配，如果在栈上分配，函数结束，a也被回收了；然后会定义出一个匿名结构体:</p>
+<p><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span>.<span class="keyword">struct</span> &#123; </div><div class="line">	F <span class="keyword">uintptr</span><span class="comment">//这个就是闭包调用的函数指针 </span></div><div class="line">	a *<span class="keyword">int</span> <span class="comment">//这就是闭包的上下文数据</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>接着生成一个该对象，并将之前在堆上分配的整型对象a的地址赋值给结构体中的a指针，接下来将闭包调用的func函数地址赋值给结构体中F指针；这样，每生成一个闭包函数，其实就是生成一个上述结构体对象，每个闭包对象也就有自己的数据a和调用函数F；最后将这个结构体的地址返回给main函数；</p>
+<p>ok，来看下main函数获取闭包的过程；</p>
+<p><figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="string">""</span>.main t=<span class="number">1</span> size=<span class="number">528</span> value=<span class="number">0</span> args=<span class="number">0x0</span> locals=<span class="number">0x88</span></div><div class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (<span class="keyword">test</span>.go:<span class="number">12</span>)       TEXT    <span class="string">""</span>.main(SB), <span class="number">$136</span>-<span class="number">0</span></div><div class="line">        <span class="number">0x0000</span> <span class="number">00000</span> (<span class="keyword">test</span>.go:<span class="number">12</span>)       <span class="keyword">MOVQ</span>    (TLS), <span class="built_in">CX</span></div><div class="line">        <span class="number">0x0009</span> <span class="number">00009</span> (<span class="keyword">test</span>.go:<span class="number">12</span>)       LEAQ    -<span class="number">8</span>(<span class="built_in">SP</span>), <span class="built_in">AX</span></div><div class="line">        <span class="number">0x000e</span> <span class="number">00014</span> (<span class="keyword">test</span>.go:<span class="number">12</span>)       CMPQ    <span class="built_in">AX</span>, <span class="number">16</span>(<span class="built_in">CX</span>)</div><div class="line">        <span class="number">0x0012</span> <span class="number">00018</span> (<span class="keyword">test</span>.go:<span class="number">12</span>)       JLS     <span class="number">506</span></div><div class="line">        <span class="number">0x0018</span> <span class="number">00024</span> (<span class="keyword">test</span>.go:<span class="number">12</span>)       SUBQ    <span class="number">$136</span>, <span class="built_in">SP</span></div><div class="line">        <span class="number">0x001f</span> <span class="number">00031</span> (<span class="keyword">test</span>.go:<span class="number">12</span>)       FUNCDATA        <span class="number">$0</span>, gclocals·f5be5308b59e045b7c5b33ee8908cfb7(SB)</div><div class="line">        <span class="number">0x001f</span> <span class="number">00031</span> (<span class="keyword">test</span>.go:<span class="number">12</span>)       FUNCDATA        <span class="number">$1</span>, gclocals·9d868b227cedd8dd4b1bec8682560fff(SB)</div><div class="line">       					//将参数<span class="number">1</span>(f:=<span class="keyword">test</span>(<span class="number">1</span>))放入main函数栈顶</div><div class="line">	<span class="number">0x001f</span> <span class="number">00031</span> (<span class="keyword">test</span>.go:<span class="number">13</span>)       <span class="keyword">MOVQ</span>    <span class="number">$1</span>, (<span class="built_in">SP</span>)</div><div class="line">        <span class="number">0x0027</span> <span class="number">00039</span> (<span class="keyword">test</span>.go:<span class="number">13</span>)       PCDATA  <span class="number">$0</span>, <span class="number">$0</span></div><div class="line">					//调用main函数生成闭包对象</div><div class="line">        <span class="number">0x0027</span> <span class="number">00039</span> (<span class="keyword">test</span>.go:<span class="number">13</span>)       <span class="keyword">CALL</span>    <span class="string">""</span>.test(SB)</div><div class="line">					//将闭包对象的地址放入<span class="built_in">DX</span></div><div class="line">        <span class="number">0x002c</span> <span class="number">00044</span> (<span class="keyword">test</span>.go:<span class="number">13</span>)       <span class="keyword">MOVQ</span>    <span class="number">8</span>(<span class="built_in">SP</span>), <span class="built_in">DX</span></div><div class="line">       					//将参数<span class="number">2</span>(a:=f(<span class="number">2</span>))放入栈顶</div><div class="line">	<span class="number">0x0031</span> <span class="number">00049</span> (<span class="keyword">test</span>.go:<span class="number">14</span>)       <span class="keyword">MOVQ</span>    <span class="number">$2</span>, (<span class="built_in">SP</span>)</div><div class="line">        <span class="number">0x0039</span> <span class="number">00057</span> (<span class="keyword">test</span>.go:<span class="number">14</span>)       <span class="keyword">MOVQ</span>    <span class="built_in">DX</span>, <span class="string">""</span>.f+<span class="number">56</span>(<span class="built_in">SP</span>)</div><div class="line">					//将闭包对象的函数指针赋值给<span class="built_in">BX</span></div><div class="line">        <span class="number">0x003e</span> <span class="number">00062</span> (<span class="keyword">test</span>.go:<span class="number">14</span>)       <span class="keyword">MOVQ</span>    (<span class="built_in">DX</span>), <span class="built_in">BX</span></div><div class="line">        <span class="number">0x0041</span> <span class="number">00065</span> (<span class="keyword">test</span>.go:<span class="number">14</span>)       PCDATA  <span class="number">$0</span>, <span class="number">$1</span></div><div class="line">					//这里调用闭包函数，并且将闭包对象的地址也传进</div><div class="line">					//闭包函数，为了修改a嘛</div><div class="line">        <span class="number">0x0041</span> <span class="number">00065</span> (<span class="keyword">test</span>.go:<span class="number">14</span>)       <span class="keyword">CALL</span>    <span class="built_in">DX</span>, <span class="built_in">BX</span></div><div class="line">        <span class="number">0x0043</span> <span class="number">00067</span> (<span class="keyword">test</span>.go:<span class="number">14</span>)       <span class="keyword">MOVQ</span>    <span class="number">8</span>(<span class="built_in">SP</span>), <span class="built_in">BX</span></div></pre></td></tr></table></figure></p>
+<p>很明显，main函数调用test函数获取的是闭包对象的地址，通过这个闭包对象地址找到闭包函数，然后执行这个闭包函数，并且把闭包对象的地址传进函数，这点和C++传this指针原理一样，为了修改成员变量a；</p>
+<p>最后看下test内部的匿名函数(闭包函数实现):</p>
+<p><figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="string">""</span><span class="selector-class">.test</span><span class="selector-class">.func1</span> t=<span class="number">1</span> size=<span class="number">32</span> value=<span class="number">0</span> args=<span class="number">0</span>x10 locals=<span class="number">0</span>x0</div><div class="line">        <span class="number">0</span>x0000 <span class="number">00000</span> (test<span class="selector-class">.go</span>:<span class="number">6</span>)        TEXT    <span class="string">""</span><span class="selector-class">.test</span><span class="selector-class">.func1</span>(SB), $<span class="number">0</span>-<span class="number">16</span></div><div class="line">        <span class="number">0</span>x0000 <span class="number">00000</span> (test<span class="selector-class">.go</span>:<span class="number">6</span>)        NOP</div><div class="line">        <span class="number">0</span>x0000 <span class="number">00000</span> (test<span class="selector-class">.go</span>:<span class="number">6</span>)        NOP</div><div class="line">        <span class="number">0</span>x0000 <span class="number">00000</span> (test<span class="selector-class">.go</span>:<span class="number">6</span>)        FUNCDATA        $<span class="number">0</span>, gclocals·<span class="number">23</span>e8278e2b69a3a75fa59b23c49ed6ad(SB)</div><div class="line">        <span class="number">0</span>x0000 <span class="number">00000</span> (test<span class="selector-class">.go</span>:<span class="number">6</span>)        FUNCDATA        $<span class="number">1</span>, gclocals·<span class="number">33</span>cdeccccebe80329f1fdbee7f5874cb(SB)</div><div class="line">   					<span class="comment">//DX是闭包对象的地址，+8即a的地址</span></div><div class="line">	<span class="number">0</span>x0000 <span class="number">00000</span> (test<span class="selector-class">.go</span>:<span class="number">6</span>)        MOVQ    <span class="number">8</span>(DX), AX</div><div class="line">					<span class="comment">//AX为a的地址，(AX)即为a的值</span></div><div class="line">        <span class="number">0</span>x0004 <span class="number">00004</span> (test<span class="selector-class">.go</span>:<span class="number">7</span>)        MOVQ    (AX), BP</div><div class="line">					<span class="comment">//将参数i存入R8</span></div><div class="line">        <span class="number">0</span>x0007 <span class="number">00007</span> (test<span class="selector-class">.go</span>:<span class="number">7</span>)        MOVQ    <span class="string">""</span>.i+<span class="number">8</span>(FP), R8</div><div class="line">					<span class="comment">//a+i的值存入BP</span></div><div class="line">        <span class="number">0</span>x000c <span class="number">00012</span> (test<span class="selector-class">.go</span>:<span class="number">7</span>)        ADDQ    R8, BP</div><div class="line">					<span class="comment">//将a+i存入a的地址</span></div><div class="line">        <span class="number">0</span>x000f <span class="number">00015</span> (test<span class="selector-class">.go</span>:<span class="number">7</span>)        MOVQ    BP, (AX)</div><div class="line">					<span class="comment">//将a地址最新数据存入BP</span></div><div class="line">        <span class="number">0</span>x0012 <span class="number">00018</span> (test<span class="selector-class">.go</span>:<span class="number">8</span>)        MOVQ    (AX), BP</div><div class="line">					<span class="comment">//将a最新值作为返回值放入main函数栈中</span></div><div class="line">        <span class="number">0</span>x0015 <span class="number">00021</span> (test<span class="selector-class">.go</span>:<span class="number">8</span>)        MOVQ    BP, <span class="string">""</span>.~r1+<span class="number">16</span>(FP)</div><div class="line">        <span class="number">0</span>x001a <span class="number">00026</span> (test<span class="selector-class">.go</span>:<span class="number">8</span>)        RET</div></pre></td></tr></table></figure></p>
+<p>闭包函数的调用过程:</p>
+<ol>
+<li>通过闭包对象地址获取闭包上下文数据a的地址;</li>
+<li>接着通过a的地址获取到a的值，并与参数i相加；</li>
+<li>将a+i作为最新值存入a的地址；</li>
+<li>将a最新值返回给main函数；</li>
+</ol>
+<h1>总结</h1>
+<hr>
+<p>这篇文章简单地从汇编角度分析了golang多值返回和闭包的实现；</p>
+<ul>
+<li>多值返回主要是通过fp寄存器+offset获取参数以及存入返回值实现；</li>
+<li>闭包主要是通过在编译时生成包含闭包函数和闭包上下文数据的结构体实现；</li>
+</ul>
+<p>有什么不对的地方，希望各位能指出来，谢谢~</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag">#golang</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/08/28/golang02/" rel="next" title="golang之database/sql与go-sql-driver">
+                <i class="fa fa-chevron-left"></i> golang之database/sql与go-sql-driver
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/11/05/python-http/" rel="prev" title="python之HTTP模块">
+                python之HTTP模块 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/09/04/golang03/"
+     data-title="从汇编角度理解golang多值返回和闭包"
+     data-content=""
+     data-url="http://luodw.cc/2016/09/04/golang03/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/09/04/golang03/"
+           data-title="从汇编角度理解golang多值返回和闭包" data-url="http://luodw.cc/2016/09/04/golang03/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">golang多值返回的实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">golang闭包的实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

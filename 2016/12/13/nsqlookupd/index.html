@@ -1,0 +1,1126 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="nsq,nsqlookupd," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="上篇文章介绍了NSQ整体概述以及拓扑结构；这篇文章开始分析下NSQ源码；NSQ主要由三个部分nsqd,nsqlookupd,nsqadmin以及一些工具组成，我们从简单的nsqlookupd开始分析源码；nsqlookupd是nsq管理集群拓扑信息以及用于注册和发现nsqd服务；所以，也可以把nsqlookupd理解为注册发现服务；当nsq集群中有多个nsqlookupd服务时，因为每个nsqd都">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NSQ源码分析之nsqlookupd">
+<meta property="og:url" content="http://luodw.cc/2016/12/13/nsqlookupd/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="上篇文章介绍了NSQ整体概述以及拓扑结构；这篇文章开始分析下NSQ源码；NSQ主要由三个部分nsqd,nsqlookupd,nsqadmin以及一些工具组成，我们从简单的nsqlookupd开始分析源码；nsqlookupd是nsq管理集群拓扑信息以及用于注册和发现nsqd服务；所以，也可以把nsqlookupd理解为注册发现服务；当nsq集群中有多个nsqlookupd服务时，因为每个nsqd都">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-IMG_0718.JPG">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="NSQ源码分析之nsqlookupd">
+<meta name="twitter:description" content="上篇文章介绍了NSQ整体概述以及拓扑结构；这篇文章开始分析下NSQ源码；NSQ主要由三个部分nsqd,nsqlookupd,nsqadmin以及一些工具组成，我们从简单的nsqlookupd开始分析源码；nsqlookupd是nsq管理集群拓扑信息以及用于注册和发现nsqd服务；所以，也可以把nsqlookupd理解为注册发现服务；当nsq集群中有多个nsqlookupd服务时，因为每个nsqd都">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-IMG_0718.JPG">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/12/13/nsqlookupd/"/>
+
+
+  <title> NSQ源码分析之nsqlookupd | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                NSQ源码分析之nsqlookupd
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-12-13T10:58:30+08:00" content="2016-12-13">
+              2016-12-13
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/nsq/" itemprop="url" rel="index">
+                    <span itemprop="name">nsq</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/12/13/nsqlookupd/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/12/13/nsqlookupd/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/12/13/nsqlookupd/" class="leancloud_visitors" data-flag-title="NSQ源码分析之nsqlookupd">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>上篇文章介绍了NSQ整体概述以及拓扑结构；这篇文章开始分析下NSQ源码；NSQ主要由三个部分nsqd,nsqlookupd,nsqadmin以及一些工具组成，我们从简单的nsqlookupd开始分析源码；nsqlookupd是nsq管理集群拓扑信息以及用于注册和发现nsqd服务；所以，也可以把nsqlookupd理解为注册发现服务；当nsq集群中有多个nsqlookupd服务时，因为每个nsqd都会向所有的nsqlookupd上报本地信息，因此nsqlookupd具有最终一致性；</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-IMG_0718.JPG" alt="厦门狮山"></p>
+<p>这篇文章主要从以下几个方面来分析下nsqlookupd源码：</p>
+<ol>
+<li>nsqlookupd运行过程；</li>
+<li>nsqlookupd优秀设计；</li>
+<li>总结；</li>
+</ol>
+<h1>nsqlookupd运行过程</h1>
+<hr>
+<h2>NSQ目录结构</h2>
+<p>在看nsqlookupd源码之前，先来看下NSQ的目录结构；NSQ目录结构设计也很清晰，从目录就可以看出各个模块什么意思；</p>
+<ol>
+<li>apps　目录存放了nsqd, nsqlookupd, nsqadmin和一些工具的main函数文件；</li>
+<li>internal　目录存放了NSQ内部使用的一些函数，例如三大组件通用函数；</li>
+<li>nsqadmin　目录存放了关于nsqadmin源码；</li>
+<li>nsqd　目录存放了关于nsqd源码；</li>
+<li>nsqlookupd　目录存放了　nsqlookupd的源码；</li>
+</ol>
+<p>因此如果看nsqlookupd源码的话，我们首先需要看apps/nsqlookupd目录下的nsqlookupd.go文件；</p>
+<h2>nsqlookupd启动函数</h2>
+<p>NSQ的nsqd和nsqlookupd组件都使用了开源组件</p>
+<blockquote>
+<p>&quot;github.com/judwhite/go-svc/svc&quot;</p>
+</blockquote>
+<p>来管理进程的初始化，启动和关闭；我们先来看下main函数
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> program <span class="keyword">struct</span> &#123;</div><div class="line">	nsqlookupd *nsqlookupd.NSQLookupd</div><div class="line">&#125;<span class="comment">//nsqlookupd启动服务实例</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">	prg := &amp;program&#123;&#125;</div><div class="line">	<span class="keyword">if</span> err := svc.Run(prg, syscall.SIGINT, syscall.SIGTERM); err != <span class="literal">nil</span> &#123;</div><div class="line">		log.Fatal(err)</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>svc.run方法接收一个实现了init,start和stop方法的服务实例，以及若干信号；信号用于控制该服务的优雅终止，而服务实例用于开启nsqlookupd服务；</p>
+<p>我们来看下program的start方法；
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *program)</span> <span class="title">Start</span><span class="params">()</span> <span class="title">error</span></span> &#123;</div><div class="line">	flagSet.Parse(os.Args[<span class="number">1</span>:])</div><div class="line"></div><div class="line">	<span class="keyword">if</span> *showVersion &#123;</div><div class="line">		fmt.Println(version.String(<span class="string">"nsqlookupd"</span>))</div><div class="line">		os.Exit(<span class="number">0</span>)</div><div class="line">	&#125;<span class="comment">//如果只是查看版本号，则显示版本号并退出</span></div><div class="line"></div><div class="line">	<span class="keyword">var</span> cfg <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">interface</span>&#123;&#125;</div><div class="line">	<span class="keyword">if</span> *config != <span class="string">""</span> &#123;</div><div class="line">		_, err := toml.DecodeFile(*config, &amp;cfg)</div><div class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">			log.Fatalf(<span class="string">"ERROR: failed to load config file %s - %s"</span>, *config, err.Error())</div><div class="line">		&#125;</div><div class="line">	&#125;<span class="comment">//从配置文件解析配置信息</span></div><div class="line"></div><div class="line">	opts := nsqlookupd.NewOptions()</div><div class="line">	options.Resolve(opts, flagSet, cfg)</div><div class="line">	<span class="comment">//实例化一个nsqlookupd实例</span></div><div class="line">	daemon := nsqlookupd.New(opts)</div><div class="line">	<span class="comment">//调用nsqlookupd的Main方法</span></div><div class="line">	daemon.Main()</div><div class="line">	p.nsqlookupd = daemon</div><div class="line">	<span class="keyword">return</span> <span class="literal">nil</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数用于调用nsqlookupd的Main函数，而Main函数才是nsqlookupd模块启动的主体函数；当这个Start函数返回之后，整个程序阻塞在svc.Run方法内部的信号channel上；当我们向这个程序发送SIGINT和SIGTERM信号时，svc.Run函数调用program.Stop方法终止nsqlookupd进程。</p>
+<h2>nsqlookupd模块之Main函数</h2>
+<p>之前的分析都还是在apps/nsqlookupd目录下，通过之前调用nsqlookupd.Main方法，将代码切换到了nsqlookupd目录下；ok，我们直接找到nsqlookupd/nsqlookupd.Main方法；
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(l *NSQLookupd)</span> <span class="title">Main</span><span class="params">()</span></span> &#123;</div><div class="line">	<span class="comment">//整个nsqlookupd模块上下文</span></div><div class="line">	ctx := &amp;Context&#123;l&#125;</div><div class="line"></div><div class="line">	tcpListener, err := net.Listen(<span class="string">"tcp"</span>, l.opts.TCPAddress)</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		l.logf(<span class="string">"FATAL: listen (%s) failed - %s"</span>, l.opts.TCPAddress, err)</div><div class="line">		os.Exit(<span class="number">1</span>)</div><div class="line">	&#125;</div><div class="line">	l.Lock()</div><div class="line">	l.tcpListener = tcpListener</div><div class="line">	l.Unlock()</div><div class="line">	tcpServer := &amp;tcpServer&#123;ctx: ctx&#125;</div><div class="line">	<span class="comment">//开启nsqlookupd的tcp服务</span></div><div class="line">	l.waitGroup.Wrap(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</div><div class="line">		protocol.TCPServer(tcpListener, tcpServer, l.opts.Logger)</div><div class="line">	&#125;)</div><div class="line"></div><div class="line">	httpListener, err := net.Listen(<span class="string">"tcp"</span>, l.opts.HTTPAddress)</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		l.logf(<span class="string">"FATAL: listen (%s) failed - %s"</span>, l.opts.HTTPAddress, err)</div><div class="line">		os.Exit(<span class="number">1</span>)</div><div class="line">	&#125;</div><div class="line">	l.Lock()</div><div class="line">	l.httpListener = httpListener</div><div class="line">	l.Unlock()</div><div class="line">	httpServer := newHTTPServer(ctx)</div><div class="line">	<span class="comment">//开启nsqlookupd的http服务</span></div><div class="line">	l.waitGroup.Wrap(<span class="function"><span class="keyword">func</span><span class="params">()</span></span> &#123;</div><div class="line">		http_api.Serve(httpListener, httpServer, <span class="string">"HTTP"</span>, l.opts.Logger)</div><div class="line">	&#125;)</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>其中，l.waitGroup是sync.WaitGroup的子类，该类的Wrap方法用于在新的goroutine调用参数func函数；因此在执行Main方法之后，此时nsqlookupd进程就另外开启了两个goroutine，一个用于执行tcp服务，一个用于执行http服务；我们分别来看下；</p>
+<h2>nsqlookupd之tcp服务；</h2>
+<p>上篇文章有说道，nsqlookupd的tcp服务是用于处理nsqd上报信息的；我们顺着之前的Main方法，找到开启tcp服务的代码internal/protocol/tcp_server.go，如下:
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> TCPHandler <span class="keyword">interface</span> &#123;</div><div class="line">	Handle(net.Conn)</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">TCPServer</span><span class="params">(listener net.Listener, handler TCPHandler, l app.Logger)</span></span> &#123;</div><div class="line">	l.Output(<span class="number">2</span>, fmt.Sprintf(<span class="string">"TCP: listening on %s"</span>, listener.Addr()))</div><div class="line"></div><div class="line">	<span class="keyword">for</span> &#123;</div><div class="line">		clientConn, err := listener.Accept()</div><div class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">			<span class="keyword">if</span> nerr, ok := err.(net.Error); ok &amp;&amp; nerr.Temporary() &#123;</div><div class="line">				l.Output(<span class="number">2</span>, fmt.Sprintf(<span class="string">"NOTICE: temporary Accept() failure - %s"</span>, err))</div><div class="line">				runtime.Gosched()</div><div class="line">				<span class="keyword">continue</span></div><div class="line">			&#125;</div><div class="line">			<span class="comment">// theres no direct way to detect this error because it is not exposed</span></div><div class="line">			<span class="keyword">if</span> !strings.Contains(err.Error(), <span class="string">"use of closed network connection"</span>) &#123;</div><div class="line">				l.Output(<span class="number">2</span>, fmt.Sprintf(<span class="string">"ERROR: listener.Accept() - %s"</span>, err))</div><div class="line">			&#125;</div><div class="line">			<span class="keyword">break</span></div><div class="line">		&#125;</div><div class="line">		<span class="keyword">go</span> handler.Handle(clientConn)</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	l.Output(<span class="number">2</span>, fmt.Sprintf(<span class="string">"TCP: closing %s"</span>, listener.Addr()))</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个TCPServer函数是公共函数部分，因此这个函数也用于nsqd的tcp服务；这个函数和平时见到的golang网络编程模型一样，在一个for循环中，接收一个客户端，并开启一个新的goroutine来处理这个客户端；</p>
+<p>接下来，看下这个TCPHandler，这是个接口，这个接口包含Handle(net.Conn)方法，从Main方法可以看出，传入的TCPHandler是类tcpServer；我们接下来看下，在文件nsqlookupd/tcp.go:
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> tcpServer <span class="keyword">struct</span> &#123;</div><div class="line">	ctx *context</div><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *tcpServer)</span> <span class="title">Handle</span><span class="params">(clientConn net.Conn)</span></span> &#123;</div><div class="line">	......</div><div class="line">	<span class="keyword">var</span> prot protocol.Protocol</div><div class="line">	<span class="keyword">switch</span> protocolMagic &#123;</div><div class="line">	<span class="keyword">case</span> <span class="string">"  V1"</span>:</div><div class="line">		prot = &amp;LookupProtocolV1&#123;ctx: p.ctx&#125;</div><div class="line">	<span class="keyword">default</span>:</div><div class="line">		protocol.SendResponse(clientConn, []<span class="keyword">byte</span>(<span class="string">"E_BAD_PROTOCOL"</span>))</div><div class="line">		clientConn.Close()</div><div class="line">		p.ctx.nsqlookupd.logf(<span class="string">"ERROR: client(%s) bad protocol magic '%s'"</span>,</div><div class="line">			clientConn.RemoteAddr(), protocolMagic)</div><div class="line">		<span class="keyword">return</span></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	err = prot.IOLoop(clientConn)</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		p.ctx.nsqlookupd.logf(<span class="string">"ERROR: client(%s) - %s"</span>, clientConn.RemoteAddr(), err)</div><div class="line">		<span class="keyword">return</span></div><div class="line">	&#125;</div><div class="line">	......</div></pre></td></tr></table></figure></p>
+<p>这个tcpServer只有一个成员ctx，之前在Main函数有看到，这个context只有一个成员，即这个nsqlookupd实例的地址；这个context其实主要作用就是在各模块间传递nsqlookupd这个实例，便于访问nsqlookupd地址；nsq协议有默认(其实就是v0)和v1，因此代码有根据协议的版本执行不同的代码；我们以协议v1为例；这个Handle方法最后调用了LookupProtocolV1.IOLoop方法；由名字可以看出这个IOLoop函数是一个循环，我们来看下:
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div></pre></td><td class="code"><pre><div class="line">...........<span class="comment">//省去一些代码</span></div><div class="line">client := NewClientV1(conn)</div><div class="line">reader := bufio.NewReader(client)</div><div class="line"><span class="keyword">for</span> &#123;</div><div class="line">	<span class="comment">//读取用户的请求命令</span></div><div class="line">	line, err = reader.ReadString(<span class="string">'\n'</span>)</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		<span class="keyword">break</span></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	line = strings.TrimSpace(line)</div><div class="line">	<span class="comment">//按空格切割用户请求，params存储的就是用户请求命令以及参数</span></div><div class="line">	params := strings.Split(line, <span class="string">" "</span>)</div><div class="line"></div><div class="line">	<span class="keyword">var</span> response []<span class="keyword">byte</span></div><div class="line">	<span class="comment">//执行请求并返回结果</span></div><div class="line">	response, err = p.Exec(client, reader, params)</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		ctx := <span class="string">""</span></div><div class="line">		<span class="keyword">if</span> parentErr := err.(protocol.ChildErr).Parent(); parentErr != <span class="literal">nil</span> &#123;</div><div class="line">			ctx = <span class="string">" - "</span> + parentErr.Error()</div><div class="line">		&#125;</div><div class="line">		p.ctx.nsqlookupd.logf(<span class="string">"ERROR: [%s] - %s%s"</span>, client, err, ctx)</div><div class="line"></div><div class="line">		_, sendErr := protocol.SendResponse(client, []<span class="keyword">byte</span>(err.Error()))</div><div class="line">		<span class="keyword">if</span> sendErr != <span class="literal">nil</span> &#123;</div><div class="line">			p.ctx.nsqlookupd.logf(<span class="string">"ERROR: [%s] - %s%s"</span>, client, sendErr, ctx)</div><div class="line">			<span class="keyword">break</span></div><div class="line">		&#125;</div><div class="line"></div><div class="line">		<span class="comment">// errors of type FatalClientErr should forceably close the connection</span></div><div class="line">		<span class="keyword">if</span> _, ok := err.(*protocol.FatalClientErr); ok &#123;</div><div class="line">			<span class="keyword">break</span></div><div class="line">		&#125;</div><div class="line">		<span class="keyword">continue</span></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">if</span> response != <span class="literal">nil</span> &#123;</div><div class="line">		_, err = protocol.SendResponse(client, response)</div><div class="line">		<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">			<span class="keyword">break</span></div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>最后这个客户端的goroutine就在这个循环中不断执行用户(其实就是nsqd服务)请求；过程如下:</p>
+<ol>
+<li>读取用户请求；</li>
+<li>将用户请求字符串按空格切割成字符串数组；</li>
+<li>调用LookupProtocolV1.Exec方法，执行具体请求；</li>
+</ol>
+<p>最后来看下LookupProtocolV1.Exec方法;
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *LookupProtocolV1)</span> <span class="title">Exec</span><span class="params">(client *ClientV1, reader *bufio.Reader, params []<span class="keyword">string</span>)</span> <span class="params">([]<span class="keyword">byte</span>, error)</span></span> &#123;</div><div class="line">	<span class="keyword">switch</span> params[<span class="number">0</span>] &#123;</div><div class="line">	<span class="keyword">case</span> <span class="string">"PING"</span>:</div><div class="line">		<span class="keyword">return</span> p.PING(client, params)</div><div class="line">	<span class="keyword">case</span> <span class="string">"IDENTIFY"</span>:</div><div class="line">		<span class="keyword">return</span> p.IDENTIFY(client, reader, params[<span class="number">1</span>:])</div><div class="line">	<span class="keyword">case</span> <span class="string">"REGISTER"</span>:</div><div class="line">		<span class="keyword">return</span> p.REGISTER(client, reader, params[<span class="number">1</span>:])</div><div class="line">	<span class="keyword">case</span> <span class="string">"UNREGISTER"</span>:</div><div class="line">		<span class="keyword">return</span> p.UNREGISTER(client, reader, params[<span class="number">1</span>:])</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, protocol.NewFatalClientErr(<span class="literal">nil</span>, <span class="string">"E_INVALID"</span>, fmt.Sprintf(<span class="string">"invalid command %s"</span>, params[<span class="number">0</span>]))</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从这个函数可以看出，nsqd向nsqlookupd发送的信息只有上述四个命令，我分别说明下:</p>
+<ol>
+<li>PING nsqd每隔一段时间都会向nsqlookupd发送心跳，表明自己还活着；</li>
+<li>IDENTITY 当nsqd第一次连接nsqlookupd时，发送IDENTITY，验证自己身份；</li>
+<li>REGISTER 当nsqd创建一个topic或者channel时，向nsqlookupd发送REGISTER请求，在nsqlookupd上更新当前nsqd的topic或者channel信息；</li>
+<li>UNREGISTER 当nsqd删除一个topic或者channel时，向nsqlookupd发送UNREGISTER请求，在nsqlookupd上更新当前nsqd的topic或者channel信息；
+具体各个命令怎么执行，这里就不去分析了；需要提一点是，nsqd的信息是保存在registration_db这样的实例里面的；</li>
+</ol>
+<p>我们来总结下nsqlookupd的tcp执行流程:</p>
+<ol>
+<li>首先在Main函数开启一个goroutine来开启一个tcp循环，接收nsqd连接请求；</li>
+<li>当接收到一个nsqd接请求时，开启一个goroutine来处理这个nsqd；</li>
+<li>这个nsqd先是经历tcpServer.Handle函数，然后到LookupProtocolV1.IOLoop函数，并阻塞在此函数中；</li>
+<li>当nsqd发送请求时，LookupProtocolV1.IOLoop函数先是读取该请求，并调用LookupProtocolV1.Exec函数执行具体请求；</li>
+</ol>
+<h2>nsqlookupd之http服务</h2>
+<p>nsqlookupd的http服务是用于向nsqadmin提供查询接口的，本质上，就是一个web服务器，提供http查询接口；我们顺着Main函数，来看下http是怎么运行的，在文件internel/http_api/http_server.go中
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">Serve</span><span class="params">(listener net.Listener, handler http.Handler, proto <span class="keyword">string</span>, l app.Logger)</span></span> &#123;</div><div class="line">	l.Output(<span class="number">2</span>, fmt.Sprintf(<span class="string">"%s: listening on %s"</span>, proto, listener.Addr()))</div><div class="line"></div><div class="line">	server := &amp;http.Server&#123;</div><div class="line">		Handler:  handler,</div><div class="line">		ErrorLog: log.New(logWriter&#123;l&#125;, <span class="string">""</span>, <span class="number">0</span>),</div><div class="line">	&#125;</div><div class="line">	err := server.Serve(listener)</div><div class="line">	<span class="comment">// theres no direct way to detect this error because it is not exposed</span></div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &amp;&amp; !strings.Contains(err.Error(), <span class="string">"use of closed network connection"</span>) &#123;</div><div class="line">		l.Output(<span class="number">2</span>, fmt.Sprintf(<span class="string">"ERROR: http.Serve() - %s"</span>, err))</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	l.Output(<span class="number">2</span>, fmt.Sprintf(<span class="string">"%s: closing %s"</span>, proto, listener.Addr()))</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数也很简单，实例化http.Server模块，然后调用server.Server(listner)函数开启http服务；如果之前有看过golang的http模块，应该知道http模块最重要的就是http.Handler，因为http.Handler提供了路由查询，视图函数执行功能；在Main函数看到传入的http.Handler是newHTTPServer这个类，我们来看下:
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> httpServer <span class="keyword">struct</span> &#123;</div><div class="line">	ctx    *Context</div><div class="line">	router http.Handler</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">newHTTPServer</span><span class="params">(ctx *Context)</span> *<span class="title">httpServer</span></span> &#123;</div><div class="line">	log := http_api.Log(ctx.nsqlookupd.opts.Logger)</div><div class="line">	<span class="comment">//实例化一个httprouter</span></div><div class="line">	router := httprouter.New()</div><div class="line">	router.HandleMethodNotAllowed = <span class="literal">true</span></div><div class="line">	<span class="comment">//设置panic时的处理函数</span></div><div class="line">	router.PanicHandler = http_api.LogPanicHandler(ctx.nsqlookupd.opts.Logger)</div><div class="line">	<span class="comment">//设置not found处理函数</span></div><div class="line">	router.NotFound = http_api.LogNotFoundHandler(ctx.nsqlookupd.opts.Logger)</div><div class="line">	<span class="comment">//当请求方法不支持时的处理函数</span></div><div class="line">	router.MethodNotAllowed = http_api.LogMethodNotAllowedHandler(ctx.nsqlookupd.opts.Logger)</div><div class="line">	s := &amp;httpServer&#123;</div><div class="line">		ctx:    ctx,</div><div class="line">		router: router,</div><div class="line">	&#125;</div><div class="line"></div><div class="line">	router.Handle(<span class="string">"GET"</span>, <span class="string">"/ping"</span>, http_api.Decorate(s.pingHandler, log, http_api.PlainText))</div><div class="line">	<span class="comment">//省略后续路由定义</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s *httpServer)</span> <span class="title">ServeHTTP</span><span class="params">(w http.ResponseWriter, req *http.Request)</span></span> &#123;</div><div class="line">	s.router.ServeHTTP(w, req)</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>nsqlookupd的http服务路由使用的是开源框架httprouter；httprouter路由使用radix树来存储路由信息，路由查找上效率高，同时提供一些其他优秀特性，因此很受欢迎，gin web框架使用的就是httprouter路由；</p>
+<p>这个httpServer有两个成员属性，一个是context，用于传递nsqlookupd地址，一个是httprouter实例，用于定义路由以及提供路由查找入口；这个httpServer.ServerHTTP函数内部调用httprouter.ServerHTTP来处理http请求；</p>
+<p>针对这个函数，我们最后再来看下路由定义中的http_api.Decorate函数，在文件internal/http_api/api_response.go
+<figure class="highlight golang"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">Decorate</span><span class="params">(f APIHandler, ds ...Decorator)</span> <span class="title">httprouter</span>.<span class="title">Handle</span></span> &#123;</div><div class="line">	decorated := f</div><div class="line">	<span class="keyword">for</span> _, decorate := <span class="keyword">range</span> ds &#123;</div><div class="line">		decorated = decorate(decorated)</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> <span class="function"><span class="keyword">func</span><span class="params">(w http.ResponseWriter, req *http.Request, ps httprouter.Params)</span></span> &#123;</div><div class="line">		decorated(w, req, ps)</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数其实就是一个装饰器，第一个参数为需要被装饰的视图函数，从第二参数开始，都是装饰函数，最后返回装饰好的视图函数；http模块比较简单，和其他的web服务一样，很容易看懂；每个路由以及对应的视图函数比较多，这里就不一一解释了；</p>
+<h1>nsqlookupd优秀设计</h1>
+<hr>
+<p>上部分主要分析了nsqlookupd执行过程，主要有两个方面，一个是tcp，另一个是http；这部分，我将根据自己的理解，写下我认为nsqlookupd优秀设计；学习开源框架，除了使用和了解原理外，我觉得学习开源框架优秀设计以及代码技巧也是非常有意义的一件事；</p>
+<h2>优雅的代码启动方式和退出方式</h2>
+<p>nsqlookupd模块使用开源框架svc来开启进程以及控制进程的退出；本人也一直很喜欢使用信号的方式来退出进程，这样可以在进程收到信号时，可以做一些扫尾操作；虽然svc也是用信号来控制进程退出，但是使用svc，使代码看起来更简介优雅；</p>
+<h2>context的使用</h2>
+<p>nsqlookupd服务使用context来保存上下文(nsqlookupd实例地址)，这样在每个模块就可以很方便地访问nsqdlookupd实例；这有点类似与golang1.7正式引入的context；</p>
+<h2>代码复用</h2>
+<p>接口的使用，使代码复用更加容易；而且golang的继承是非浸入式的，即不需要显示声明某结构体继承自某个接口，只要该结构体实现了接口定义的函数即可；例如internal/protocol/tcp_server.go
+<figure class="highlight elm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">type</span> <span class="type">TCPHandler</span> interface &#123;</div><div class="line">	<span class="type">Handle</span>(net.<span class="type">Conn</span>)</div><div class="line">&#125;</div><div class="line"><span class="title">func</span> <span class="type">TCPServer</span>(listener net.<span class="type">Listener</span>, handler <span class="type">TCPHandler</span>, l app.<span class="type">Logger</span>)</div></pre></td></tr></table></figure></p>
+<p>这个函数是用于开启tcp服务，nsqd和nsqlookupd都有使用，这里的TCPHandler就是一个接口，nsqd和nsqlookupd服务分别有相应的结构体实现了TCPHandler，然后传入这个函数中；</p>
+<h2>视图函数封装</h2>
+<p>在web开发过程中，每个路由都有对应的视图函数，当我们在执行一个视图函数时，我们有打印日志(例如请求执行时间)或者判断权限等需求；如果在写每个视图函数时，都手动添加日志打印，第一是麻烦，第二是代码冗余；如果用装饰器模式将会非常方便；nsqlookupd的http服务针对每个视图函数都进行了装饰；如果所有视图函数的装饰函数是一样，那么我们可以直接装饰在http.handler上，这样可以简化代码；python的bottle也提供了类似功能，但是bottle是以插件的形式引入装饰器；</p>
+<h1>总结</h1>
+<p>这篇文章分析了nsqlookupd服务执行过程以及分享了我自认为一些好的代码设计；nsqlookupd对golang主要特性channel使用比较少，我们将会在nsqd中看到NSQ是如何优雅使用goroutine和channel.</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/nsq/" rel="tag">#nsq</a>
+          
+            <a href="/tags/nsqlookupd/" rel="tag">#nsqlookupd</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/12/08/nsq01/" rel="next" title="NSQ源码分析之概述">
+                <i class="fa fa-chevron-left"></i> NSQ源码分析之概述
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/01/05/weedfs/" rel="prev" title="SeaweedFS概述">
+                SeaweedFS概述 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/12/13/nsqlookupd/"
+     data-title="NSQ源码分析之nsqlookupd"
+     data-content=""
+     data-url="http://luodw.cc/2016/12/13/nsqlookupd/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/12/13/nsqlookupd/"
+           data-title="NSQ源码分析之nsqlookupd" data-url="http://luodw.cc/2016/12/13/nsqlookupd/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">nsqlookupd运行过程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.1.</span> <span class="nav-text">NSQ目录结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.2.</span> <span class="nav-text">nsqlookupd启动函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.3.</span> <span class="nav-text">nsqlookupd模块之Main函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.4.</span> <span class="nav-text">nsqlookupd之tcp服务；</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.5.</span> <span class="nav-text">nsqlookupd之http服务</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">nsqlookupd优秀设计</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.1.</span> <span class="nav-text">优雅的代码启动方式和退出方式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.2.</span> <span class="nav-text">context的使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.3.</span> <span class="nav-text">代码复用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.4.</span> <span class="nav-text">视图函数封装</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

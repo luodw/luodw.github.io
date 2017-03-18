@@ -1,0 +1,1102 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="leveldb,block,filterpolicy,tablebuilder,blockbuilder," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="本篇文章分析下leveldb写sst文件的源码，本质上就是为immemtable compaction到leveldb0文件提供接口，主要是插入。如果要理解这部分的源码，首先必须先将上篇sst文件格式搞清楚，否则，看源码会非常吃力，或者说毫无头绪。
+这部分源码涉及到table文件下的block_builder.h/.cc，filter_block.h/.cc和table_builder.h/.cc">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leveldb源码分析之写sst文件">
+<meta property="og:url" content="http://luodw.cc/2015/10/21/leveldb-10/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="本篇文章分析下leveldb写sst文件的源码，本质上就是为immemtable compaction到leveldb0文件提供接口，主要是插入。如果要理解这部分的源码，首先必须先将上篇sst文件格式搞清楚，否则，看源码会非常吃力，或者说毫无头绪。
+这部分源码涉及到table文件下的block_builder.h/.cc，filter_block.h/.cc和table_builder.h/.cc">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--%E8%AE%B0%E5%BD%95%E6%A0%BC%E5%BC%8F.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="leveldb源码分析之写sst文件">
+<meta name="twitter:description" content="本篇文章分析下leveldb写sst文件的源码，本质上就是为immemtable compaction到leveldb0文件提供接口，主要是插入。如果要理解这部分的源码，首先必须先将上篇sst文件格式搞清楚，否则，看源码会非常吃力，或者说毫无头绪。
+这部分源码涉及到table文件下的block_builder.h/.cc，filter_block.h/.cc和table_builder.h/.cc">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--%E8%AE%B0%E5%BD%95%E6%A0%BC%E5%BC%8F.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/21/leveldb-10/"/>
+
+
+  <title> leveldb源码分析之写sst文件 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                leveldb源码分析之写sst文件
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-21T22:02:27+08:00" content="2015-10-21">
+              2015-10-21
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/21/leveldb-10/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/21/leveldb-10/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/21/leveldb-10/" class="leancloud_visitors" data-flag-title="leveldb源码分析之写sst文件">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>本篇文章分析下leveldb写sst文件的源码，本质上就是为immemtable compaction到leveldb0文件提供接口，主要是插入。如果要理解这部分的源码，首先必须先将上篇sst文件格式搞清楚，否则，看源码会非常吃力，或者说毫无头绪。</p>
+<p>这部分源码涉及到table文件下的block_builder.h/.cc，filter_block.h/.cc和table_builder.h/.cc。先分析下block_builder.h/.cc文件，主要功能就是用于写data block和index block。向外提供主要接口就是void BlockBuilder::Add(const Slice&amp; key, const Slice&amp; value) .</p>
+<h1>BlockBuilder类</h1>
+<p>首先，看这个类的类名就知道这个类是用来构造一个块的，data block和index block都是通过这个类构造出来的。来看下这个类的成员变量有哪些：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"> <span class="keyword">const</span> Options*        options_;      <span class="comment">//Option类，由最上层open函数传进来，这里主要用于counter_ &lt; options_-&gt;block_restart_interval)</span></div><div class="line"><span class="comment">//判断两个Restart节点之间，记录数量是否小于option定义的值</span></div><div class="line">  <span class="built_in">std</span>::<span class="built_in">string</span>           buffer_;      <span class="comment">// 这个块的所有数据，数据一条一条添加到这个string中</span></div><div class="line">  <span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="keyword">uint32_t</span>&gt; restarts_;    <span class="comment">// 存储每一个Restart[i]</span></div><div class="line">  <span class="keyword">int</span>                   counter_;     <span class="comment">// 两个Restart之间记录的条数</span></div><div class="line">  <span class="keyword">bool</span>                  finished_;    <span class="comment">// 是否调用finish，也就是是否写完一个块。</span></div><div class="line">  <span class="built_in">std</span>::<span class="built_in">string</span>           last_key_;    <span class="comment">//每次写记录时的上一条记录，用于提供共享记录部分</span></div></pre></td></tr></table></figure></p>
+<p>因为这个类就要是为了构造块，所以这个类首先要提供add键值对的接口，其次是要有返回这个块所有数据的接口，便于上层接口将数据写到磁盘中，所以主要接口如下：
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//构造函数</span></div><div class="line"><span class="function"><span class="keyword">explicit</span> <span class="title">BlockBuilder</span>(<span class="params"><span class="keyword">const</span> Options* options</span>)</span>;</div><div class="line"><span class="comment">//重置block的各个属性，准备下一次写</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">Reset</span>(<span class="params"></span>)</span>;</div><div class="line"><span class="comment">//往当前块添加一条记录</span></div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">Add</span>(<span class="params"><span class="keyword">const</span> Slice&amp; key, <span class="keyword">const</span> Slice&amp; <span class="keyword">value</span></span>)</span>;</div><div class="line"><span class="comment">//当前块写结束，返回这个块的所有内容，在tablebuilder写入文件</span></div><div class="line"><span class="function">Slice <span class="title">Finish</span>(<span class="params"></span>)</span>;</div><div class="line"><span class="comment">//估计这个块的数据量，用于判断当前块是否大于option当中定义数据块大小</span></div><div class="line"><span class="function">size_t <span class="title">CurrentSizeEstimate</span>(<span class="params"></span>) <span class="keyword">const</span></span>;</div></pre></td></tr></table></figure></p>
+<p>接下来，分析每个函数的源码，构造函数如下;
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">BlockBuilder::BlockBuilder(<span class="keyword">const</span> Options* options)</div><div class="line">    : options_(options),</div><div class="line">      restarts_(),</div><div class="line">      counter_(0),</div><div class="line">      finished_(<span class="keyword">false</span>) &#123;</div><div class="line">    <span class="keyword">assert</span>(options-&gt;block_restart_interval &gt;= <span class="number">1</span>);</div><div class="line">    restarts_.push_back(<span class="number">0</span>); </div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>发现构造函数没有什么好分析的，就最后一句。因为第一条肯定是Restart点，所以把0地址添加进restarts。</p>
+<p>重置函数源码如下：</p>
+<p><figure class="highlight processing"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">kBuilder::Reset() &#123;</div><div class="line">  buffer_.<span class="built_in">clear</span>();<span class="comment">//块内容清零</span></div><div class="line">  restarts_.<span class="built_in">clear</span>();<span class="comment">//Restart节点清零</span></div><div class="line">  restarts_.push_back(<span class="number">0</span>); <span class="comment">//把0偏移加到Restart节点</span></div><div class="line">  counter_ = <span class="number">0</span>;<span class="comment">//两个Restart节点之间记录数清零</span></div><div class="line">  finished_ = <span class="keyword">false</span>;<span class="comment">//还未结束</span></div><div class="line">  last_key_.<span class="built_in">clear</span>();<span class="comment">//last_key清零</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>接下来是这个块内容大小的估计函数
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="keyword">size_t</span> BlockBuilder::CurrentSizeEstimate() <span class="keyword">const</span> &#123;</div><div class="line">  <span class="keyword">return</span> (buffer_.size() +                        <span class="comment">// 数据容量大小</span></div><div class="line">          restarts_.size() * <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>) +   <span class="comment">//Restart数组大小 </span></div><div class="line">          <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>));  <span class="comment">//Restart数组大小值所占的字节</span></div></pre></td></tr></table></figure></p>
+<p>这个函数主要用于判断某个块的容量是否到达上限，到达之后，要把数据刷新到磁盘，然后重新开始写下一个块。</p>
+<p>接下来是这个类最重要的函数，add添加键值对函数，这里还是把记录格式在贴出来，方便对照：
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/luodw--%E8%AE%B0%E5%BD%95%E6%A0%BC%E5%BC%8F.jpg" alt="data block记录格式">
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> BlockBuilder::Add(<span class="keyword">const</span> Slice&amp; <span class="built_in">key</span>, <span class="keyword">const</span> Slice&amp; value) &#123;</div><div class="line">  Slice last_key_piece(last_key_);<span class="comment">//上一条记录</span></div><div class="line">  <span class="keyword">assert</span>(!finished_);<span class="comment">//这个块还没写结束，如果结束，再添加会报错</span></div><div class="line">  <span class="keyword">assert</span>(counter_ &lt;= options_-&gt;block_restart_interval);<span class="comment">//两个Restart节点之间记录数小于等于预先设定的值</span></div><div class="line">  <span class="keyword">assert</span>(buffer_.empty() </div><div class="line">         || options_-&gt;comparator-&gt;Compare(<span class="built_in">key</span>, last_key_piece) &gt; <span class="number">0</span>);<span class="comment">//后面添加的键比上条记录大，skiplist有序</span></div><div class="line">  size_t shared = <span class="number">0</span>;</div><div class="line">  <span class="keyword">if</span> (counter_ &lt; options_-&gt;block_restart_interval) &#123;</div><div class="line">    <span class="comment">// 计算当前记录和上条记录共享部分长度</span></div><div class="line">    <span class="keyword">const</span> size_t min_length = std::<span class="built_in">min</span>(last_key_piece.<span class="built_in">size</span>(), <span class="built_in">key</span>.<span class="built_in">size</span>());</div><div class="line">    <span class="keyword">while</span> ((shared &lt; min_length) &amp;&amp; (last_key_piece[shared] == <span class="built_in">key</span>[shared])) &#123;</div><div class="line">      shared++;</div><div class="line">    &#125;</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="comment">// 如果上面if语句为false，则添加一个Restart节点，counter_=0。</span></div><div class="line">    restarts_.push_back(buffer_.<span class="built_in">size</span>());</div><div class="line">    counter_ = <span class="number">0</span>;</div><div class="line">  &#125;</div><div class="line">    <span class="keyword">const</span> size_t non_shared = <span class="built_in">key</span>.<span class="built_in">size</span>() - shared;<span class="comment">//当前记录和上条记录非共享部分长度</span></div><div class="line"></div><div class="line">  <span class="comment">// 将shared,non_shared,value的长度添加进buffer_</span></div><div class="line">  PutVarint32(&amp;buffer_, shared);</div><div class="line">  PutVarint32(&amp;buffer_, non_shared);</div><div class="line">  PutVarint32(&amp;buffer_, value.<span class="built_in">size</span>());</div><div class="line"></div><div class="line">  <span class="comment">// 添加当前记录的非共享内容和vlue内容</span></div><div class="line">  buffer_.<span class="built_in">append</span>(<span class="built_in">key</span>.data() + shared, non_shared);</div><div class="line">  buffer_.<span class="built_in">append</span>(value.data(), value.<span class="built_in">size</span>());</div><div class="line"></div><div class="line">  <span class="comment">// 更新上一条记录，即为当前记录</span></div><div class="line">  last_key_.resize(shared);</div><div class="line">  last_key_.<span class="built_in">append</span>(<span class="built_in">key</span>.data() + shared, non_shared);</div><div class="line">  <span class="keyword">assert</span>(Slice(last_key_) == <span class="built_in">key</span>);</div><div class="line">  counter_++;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数需要注意的是，每个Restart节点的共享部分为0,，因为没有上一条记录嘛。然后按协议封装好一条完整记录添加到buffer_即可，接下来，就是finish函数做的事了。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">Slice BlockBuilder::Finish() &#123;</div><div class="line">  <span class="comment">// 将Restart数组添加到记录后面</span></div><div class="line">  <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; restarts_.size(); i++) &#123;</div><div class="line">    PutFixed32(&amp;buffer_, restarts_[i]);</div><div class="line">  &#125;</div><div class="line">  PutFixed32(&amp;buffer_, restarts_.size());<span class="comment">//添加Restart数组大小到Restart数组后面</span></div><div class="line">  finished_ = <span class="literal">true</span>;<span class="comment">//这次数据块写结束</span></div><div class="line">  <span class="keyword">return</span> Slice(buffer_);<span class="comment">//向上层调用返回这个数据块的内容</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数主要是向table_builder提供返回这个块内容的接口，然后由table_builder调用函数写回磁盘。</p>
+<h1>FilterBlockBuilder类</h1>
+<p>这个类用于写Meta block，也就是创建过滤器。先来分析主要成员变量：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">const</span> FilterPolicy* policy_;    <span class="comment">//过滤策略，比较有名的是布隆过滤器</span></div><div class="line"><span class="built_in">std</span>::<span class="built_in">string</span> keys_;              <span class="comment">// 每一个Fliter条目包含的键值</span></div><div class="line"><span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="keyword">size_t</span>&gt; start_;     <span class="comment">// 每个Filter条目包含键值的首地址偏移量，相对于keys_首地址来说</span></div><div class="line"><span class="built_in">std</span>::<span class="built_in">string</span> result_;            <span class="comment">// 到目前为止，所有Filter天幕包含的数据</span></div><div class="line"><span class="built_in">std</span>::<span class="built_in">vector</span>&lt;Slice&gt; tmp_keys_;   <span class="comment">// 临时slice向量，用于向result_添加本次keys_数据</span></div><div class="line"><span class="built_in">std</span>::<span class="built_in">vector</span>&lt;<span class="keyword">uint32_t</span>&gt; filter_offsets_;<span class="comment">//每个Filter的偏移量</span></div></pre></td></tr></table></figure></p>
+<p>接下来介绍下主要函数：</p>
+<p>开始创建Fliter条目函数
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> FilterBlockBuilder::StartBlock(<span class="keyword">uint64_t</span> block_offset) &#123;</div><div class="line">  <span class="keyword">uint64_t</span> filter_index = (block_offset / kFilterBase);<span class="comment">//kFilterBase默认大小为2&gt;&gt;11</span></div><div class="line">  assert(filter_index &gt;= filter_offsets_.size());</div><div class="line">  <span class="keyword">while</span> (filter_index &gt; filter_offsets_.size()) &#123;</div><div class="line">    GenerateFilter();<span class="comment">//创建Filter条目</span></div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在table_builder.cc中，当一个块被刷新到磁盘时，就调用一次start_block函数，而触发块刷新的条件是，这个块的大小&gt;=r-&gt;options.block_size=4096，所以每次都创建一个Filter，但是Filter有两个数组指向&gt;=2的Filter条目。</p>
+<p>创建Filer条目函数:
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> FilterBlockBuilder::GenerateFilter() &#123;</div><div class="line">  <span class="keyword">const</span> size_t num_keys = start_.<span class="built_in">size</span>();<span class="comment">//这个Filter键值的个数</span></div><div class="line">  <span class="built_in">if</span> (num_keys == <span class="number">0</span>) &#123;</div><div class="line">    <span class="comment">// 添加下一个Filter条目的偏移量</span></div><div class="line">    filter_offsets_.push_back(result_.<span class="built_in">size</span>());</div><div class="line">    <span class="built_in">return</span>;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// 往result_添加key值</span></div><div class="line">  start_.push_back(keys_.<span class="built_in">size</span>());  <span class="comment">// 简化长度计算</span></div><div class="line">  tmp_keys_.resize(num_keys);</div><div class="line">  <span class="built_in">for</span> (size_t i = <span class="number">0</span>; i &lt; num_keys; i++) &#123;</div><div class="line">    <span class="keyword">const</span> <span class="keyword">char</span>* base = keys_.data() + start_[i];</div><div class="line">    size_t length = start_[i+<span class="number">1</span>] - start_[i];</div><div class="line">    tmp_keys_[i] = Slice(base, length);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">//添加Filter偏移量以及将keys_添加进result_。</span></div><div class="line">  filter_offsets_.push_back(result_.<span class="built_in">size</span>());</div><div class="line">  policy_-&gt;CreateFilter(&amp;tmp_keys_[<span class="number">0</span>], num_keys, &amp;result_);</div><div class="line"></div><div class="line">  <span class="comment">//重置以下三个成员变量</span></div><div class="line">  tmp_keys_.<span class="built_in">clear</span>();</div><div class="line">  keys_.<span class="built_in">clear</span>();</div><div class="line">  start_.<span class="built_in">clear</span>();</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>Filter i添加键值的函数:
+<figure class="highlight processing"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> FilterBlockBuilder::AddKey(<span class="keyword">const</span> Slice&amp; <span class="built_in">key</span>) &#123;</div><div class="line">  Slice k = <span class="built_in">key</span>;</div><div class="line">  start_.push_back(keys_.<span class="built_in">size</span>());</div><div class="line">  keys_.<span class="built_in">append</span>(k.data(), k.<span class="built_in">size</span>());<span class="comment">//添加键值</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>表示Meta block块写结束的函数:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">Slice FilterBlockBuilder::Finish() &#123;</div><div class="line">  <span class="keyword">if</span> (!start_.empty()) &#123;</div><div class="line">    GenerateFilter();<span class="comment">//为剩下的键值对创建Filter。</span></div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// 将Filter i的偏移量数组添加到result_</span></div><div class="line">  <span class="keyword">const</span> <span class="keyword">uint32_t</span> array_offset = result_.size();</div><div class="line">  <span class="keyword">for</span> (<span class="keyword">size_t</span> i = <span class="number">0</span>; i &lt; filter_offsets_.size(); i++) &#123;</div><div class="line">    PutFixed32(&amp;result_, filter_offsets_[i]);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  PutFixed32(&amp;result_, array_offset);<span class="comment">//将Filter i偏移量数组大小添加进result_</span></div><div class="line">  result_.push_back(kFilterBaseLg);  <span class="comment">// 添加beselg值</span></div><div class="line">  <span class="keyword">return</span> Slice(result_);<span class="comment">//向上层函数返回这个Meta block的内容。</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>TableBuilder类</h1>
+<p>这个类主要功能就是创建一个sst文件，它调用了block_builder和filerblockbuilder。这个类属性有点多，需要好好记清楚了。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> TableBuilder::Rep &#123;</div><div class="line">  Options options;<span class="comment">//上层传进来的optians，就是open函数的参数</span></div><div class="line">  Options index_block_options;<span class="comment">//暂时没看出用处</span></div><div class="line">  WritableFile* file;<span class="comment">//sst文件封装类</span></div><div class="line">  <span class="keyword">uint64_t</span> offset;<span class="comment">//sst文件的偏移量，每写一个块，就更新一次</span></div><div class="line">  Status status;<span class="comment">//这个类操作的状态</span></div><div class="line">  BlockBuilder data_block;<span class="comment">//写数据块的类</span></div><div class="line">  BlockBuilder index_block;<span class="comment">//写index_block的类</span></div><div class="line">  <span class="built_in">std</span>::<span class="built_in">string</span> last_key;<span class="comment">//用于写index block时最大键值 </span></div><div class="line">  <span class="keyword">int64_t</span> num_entries;<span class="comment">//这个块总的记录数</span></div><div class="line">  <span class="keyword">bool</span> closed;          <span class="comment">// 调用finish或者abandon，文件写结束</span></div><div class="line">  FilterBlockBuilder* filter_block;<span class="comment">//创建过滤器的类</span></div><div class="line">  <span class="keyword">bool</span> pending_index_entry;<span class="comment">//data block为空时，该值为true,用于写handler</span></div><div class="line">  BlockHandle pending_handle;  <span class="comment">// 用于写index block的handler</span></div><div class="line">  <span class="built_in">std</span>::<span class="built_in">string</span> compressed_output;<span class="comment">//转换为压缩的字符串</span></div></pre></td></tr></table></figure></p>
+<p>关键还是data_block，因为data_block要用多次，写块，刷新到磁盘，重置块等等。C++中用class代替struct，这里展示了struct用的场景之一，就是类里成员变量太多时，可以用struct封装。</p>
+<p>接下来，主要介绍table_builder主要函数。</p>
+<p>往data block添加一条记录函数：
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line">void TableBuilder::Add(const Slice&amp; key, const Slice&amp; value) &#123;</div><div class="line">  Rep* r = rep_;</div><div class="line">  <span class="function"><span class="title">assert</span>(!r-&gt;</span>closed);</div><div class="line">  <span class="keyword">if</span> (!ok()) return;</div><div class="line">  <span class="function"><span class="title">if</span> (r-&gt;</span>num_entries &gt; <span class="number">0</span>) &#123;</div><div class="line">    <span class="function"><span class="title">assert</span>(r-&gt;</span><span class="function"><span class="title">options</span>.comparator-&gt;</span>C<span class="function"><span class="title">ompare</span>(key, Slice(r-&gt;</span>last_key)) &gt; <span class="number">0</span>);</div><div class="line">  &#125;<span class="comment">//后续的key大于上条记录的key</span></div><div class="line"></div><div class="line">  <span class="function"><span class="title">if</span> (r-&gt;</span>pending_index_entry) &#123;<span class="comment">//当data_block为空时，将上个datablock的handler添加到index block</span></div><div class="line">    <span class="function"><span class="title">assert</span>(r-&gt;</span>data_block.empty());</div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">options</span>.comparator-&gt;</span>F<span class="function"><span class="title">indShortestSeparator</span>(&amp;r-&gt;</span>last_key, key);</div><div class="line">    std::string handle_encoding;</div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span>pending_handle.EncodeTo(&amp;handle_encoding);<span class="comment">//将handle解码到字符串handle_encoding</span></div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">index_block</span>.Add(r-&gt;</span>last_key, Slice(handle_encoding));<span class="comment">///index_block添加一条记录</span></div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span>pending_index_entry = <span class="literal">false</span>;<span class="comment">//赋值为false，开始新一个数据块写</span></div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="title">if</span> (r-&gt;</span>filter_block != NULL) &#123;</div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">filter_block</span>-&gt;</span>AddKey(key);<span class="comment">//如果有定义过滤器，将这条记录键值添加到meta block的filter条目中</span></div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="function"><span class="title">r</span>-&gt;</span>last_key.assign(key.<span class="keyword">data</span>(), key.size());<span class="comment">//重置last_key</span></div><div class="line">  <span class="function"><span class="title">r</span>-&gt;</span>num_entries++;<span class="comment">//记录数+1</span></div><div class="line">  <span class="function"><span class="title">r</span>-&gt;</span>data_block.Add(key, value);数据块添加记录</div><div class="line"></div><div class="line">  <span class="function"><span class="title">const</span> size_t estimated_block_size = r-&gt;</span>data_block.CurrentSizeEstimate();</div><div class="line">  <span class="function"><span class="title">if</span> (estimated_block_size &gt;= r-&gt;</span>options.block_size) &#123;</div><div class="line">    Flush();<span class="comment">//当这个数据块的数据量大于预先设置的值时，刷新到磁盘</span></div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>刷新函数为：</p>
+<p><figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">void TableBuilder::Flush() &#123;</div><div class="line">  Rep* r = rep_;</div><div class="line">  <span class="function"><span class="title">assert</span>(!r-&gt;</span>closed);</div><div class="line">  <span class="keyword">if</span> (!ok()) return;</div><div class="line">  <span class="function"><span class="title">if</span> (r-&gt;</span>data_block.empty()) return;</div><div class="line">  <span class="function"><span class="title">assert</span>(!r-&gt;</span>pending_index_entry);</div><div class="line">  W<span class="function"><span class="title">riteBlock</span>(&amp;r-&gt;</span><span class="function"><span class="title">data_block</span>, &amp;r-&gt;</span>pending_handle);<span class="comment">//将数据写回缓冲区</span></div><div class="line">  <span class="keyword">if</span> (ok()) &#123;</div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span>pending_index_entry = <span class="literal">true</span>;</div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">status</span> = r-&gt;</span><span class="function"><span class="title">file</span>-&gt;</span>Flush();<span class="comment">//数据刷新到磁盘</span></div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="title">if</span> (r-&gt;</span>filter_block != NULL) &#123;</div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">filter_block</span>-&gt;</span>S<span class="function"><span class="title">tartBlock</span>(r-&gt;</span>offset);<span class="comment">//重新开启一个Filter条目</span></div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>刷新操作主要有以下步骤：</p>
+<ol>
+<li>将这个块的数据刷新到磁盘。因为底层调用的是c标准io流，所以数据是先写到用户态的缓存中，然后调用flush，再刷新到磁盘。</li>
+<li>在WriteBlock函数内部还在index block添加一条记录。</li>
+<li>重新开启一条Filter条目。</li>
+</ol>
+<p>接下来是WriteBlock函数：
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">void TableBuilder::WriteBlock(BlockBuilder* <span class="keyword">block</span>, BlockHandle* handle) &#123;</div><div class="line">  assert(ok());</div><div class="line">  Rep* r = rep_;</div><div class="line">  S<span class="function"><span class="title">lice</span> raw = <span class="keyword">block</span>-&gt;</span>Finish();<span class="comment">//data block原生内容</span></div><div class="line"></div><div class="line">  Slice block_contents;</div><div class="line">  C<span class="function"><span class="title">ompressionType</span> type = r-&gt;</span>options.compression;<span class="comment">//是否将数据压缩</span></div><div class="line">  <span class="comment">// TODO(postrelease): Support more compression options: zlib?</span></div><div class="line">  switch (type) &#123;</div><div class="line">    case kNoCompression:</div><div class="line">      block_contents = raw;</div><div class="line">      break;</div><div class="line"></div><div class="line">    case kSnappyCompression: &#123;</div><div class="line">      <span class="function"><span class="title">std</span>::string* compressed = &amp;r-&gt;</span>compressed_output;</div><div class="line">      <span class="keyword">if</span> (port::Snappy_Compress(raw.<span class="keyword">data</span>(), raw.size(), compressed) &amp;&amp;</div><div class="line">          <span class="function"><span class="title">compressed</span>-&gt;</span>size() &lt; raw.size() - (raw.size() / <span class="number">8</span>u)) &#123;</div><div class="line">        block_contents = *compressed;</div><div class="line">      &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="comment">// Snappy not supported, or compressed less than 12.5%, so just</span></div><div class="line">        <span class="comment">// store uncompressed form</span></div><div class="line">        block_contents = raw;</div><div class="line">        type = kNoCompression;</div><div class="line">      &#125;</div><div class="line">      break;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  WriteRawBlock(block_contents, type, handle);<span class="comment">//真正写操作</span></div><div class="line">  <span class="function"><span class="title">r</span>-&gt;</span>compressed_output.clear();</div><div class="line">  <span class="function"><span class="title">block</span>-&gt;</span>Reset();<span class="comment">//重置data block，用于下次写</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数主要是用于判断data block的数据是否要压缩存储，真正下操作在下面函数：
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">void TableBuilder::WriteRawBlock(const Slice&amp; block_contents,</div><div class="line">                                 CompressionType type,</div><div class="line">                                 BlockHandle* handle) &#123;</div><div class="line">  Rep* r = rep_;</div><div class="line">  <span class="function"><span class="title">handle</span>-&gt;</span><span class="function"><span class="title">set_offset</span>(r-&gt;</span>offset);<span class="comment">//设置当前块的偏移量</span></div><div class="line">  <span class="function"><span class="title">handle</span>-&gt;</span>set_size(block_contents.size());<span class="comment">//设置当前块的大小</span></div><div class="line">  <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">status</span> = r-&gt;</span><span class="function"><span class="title">file</span>-&gt;</span>Append(block_contents);<span class="comment">//将内容写进用户态缓冲区</span></div><div class="line">  <span class="function"><span class="title">if</span> (r-&gt;</span>status.ok()) &#123;</div><div class="line">    char trailer[kBlockTrailerSize];</div><div class="line">    trailer[<span class="number">0</span>] = type;</div><div class="line">    uint32_t crc = crc32c::Value(block_contents.<span class="keyword">data</span>(), block_contents.size());</div><div class="line">    crc = crc32c::Extend(crc, trailer, <span class="number">1</span>);  <span class="comment">// Extend crc to cover block type</span></div><div class="line">    EncodeFixed32(trailer+<span class="number">1</span>, crc32c::Mask(crc));</div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">status</span> = r-&gt;</span><span class="function"><span class="title">file</span>-&gt;</span>Append(Slice(trailer, kBlockTrailerSize));</div><div class="line">    <span class="function"><span class="title">if</span> (r-&gt;</span>status.ok()) &#123;</div><div class="line">      <span class="function"><span class="title">r</span>-&gt;</span>offset += block_contents.size() + kBlockTrailerSize;<span class="comment">//写进一个块，这时sst文件偏移量增加</span></div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数主要作用就是将数据写进用户态缓冲区，添加类型和CRC码，更新偏移量。</p>
+<p>最后还有一个sst文件写完成函数，用于上层函数调用：
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div></pre></td><td class="code"><pre><div class="line">Status TableBuilder::Finish() &#123;</div><div class="line">  Rep* r = rep_;</div><div class="line">  Flush();<span class="comment">//刷新最后的数据</span></div><div class="line">  <span class="function"><span class="title">assert</span>(!r-&gt;</span>closed);</div><div class="line">  <span class="function"><span class="title">r</span>-&gt;</span>closed = <span class="literal">true</span>;</div><div class="line"></div><div class="line">  BlockHandle filter_block_handle, metaindex_block_handle, index_block_handle;</div><div class="line"></div><div class="line">  <span class="comment">// 写Meta block，调用filterblockbuilder的finish函数返回所有内容</span></div><div class="line">  <span class="function"><span class="title">if</span> (ok() &amp;&amp; r-&gt;</span>filter_block != NULL) &#123;</div><div class="line">    W<span class="function"><span class="title">riteRawBlock</span>(r-&gt;</span><span class="function"><span class="title">filter_block</span>-&gt;</span>Finish(), kNoCompression,</div><div class="line">                  &amp;filter_block_handle);<span class="comment">//将这个meta block的偏移量和写进filter_block_handle，用于metaindex block写</span></div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// 写metaindex block</span></div><div class="line">  <span class="keyword">if</span> (ok()) &#123;</div><div class="line">    B<span class="function"><span class="title">lockBuilder</span> meta_index_block(&amp;r-&gt;</span>options);</div><div class="line">    <span class="function"><span class="title">if</span> (r-&gt;</span>filter_block != NULL) &#123;</div><div class="line">      <span class="comment">// meta_index block块内容格式为"filter.Name"</span></div><div class="line">      std::string key = <span class="string">"filter."</span>;</div><div class="line">      <span class="function"><span class="title">key</span>.append(r-&gt;</span><span class="function"><span class="title">options</span>.filter_policy-&gt;</span>Name());</div><div class="line">      std::string handle_encoding;</div><div class="line">      filter_block_handle.EncodeTo(&amp;handle_encoding);</div><div class="line">      meta_index_block.Add(key, handle_encoding);</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// TODO(postrelease): Add stats and other meta blocks</span></div><div class="line">    WriteBlock(&amp;meta_index_block, &amp;metaindex_block_handle);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// 写index block</span></div><div class="line">  <span class="keyword">if</span> (ok()) &#123;</div><div class="line">    <span class="function"><span class="title">if</span> (r-&gt;</span>pending_index_entry) &#123;</div><div class="line">      <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">options</span>.comparator-&gt;</span>F<span class="function"><span class="title">indShortSuccessor</span>(&amp;r-&gt;</span>last_key);</div><div class="line">      std::string handle_encoding;</div><div class="line">      <span class="function"><span class="title">r</span>-&gt;</span>pending_handle.EncodeTo(&amp;handle_encoding);</div><div class="line">      <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">index_block</span>.Add(r-&gt;</span>last_key, Slice(handle_encoding));</div><div class="line">      <span class="function"><span class="title">r</span>-&gt;</span>pending_index_entry = <span class="literal">false</span>;</div><div class="line">    &#125;<span class="comment">//写finish里flush函数刷新的数据块的偏移量和大小</span></div><div class="line">    W<span class="function"><span class="title">riteBlock</span>(&amp;r-&gt;</span>index_block, &amp;index_block_handle);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// 写Footer</span></div><div class="line">  <span class="keyword">if</span> (ok()) &#123;</div><div class="line">    Footer footer;</div><div class="line">    footer.set_metaindex_handle(metaindex_block_handle);</div><div class="line">    footer.set_index_handle(index_block_handle);</div><div class="line">    std::string footer_encoding;</div><div class="line">    footer.EncodeTo(&amp;footer_encoding);</div><div class="line">    <span class="function"><span class="title">r</span>-&gt;</span><span class="function"><span class="title">status</span> = r-&gt;</span><span class="function"><span class="title">file</span>-&gt;</span>Append(footer_encoding);</div><div class="line">    <span class="function"><span class="title">if</span> (r-&gt;</span>status.ok()) &#123;</div><div class="line">      <span class="function"><span class="title">r</span>-&gt;</span>offset += footer_encoding.size();<span class="comment">//更新偏移量</span></div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="title">return</span> r-&gt;</span>status;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>至此，一个sst文件就建好了。最后还有一个函数，用于调用table_builder来创建sst文件，在builder.h/.cc里,这个等到compaction是再分析。</p>
+<p>leveldb将immemtable compcation到sst0就这样分析结束，接下来，就是读sst文件，读总是比写更复杂。。。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/leveldb/" rel="tag">#leveldb</a>
+          
+            <a href="/tags/block/" rel="tag">#block</a>
+          
+            <a href="/tags/filterpolicy/" rel="tag">#filterpolicy</a>
+          
+            <a href="/tags/tablebuilder/" rel="tag">#tablebuilder</a>
+          
+            <a href="/tags/blockbuilder/" rel="tag">#blockbuilder</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/21/leveldb-09/" rel="next" title="leveldb源码分析之sst文件格式">
+                <i class="fa fa-chevron-left"></i> leveldb源码分析之sst文件格式
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/22/Cplus6/" rel="prev" title="C++之柔性数组">
+                C++之柔性数组 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/21/leveldb-10/"
+     data-title="leveldb源码分析之写sst文件"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/21/leveldb-10/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/21/leveldb-10/"
+           data-title="leveldb源码分析之写sst文件" data-url="http://luodw.cc/2015/10/21/leveldb-10/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">BlockBuilder类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">FilterBlockBuilder类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">TableBuilder类</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

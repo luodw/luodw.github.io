@@ -1,0 +1,1209 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="linux,memory," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="之前在实习时，听了OOM的分享之后，就对linux内核内存管理充满兴趣；但是这块知识非常庞大，没有一定积累，不敢写下，担心误人子弟；所以经过一个一段时间的积累，对内核内存有一定了解之后，今天才写下这篇博客，记录以及分享；
+之前也有写过linux内存管理，那篇文章主要是linux内存管理，这篇文章主要是分析了单个进程空间的内存布局与分配，今天这篇博客主要是从全局的视角分析下内核对内存的管理;
+
+下面">
+<meta property="og:type" content="article">
+<meta property="og:title" content="linux内存分配与回收">
+<meta property="og:url" content="http://luodw.cc/2016/08/13/linux-cache/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="之前在实习时，听了OOM的分享之后，就对linux内核内存管理充满兴趣；但是这块知识非常庞大，没有一定积累，不敢写下，担心误人子弟；所以经过一个一段时间的积累，对内核内存有一定了解之后，今天才写下这篇博客，记录以及分享；
+之前也有写过linux内存管理，那篇文章主要是linux内存管理，这篇文章主要是分析了单个进程空间的内存布局与分配，今天这篇博客主要是从全局的视角分析下内核对内存的管理;
+
+下面">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/29381f30e924b899045823b46e061d950b7bf6d2.jpg">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_015.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="linux内存分配与回收">
+<meta name="twitter:description" content="之前在实习时，听了OOM的分享之后，就对linux内核内存管理充满兴趣；但是这块知识非常庞大，没有一定积累，不敢写下，担心误人子弟；所以经过一个一段时间的积累，对内核内存有一定了解之后，今天才写下这篇博客，记录以及分享；
+之前也有写过linux内存管理，那篇文章主要是linux内存管理，这篇文章主要是分析了单个进程空间的内存布局与分配，今天这篇博客主要是从全局的视角分析下内核对内存的管理;
+
+下面">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/29381f30e924b899045823b46e061d950b7bf6d2.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/08/13/linux-cache/"/>
+
+
+  <title> linux内存分配与回收 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                linux内存分配与回收
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-08-13T19:32:11+08:00" content="2016-08-13">
+              2016-08-13
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/08/13/linux-cache/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/08/13/linux-cache/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/08/13/linux-cache/" class="leancloud_visitors" data-flag-title="linux内存分配与回收">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>之前在实习时，听了OOM的分享之后，就对linux内核内存管理充满兴趣；但是这块知识非常庞大，没有一定积累，不敢写下，担心误人子弟；所以经过一个一段时间的积累，对内核内存有一定了解之后，今天才写下这篇博客，记录以及分享；</p>
+<p>之前也有写过linux内存管理，那篇文章主要是<a href="http://luodw.cc/2016/02/17/linux-memory/">linux内存管理</a>，这篇文章主要是分析了单个进程空间的内存布局与分配，今天这篇博客主要是从全局的视角分析下内核对内存的管理;
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/29381f30e924b899045823b46e061d950b7bf6d2.jpg" alt="厦大白城"></p>
+<p>下面主要从以下方面介绍linux内存管理:</p>
+<ul>
+<li>进程的内存申请与分配</li>
+<li>内存耗尽之后OOM</li>
+<li>申请的内存都在哪？</li>
+<li>系统回收内存</li>
+</ul>
+<h1>进程的内存申请与分配</h1>
+<hr>
+<p>之前有篇文章介绍hello world程序是如何载入内存以及是如何申请内存的；我在这，再次说明下；同样，还是先给出进程的地址空间，我觉得对于任何开发人员这张图是必须记住的，还有一张就是操作disk,memory以及cpu cache的时间图；
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_015.png" alt="进程的地址空间"></p>
+<p>当我们在终端启动一个程序时，终端进程调用exec函数将可执行文件载入内存，此时代码段，数据段，bbs段，stack段都通过mmap函数映射到内存空间，堆则要根据是否有在堆上申请内存来决定是否映射；exec执行之后，此时并未真正开始执行进程，而是将cpu控制权交给了动态链接库装载器，由它来将该进程需要的动态链接库装载进内存；之后才开始进程的执行；这个过程可以通过strace命令跟踪进程调用的系统函数来分析，
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">charles@charles-Aspire-4741:~$ strace ./toUpper</div><div class="line">execve(<span class="string">"./toUpper"</span>, [<span class="string">"./toUpper"</span>], [/* 72 vars */]) = 0</div><div class="line">brk(NULL)                               = 0x1bef000</div><div class="line">access(<span class="string">"/etc/ld.so.nohwcap"</span>, F_OK)      = -1 ENOENT (No such file or directory)</div><div class="line">mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f30be5d8000</div><div class="line">access(<span class="string">"/etc/ld.so.preload"</span>, R_OK)      = -1 ENOENT (No such file or directory)</div><div class="line">open(<span class="string">"/etc/ld.so.cache"</span>, O_RDONLY|O_CLOEXEC) = 3</div><div class="line">fstat(3, &#123;st_mode=S_IFREG|0644, st_size=116232, ...&#125;) = 0</div><div class="line">mmap(NULL, 116232, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7f30be5bb000</div><div class="line">close(3)                                = 0</div><div class="line">access(<span class="string">"/etc/ld.so.nohwcap"</span>, F_OK)      = -1 ENOENT (No such file or directory)</div><div class="line">open(<span class="string">"/lib/x86_64-linux-gnu/libc.so.6"</span>, O_RDONLY|O_CLOEXEC) = 3</div><div class="line"><span class="built_in">read</span>(3, <span class="string">"\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0&gt;\0\1\0\0\0P\t\2\0\0\0\0\0"</span>..., 832) = 832</div><div class="line">fstat(3, &#123;st_mode=S_IFREG|0755, st_size=1864888, ...&#125;) =: 0</div><div class="line">mmap(NULL, 3967488, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f30bdfec000</div><div class="line">mprotect(0x7f30be1ac000, 2093056, PROT_NONE) = 0</div><div class="line">mmap(0x7f30be3ab000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1bf000) = 0x7f30be3ab000</div><div class="line">mmap(0x7f30be3b1000, 14848, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7f30be3b1000</div><div class="line"></div><div class="line">......</div></pre></td></tr></table></figure></p>
+<p>这是我上篇博客认识pipe中的程序，从这个输出过程，可以看出和我上述描述的一致；</p>
+<p>当第一次调用malloc申请内存时，通过系统调用brk嵌入到内核，首先会进行一次判断，是否有关于堆的vma，如果没有，则通过mmap匿名映射一块内存给堆，并建立vma结构，挂到mm_struct描述符上的红黑树和链表上；然后回到用户态，通过内存分配器(ptmaloc,tcmalloc,jemalloc)算法将分配到的内存进行管理，返回给用户所需要的内存；</p>
+<p>如果用户态申请大内存时，是直接调用mmap分配内存，此时返回给用户态的内存还是虚拟内存，直到第一次访问返回的内存时，才真正进行内存的分配；其实通过brk返回的也是虚拟内存，但是经过内存分配器进行切割分配之后(切割就必须访问内存)，全都分配到了物理内存</p>
+<p>当进程在用户态通过调用free释放内存时，如果这块内存是通过mmap分配，则调用munmap直接返回给系统；否则内存是先返回给内存分配器，然后由内存分配器统一返还给系统，这就是为什么当我们调用free回收内存之后，再次访问这块内存时，可能不会报错的原因；</p>
+<p>当然，当整个进程退出之后，这个进程占用的内存都会归还给系统；</p>
+<h1>内存耗尽之后OOM</h1>
+<hr>
+<p>在实习期间，有一台测试机上的mysql实例经常被oom杀死；oom(out of memory)即为系统在内存耗尽时的自我拯救措施，他会选择一个进程，将其杀死，释放出内存；很明显，哪个进程占用的内存最多，即最可能被杀死，但事实是这样的吗？</p>
+<p>今天早上去上班，刚好碰到了一起OOM，突然发现，oom一次，世界都安静下来了，哈哈；测试机上的redis被杀死了；
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Out of memory: <span class="keyword">Kill</span> process <span class="number">12312</span> (redis-<span class="keyword">server</span>) score <span class="number">9</span> <span class="keyword">or</span> sacrifice <span class="keyword">child</span></div><div class="line">Killed process <span class="number">12312</span>, UID <span class="number">501</span>, (redis-<span class="keyword">server</span>) total-vm:<span class="number">186660</span>kB, anon-rss:<span class="number">9388</span>kB, <span class="keyword">file</span>-rss:<span class="number">4</span>kB</div></pre></td></tr></table></figure></p>
+<p>OOM关键文件oom_kill.c，里面介绍了当内存不够时，系统如何选择最应该被杀死的进程；选择因素有挺多的，除了进程占用的内存外，还有进程运行的时间，进程的优先级，是否为root用户进程，子进程个数和占用内存以及用户控制参数oom_adj都相关；</p>
+<p>当产生oom之后，函数select_bad_process会遍历所有进程，通过之前提到的那些因素，每个进程都会得到一个oom_score分数，分数最高，则被选为杀死的进程；</p>
+<p>我们可以通过设置/proc/&lt;pid&gt;/oom_adj分数来干预系统选择杀死的进程；
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/*</span></div><div class="line"> * /proc/&lt;pid&gt;/oom_adj set to -17 protects from the oom killer for legacy</div><div class="line"> * purposes.</div><div class="line"> */</div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OOM_DISABLE (-17)</span></div><div class="line"><span class="comment">/* inclusive */</span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OOM_ADJUST_MIN (-16)</span></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> OOM_ADJUST_MAX 15</span></div></pre></td></tr></table></figure></p>
+<p>这是内核关于这个oom_adj调整值的定义；最大可以调整为15,最小为-16，如果为-17，则该进程就像买了vip会员一样，不会被系统驱逐杀死了；因此，如果在一台机器上有跑很多服务器，且你不希望自己的服务被杀死的话，就可以设置自己服务的oom_adj为-17；</p>
+<p>当然，说到这，就必须提到另一个参数/proc/sys/vm/overcommit_memory，man proc说明如下:
+<figure class="highlight smali"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">0: heuristic overcommit (this is the default)</div><div class="line">1: always overcommit, never<span class="built_in"> check</span></div><div class="line">2: always check, never overcommit</div></pre></td></tr></table></figure></p>
+<p>意思就是当overcommit_memory为0时，则为启发式oom，即当申请的虚拟内存不是很夸张的大于物理内存，则系统允许申请；但是当进程申请的虚拟内存很夸张的大于物理内存，则就会产生OOM，例如只有8g的物理内存，然后redis虚拟内存占用了24G，物理内存占用3g,如果这时执行bgsave，子进程和父进程共享物理内存，但是虚拟内存是自己的，即子进程会申请24g的虚拟内存，这很夸张大于物理内存，就会产生一次OOM；</p>
+<p>当overcommit_memory为1时，则永远都允许overmemory内存申请；即不管你多大的虚拟内存申请都允许，但是当系统内存耗尽时，这时就会产生oom；即上述的redis例子，在overcommit_memory=1时，是不会产生oom的，因为物理内存足够；</p>
+<p>当overcommit_memory为2时，永远都不能超出某个限定额的内存申请，这个限定额为swap+RAM*系数（/proc/sys/vm/overcmmit_ratio，默认50%，可以自己调整），如果这么多资源已经用光，那么后面任何尝试申请内存的行为都会返回错误，这通常意味着此时没法运行任何新程序</p>
+<p>以上就是oom的内容，了解原理，以及如何根据自己的应用，合理的设置OOM；</p>
+<h1>系统申请的内存都在哪？</h1>
+<hr>
+<p>我们了解了一个进程的地址空间之后，是否会好奇，申请到的物理内存都存在哪了？可能很多人觉得，不就是物理内存吗？我这里说申请的内存在哪，是因为物理内存有分为cache和普通物理内存，可以通过free命令查看；而且物理内存还有分DMA,NORMAL,HIGH三个区，这里主要分析cache和普通内存；</p>
+<p>通过第一部分，我们知道一个进程的地址空间几乎都是mmap函数申请，有文件映射和匿名映射两种；</p>
+<h2>共享文件映射</h2>
+<p>我们先来看下代码段和动态链接库映射段，这两个都是属于共享文件映射，也就是说由同一个可执行文件启动的两个进程是共享这两个段，都是映射到同一块物理内存；那么这块内存在哪了？我写了个程序测试如下：
+<figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/mman.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;fcntl.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/stat.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;string.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> SIZE  1024*1024*1024</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span>* argv[])</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> fd;</div><div class="line">    <span class="keyword">struct</span> stat sb;  </div><div class="line">    <span class="keyword">char</span> *p;</div><div class="line">  	<span class="keyword">if</span> ((fd = open(argv[<span class="number">1</span>], O_RDWR)) &lt; <span class="number">0</span>) &#123;</div><div class="line">    	perror(<span class="string">"open"</span>);</div><div class="line">	&#125;  </div><div class="line">    <span class="keyword">if</span> ((fstat(fd, &amp;sb)) == <span class="number">-1</span>) &#123;  </div><div class="line">        perror(<span class="string">"fstat"</span>);  </div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> ((p = (<span class="keyword">char</span> *)mmap(<span class="literal">NULL</span>,sb.st_size, PROT_READ |   </div><div class="line">                PROT_WRITE, MAP_SHARED , fd, <span class="number">0</span>)) == (<span class="keyword">void</span> *)<span class="number">-1</span>) &#123;  </div><div class="line">    	perror(<span class="string">"mmap"</span>);  </div><div class="line">	 &#125;</div><div class="line">	<span class="comment">//必须执行下面memset函数，否则系统不会分配真实内存</span></div><div class="line">	<span class="built_in">memset</span>(p,<span class="string">'c'</span>,sb.st_size);</div><div class="line">	sleep(<span class="number">100</span>);</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>我们先看下当前系统的内存使用情况:
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">charles@charles-Aspire-4741:~$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:           5828        1596        3612          47         620        3913</div><div class="line">Swap:          3904           4        3900</div></pre></td></tr></table></figure></p>
+<p>当我在本地新建一个1G的文件</p>
+<blockquote>
+<p>dd if=/dev/zero of=fileblock bs=M count=1024</p>
+</blockquote>
+<p>然后调用上述程序，进行共享文件映射,此时内存使用情况为：
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"> ./hello fileblock</div><div class="line">/*---------------------*/</div><div class="line">charles@charles-Aspire-4741:~$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:          <span class="number"> 5828 </span>      <span class="number"> 1679 </span>      <span class="number"> 2491 </span>        <span class="number"> 47 </span>      <span class="number"> 1656 </span>       3824</div><div class="line">Swap:         <span class="number"> 3904 </span>         <span class="number"> 4 </span>       3900</div></pre></td></tr></table></figure></p>
+<p>我们可以发现，buff/cache增长了大概1G，因此我们可以得出结论，代码段和动态链接库段是映射到内核cache中，也就是说当执行共享文件映射时，文件是先被读取到cache中，然后再映射到用户进程空间中；</p>
+<h2>私有文件映射段</h2>
+<p>对于进程空间中的数据段，其必须是私有文件映射；因为如果是共享文件映射，那么同一个可执行文件启动的两个进程，任何一个进程修改数据段，都将影响另一个进程了；我将上述测试程序改写成匿名文件映射：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/mman.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;fcntl.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/stat.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;string.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> SIZE  1024*1024*1024</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span>* argv[])</span> </span>&#123;</div><div class="line">    <span class="keyword">int</span> fd;</div><div class="line">    <span class="keyword">struct</span> stat sb;  </div><div class="line">    <span class="keyword">char</span> *p;</div><div class="line">        <span class="keyword">if</span> ((fd = open(argv[<span class="number">1</span>], O_RDWR)) &lt; <span class="number">0</span>) &#123;</div><div class="line">        perror(<span class="string">"open"</span>);</div><div class="line">        &#125;  </div><div class="line">    <span class="keyword">if</span> ((fstat(fd, &amp;sb)) == <span class="number">-1</span>) &#123;  </div><div class="line">        perror(<span class="string">"fstat"</span>);  </div><div class="line">    &#125;</div><div class="line">    <span class="keyword">if</span> ((p = (<span class="keyword">char</span> *)mmap(<span class="literal">NULL</span>,sb.st_size, PROT_READ |   </div><div class="line">                PROT_WRITE, MAP_PRIVATE , fd, <span class="number">0</span>)) == (<span class="keyword">void</span> *)<span class="number">-1</span>) &#123;  </div><div class="line">        perror(<span class="string">"mmap"</span>);  </div><div class="line">         &#125;</div><div class="line">        <span class="comment">//必须执行下面memset函数，否则系统不会分配真实内存</span></div><div class="line">        <span class="built_in">memset</span>(p,<span class="string">'c'</span>,sb.st_size);</div><div class="line">        sleep(<span class="number">100</span>);</div><div class="line">        <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在执行程序执行，需要先将之前的cache释放掉，否则会影响结果</p>
+<blockquote>
+<p>echo 1 &gt;&gt; /proc/sys/vm/drop_caches</p>
+</blockquote>
+<p>接着执行程序，看下内存使用情况:
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">//没执行程序之前的内存使用情况</div><div class="line">charles@charles-Aspire-4741:~$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:          <span class="number"> 5828 </span>      <span class="number"> 1679 </span>      <span class="number"> 3681 </span>        <span class="number"> 47 </span>       <span class="number"> 467 </span>       3840</div><div class="line">Swap:         <span class="number"> 3904 </span>         <span class="number"> 4 </span>       3900</div><div class="line">/*------------------------------------------*/</div><div class="line">./hello fileblock</div><div class="line">/*-----------------------------------------*/</div><div class="line">//调用程序之后内存使用情况</div><div class="line">charles@charles-Aspire-4741:~$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:          <span class="number"> 5828 </span>      <span class="number"> 2713 </span>      <span class="number"> 1584 </span>        <span class="number"> 47 </span>      <span class="number"> 1530 </span>       2806</div><div class="line">Swap:         <span class="number"> 3904 </span>         <span class="number"> 4 </span>       3900</div></pre></td></tr></table></figure></p>
+<p>从使用前和使用后对比，可以发现used和buff/cache分别增长了1G，说明当进行私有文件映射时，首先是将文件映射到cache中，然后如果某个文件对这个文件进行修改，则会从其他内存中分配一块内存先将文件数据拷贝至新分配的内存，然后再在新分配的内存上进行修改，这也就是写时复制；</p>
+<p>这也很好理解，因为如果同一个可执行文件开启多个实例，那么内核先将这个可执行的数据段映射到cache，然后每个实例如果有修改数据段，则都将分配一个一块内存存储数据段，毕竟数据段也是一个进程私有的；</p>
+<p>通过上述分析，可以得出结论，如果是文件映射，则都是将文件映射到cache中，然后根据共享还是私有进行不同的操作；</p>
+<h2>私有匿名映射</h2>
+<p>像bbs段，堆，栈这些都是匿名映射，因为可执行文件中没有相应的段；而且必须是私有映射，否则如果当前进程fork出一个子进程，那么父子进程将会共享这些段，一个修改都会影响到彼此，这是不合理的;</p>
+<p>ok，现在我把上述测试程序改成私有匿名映射
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/mman.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;string.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> SIZE  1024*1024*1024</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span>* argv[])</span> </span>&#123;  </div><div class="line">    <span class="keyword">char</span> *p;</div><div class="line">    <span class="keyword">if</span> ((p = (<span class="keyword">char</span> *)mmap(<span class="literal">NULL</span>,SIZE, PROT_READ |   </div><div class="line">                PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>)) == (<span class="keyword">void</span> *)<span class="number">-1</span>) &#123;  </div><div class="line">    	perror(<span class="string">"mmap"</span>);  </div><div class="line">	 &#125;</div><div class="line">	<span class="built_in">memset</span>(p,<span class="string">'c'</span>,SIZE);</div><div class="line">	sleep(<span class="number">100</span>);</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这时再来看下内存的使用情况
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">//程序执行前</div><div class="line">charles@charles-Aspire-4741:~$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:          <span class="number"> 5828 </span>      <span class="number"> 1698 </span>      <span class="number"> 3646 </span>        <span class="number"> 47 </span>       <span class="number"> 483 </span>       3821</div><div class="line">Swap:         <span class="number"> 3904 </span>         <span class="number"> 4 </span>       3900</div><div class="line">/*------------------------------------------*/</div><div class="line">./hello</div><div class="line">/*------------------------------------------*/</div><div class="line">//测试程序执行之后</div><div class="line">charles@charles-Aspire-4741:~$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:          <span class="number"> 5828 </span>      <span class="number"> 2749 </span>      <span class="number"> 2582 </span>        <span class="number"> 47 </span>       <span class="number"> 496 </span>       2771</div><div class="line">Swap:         <span class="number"> 3904 </span>         <span class="number"> 4 </span>       3900</div></pre></td></tr></table></figure></p>
+<p>我们可以看到，只有used增加了1G，而buff/cache并没有增长；说明，在进行匿名私有映射时，并没有占用cache，其实这也是有道理，因为就只有当前进程在使用这块这块内存，没有必要占用宝贵的cache;</p>
+<h2>共享匿名映射</h2>
+<p>当我们需要在父子进程共享内存时，就可以用到mmap共享匿名映射；那么共享匿名映射的内存是存放在哪了？我继续改写上述测试程序为共享匿名映射
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;sys/mman.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;string.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> SIZE  1024*1024*1024</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">int</span> argc,<span class="keyword">char</span>* argv[])</span> </span>&#123;  </div><div class="line">    <span class="keyword">char</span> *p;</div><div class="line">    <span class="keyword">if</span> ((p = (<span class="keyword">char</span> *)mmap(<span class="literal">NULL</span>,SIZE, PROT_READ |   </div><div class="line">                PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, <span class="number">-1</span>, <span class="number">0</span>)) == (<span class="keyword">void</span> *)<span class="number">-1</span>) &#123;  </div><div class="line">        perror(<span class="string">"mmap"</span>);  </div><div class="line">         &#125;</div><div class="line">        <span class="built_in">memset</span>(p,<span class="string">'c'</span>,SIZE);</div><div class="line">        sleep(<span class="number">100</span>);</div><div class="line">        <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这时来看下内存的使用情况：
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">/测试程序执行前：</div><div class="line">charles@charles-Aspire-4741:~$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:           5828        1667        3661          47         499        3852</div><div class="line">Swap:          3904           4        3900</div><div class="line">/*-----------------------------------------*/</div><div class="line">./hello</div><div class="line">/*-----------------------------------------*/</div><div class="line">charles@charles-Aspire-4741:~$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:           5828        1694        2602        1071        1531        2801</div><div class="line">Swap:          3904           4        3900</div></pre></td></tr></table></figure></p>
+<p>从上述结果，我们可以看出，只有buff/cache增长了1G，即当进行共享匿名映射时，这时是从cache中申请内存；道理也很明显，因为父子进程共享这块内存，共享匿名映射存在于cache，然后每个进程再映射到彼此的虚存空间，这样即可操作的是同一块内存，</p>
+<h1>系统回收内存</h1>
+<hr>
+<p>当系统内存不足时，有两种方式进行内存释放，一种是手动的方式，另一种是系统自己触发的内存回收；先来看下手动触发方式；</p>
+<h2>手动回收内存</h2>
+<p>手动回收内存，之前也有演示过，即</p>
+<blockquote>
+<p>echo 1 &gt;&gt; /proc/sys/vm/drop_caches</p>
+</blockquote>
+<p>我们可以在man proc下面看到关于这个的简介
+<figure class="highlight tcl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">To free pagecache, use:</div><div class="line">	echo <span class="number">1</span> &gt; /<span class="keyword">proc</span>/sys/vm/drop_caches<span class="title"></span></div><div class="line"></div><div class="line">To free<span class="title"> dentries</span> and<span class="title"> inodes,</span> use:<span class="title"></span></div><div class="line"></div><div class="line">	echo 2 &gt; /<span class="keyword">proc</span>/sys/vm/drop_caches<span class="title"></span></div><div class="line"></div><div class="line">To free<span class="title"> pagecache,</span> dentries<span class="title"> and</span> inodes,<span class="title"> use:</span></div><div class="line"><span class="title"></span></div><div class="line">	echo 3 &gt; /<span class="keyword">proc</span>/sys/vm/drop_caches<span class="title"></span></div><div class="line"> Because writing<span class="title"> to</span> this<span class="title"> file</span> is<span class="title"> a</span> nondestructive<span class="title">  operation</span> <span class="title"> and</span> <span class="title"> </span></div><div class="line">dirty <span class="title"> objects</span> <span class="title"> are</span> <span class="title"> not</span> <span class="title"> freeable,</span> <span class="title"> the</span> user<span class="title"> should</span> run<span class="title"> sync(1)</span> first.</div></pre></td></tr></table></figure></p>
+<p>从这个介绍可以看出，当drop_caches文件为1时，这时将释放pagecache中可释放的部分(有些cache是不能通过这个释放的)；当drop_caches为2时，这时将释放dentries和inodes缓存；当drop_caches为3时，这同时释放上述两项；</p>
+<p>关键还有最后一句，意思是说如果pagecache中有脏数据时，操作drop_caches是不能释放的，必须通过sync命令将脏数据刷新到磁盘，才能通过操作drop_caches释放pagecache；</p>
+<p>ok，之前有提到有些pagecache是不能通过drop_caches释放的，那么除了上述提文件映射和共享匿名映射外，还有有哪些东西是存在pagecache了？</p>
+<h3>tmpfs</h3>
+<p>我们先来看下tmpfs; tmpfs和procfs,sysfs以及ramfs一样，都是基于内存的文件系统；tmpfs和ramfs的区别就是ramfs的文件基于纯内存的，和tmpfs除了纯内存外，还会使用swap交换空间，以及ramfs可能会把内存耗尽，而tmpfs可以限定使用内存大小；可以用命令df -T -h查看系统一些文件系统，其中就有一些是tmpfs，比较出名的是目录/dev/shm</p>
+<p>tmpfs文件系统源文件在内核源码mm/shmem.c，tmpfs实现很复杂，之前有介绍虚拟文件系统，基于tmpfs文件系统创建文件和其他基于磁盘的文件系统一样，也会有inode,super_block,identry,file等结构，区别主要是在读写上，因为读写才涉及到文件的载体是内存还是磁盘；</p>
+<p>而tmpfs文件的读函数shmem_file_read，过程主要为通过inode结构找到address_space地址空间，其实就是磁盘文件的pagecache；然后通过读偏移定位cache页以及页内偏移，这时就可以直接从这个pagecache通过函数__copy_to_user将缓存页内数据拷贝到用户空间；当我们要读物的数据不pagecache中时，这时要判断是否在swap中，如果在则先将内存页swap in，再读取；</p>
+<p>tmpfs文件的写函数shmem_file_write，过程主要为先判断要写的页是否在内存中，如果在，则直接将用户态数据通过函数__copy_from_user拷贝至内核pagecache中覆盖老数据，并标为dirty；如果要写的数据不再内存中，则判断是否在swap中，如果在，则先读取出来，用新数据覆盖老数据并标为脏；如果即不在内存也不在磁盘，则新生成一个pagecache存储用户数据；</p>
+<p>由上面分析，我们知道基于tmpfs的文件也是使用cache的，我们可以在/dev/shm上创建一个文件来检测下:
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//没有创建文件前内存使用情况</span></div><div class="line">charles<span class="meta">@charles</span>-Aspire<span class="number">-4741</span>:<span class="regexp">/dev/</span>shm$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line"><span class="string">Mem:</span>           <span class="number">5828</span>        <span class="number">1401</span>        <span class="number">2223</span>          <span class="number">42</span>        <span class="number">2204</span>        <span class="number">4058</span></div><div class="line"><span class="string">Swap:</span>          <span class="number">3904</span>           <span class="number">0</span>        <span class="number">3904</span></div><div class="line"><span class="comment">/*-----------------------------------------*/</span></div><div class="line">dd <span class="keyword">if</span>=<span class="regexp">/dev/</span>zero of=fileblock bs=<span class="number">1</span>G count=<span class="number">1</span></div><div class="line"><span class="comment">/*-----------------------------------------*/</span></div><div class="line"><span class="comment">//在/dev/shm上创建一个1G的文件</span></div><div class="line">charles<span class="meta">@charles</span>-Aspire<span class="number">-4741</span>:<span class="regexp">/dev/</span>shm$ free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line"><span class="string">Mem:</span>           <span class="number">5828</span>        <span class="number">1400</span>        <span class="number">1197</span>        <span class="number">1066</span>        <span class="number">3229</span>        <span class="number">3035</span></div><div class="line"><span class="string">Swap:</span>          <span class="number">3904</span>           <span class="number">0</span>        <span class="number">3904</span></div></pre></td></tr></table></figure></p>
+<p>看到了吧，cache增长了1G，验证了tmpfs的确使用的cache内存；</p>
+<p>其实mmap匿名映射原理也是用了tmpfs，在mm/mmap.c-&gt;do_mmap_pgoff函数内部，有判断如果file结构为空以及为SHARED映射，则调用shmem_zero_setup(vma)函数在tmpfs上用新建一个文件
+<figure class="highlight rust"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">int shmem_zero_setup(<span class="class"><span class="keyword">struct</span> <span class="title">vm_area_struct</span></span> *vma)</div><div class="line">&#123;</div><div class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">file</span></span> *file;</div><div class="line">	loff_t size = vma-&gt;vm_end - vma-&gt;vm_start;</div><div class="line"></div><div class="line">	file = shmem_file_setup(<span class="string">"dev/zero"</span>, size, vma-&gt;vm_flags);</div><div class="line">	<span class="keyword">if</span> (IS_ERR(file))</div><div class="line">		<span class="keyword">return</span> PTR_ERR(file);</div><div class="line"></div><div class="line">	<span class="keyword">if</span> (vma-&gt;vm_file)</div><div class="line">		fput(vma-&gt;vm_file);</div><div class="line">	vma-&gt;vm_file = file;</div><div class="line">	vma-&gt;vm_ops = &amp;shmem_vm_ops;</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这里就解释了为什么共享匿名映射内存初始化为0了；但是我们知道用mmap分配的内存初始化为0，就是说mmap私有匿名映射也为0,那么体现在哪了？</p>
+<p>这个在do_mmap_pgoff函数内部可没有体现出来，而是在缺页异常，然后分配一种特殊的初始化为0的页；</p>
+<p>那么这个tmpfs占有的内存页可以回收吗？
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">//创建文件前</div><div class="line">free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:          <span class="number"> 5828 </span>      <span class="number"> 1240 </span>      <span class="number"> 4040 </span>        <span class="number"> 41 </span>       <span class="number"> 547 </span>       4245</div><div class="line">Swap:         <span class="number"> 3904 </span>         <span class="number"> 0 </span>       3904</div><div class="line">//创建文件之后</div><div class="line">root@charles-Aspire-4741:/dev/shm<span class="comment"># free -m</span></div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:          <span class="number"> 5828 </span>      <span class="number"> 1243 </span>      <span class="number"> 3011 </span>      <span class="number"> 1065 </span>      <span class="number"> 1573 </span>       3217</div><div class="line">Swap:         <span class="number"> 3904 </span>         <span class="number"> 0 </span>       3904</div><div class="line">/*------------------------------------------*/</div><div class="line">root@charles-Aspire-4741:/dev/shm<span class="comment"># echo 1 &gt;&gt; /proc/sys/vm/drop_caches</span></div><div class="line">/*-------------------------------------------*/</div><div class="line"> free -m</div><div class="line">              total        used        free      shared  buff/cache   available</div><div class="line">Mem:          <span class="number"> 5828 </span>      <span class="number"> 1243 </span>      <span class="number"> 3012 </span>      <span class="number"> 1065 </span>      <span class="number"> 1572 </span>       3217</div><div class="line">Swap:         <span class="number"> 3904 </span>         <span class="number"> 0 </span>       3904</div></pre></td></tr></table></figure></p>
+<p>也就是说tmpfs文件占有的pagecache是不能回收的；道理也很明显，因为有文件引用这些页，就不能回收；</p>
+<h3>共享内存</h3>
+<p>posix共享内存其实和mmap共享映射是同一个道理，都是利用在tmpfs文件系统上新建一个文件，然后再映射到用户态；最后两个进程操作同一个物理内存；那么System V共享内存是否也是利用tmpfs文件系统了？</p>
+<p>我们可以跟踪到下述函数
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">newseg</span><span class="params">(<span class="keyword">struct</span> ipc_namespace *ns, <span class="keyword">struct</span> ipc_params *params)</span></span></div><div class="line">&#123;</div><div class="line"><span class="comment">//........</span></div><div class="line"><span class="built_in">sprintf</span>(name, <span class="string">"SYSV%08x"</span>, key);</div><div class="line"><span class="keyword">if</span>  ((shmflg &amp; SHM_NORESERVE) &amp;&amp;sysctl_overcommit_memory != OVERCOMMIT_NEVER)</div><div class="line">	acctflag = VM_NORESERVE;</div><div class="line">file = shmem_kernel_file_setup(name, size, acctflag);</div><div class="line"><span class="comment">//........</span></div></pre></td></tr></table></figure></p>
+<p>这个函数就是新建一个共享内存段，其中函数</p>
+<blockquote>
+<p>shmem_kernel_file_setup</p>
+</blockquote>
+<p>就是在tmpfs文件系统上创建一个文件；然后通过这个内存文件实现进程通信；这我就不写测试程序了；而且这也是不能回收的，因为共享内存ipc机制生命周期是随内核的，也就是说你创建共享内存之后，如果不显示删除的话，进程退出之后，共享内存还是存在的；</p>
+<p>之前看了一些技术博客，说到Poxic和System V两套ipc机制(消息队列，信号量以及共享内存)都是使用tmpfs文件系统，也就是说最终内存使用的都是pagecache，但是我在源码中看出了两个共享内存是基于tmpfs文件系统，其他信号量和消息队列还没看出来(有待后续考究)；</p>
+<p>posix消息队列的实现有点类似与pipe的实现，也是自己一套mqueue文件系统，然后在inode上的i_private上挂上关于消息队列属性mqueue_inode_info，在这个属性上，内核2.6时，是用一个数组存储消息，而到了4.6则用红黑树了存储消息(我下载了这两个版本，具体什么时候开始用红黑树，没深究)；然后两个进程每次操作都是操作这个mqueue_inode_info中的消息数组或者红黑树，实现进程通信；和这个mqueue_inode_info类似的还有tmpfs文件系统属性shmem_inode_info和为epoll服务的文件系统eventloop,也有一个特殊属性struct eventpoll，这个是挂在file结构的private_data等等；</p>
+<blockquote>
+<p>说到这，可以小结下，进程空间中代码段，数据段，动态链接库(共享文件映射)，mmap共享匿名映射都存在于cache中，但是这些内存页都有被进程引用，所以是不能释放的；基于tmpfs的ipc进程间通信机制的生命周期是随内核，因此也是不能通过drop_caches释放；</p>
+</blockquote>
+<p>虽然上述提及的cache不能释放，但是后面有提到，当内存不足时，这些内存是可以swap out的；</p>
+<p><strong>因此drop_caches能释放的就是当从磁盘读取文件时的缓存页以及某个进程将某个文件映射到内存之后，进程退出，这时映射文件的的缓存页如果没有被引用，也是可以被释放的;</strong></p>
+<h2>内存自动释放方式</h2>
+<p>当系统内存不够时，操作系统有一套自我整理内存，并尽可能的释放内存机制；如果这套机制不能释放足够多的内存，那么只能OOM了；</p>
+<p>之前在提及oom时，说道redis因为oom被杀死，如下:
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">Out of memory: <span class="keyword">Kill</span> process <span class="number">12312</span> (redis-<span class="keyword">server</span>) score <span class="number">9</span> <span class="keyword">or</span> sacrifice <span class="keyword">child</span></div><div class="line">Killed process <span class="number">12312</span>, UID <span class="number">501</span>, (redis-<span class="keyword">server</span>) total-vm:<span class="number">186660</span>kB, anon-rss:<span class="number">9388</span>kB, <span class="keyword">file</span>-rss:<span class="number">4</span>kB</div></pre></td></tr></table></figure></p>
+<p>第二句后半部分，</p>
+<blockquote>
+<p>total-vm:186660kB, anon-rss:9388kB, file-rss:4kB</p>
+</blockquote>
+<p>把一个进程内存使用情况，用三个属性进行了说明，即所有虚拟内存，常驻内存匿名映射页以及常驻内存文件映射页；</p>
+<p>其实从上述的分析，我们也可以知道一个进程其实就是文件映射和匿名映射；</p>
+<ul>
+<li>文件映射:代码段，数据段，动态链接库共享存储段以及用户程序的文件映射段；</li>
+<li>匿名映射：bbs段，堆，以及当malloc用mmap分配的内存，还有mmap共享内存段；</li>
+</ul>
+<p>其实内核回收内存就是根据文件映射和匿名映射来进行的；在mmzone.h有如下定义:
+<figure class="highlight crystal"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#define LRU_BASE 0</span></div><div class="line"><span class="comment">#define LRU_ACTIVE 1</span></div><div class="line"><span class="comment">#define LRU_FILE 2</span></div><div class="line"></div><div class="line"><span class="class"><span class="keyword">enum</span> <span class="title">lru_list</span> &#123;</span></div><div class="line">	LRU_INACTIVE_ANON = LRU_BASE,<span class="regexp">//</span>不活跃匿名映射页lru</div><div class="line">	LRU_ACTIVE_ANON = LRU_BASE + LRU_ACTIVE,<span class="regexp">//</span>活跃匿名映射页lru</div><div class="line">	LRU_INACTIVE_FILE = LRU_BASE + LRU_FILE,<span class="regexp">//</span>不活跃文件映射页lru</div><div class="line">	LRU_ACTIVE_FILE = LRU_BASE + LRU_FILE + LRU_ACTIVE,<span class="regexp">//</span>活跃文件映射页lru</div><div class="line">	LRU_UNEVICTABLE,</div><div class="line">	NR_LRU_LISTS</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>LRU_UNEVICTABLE即为不可驱逐页lru，我的理解就是当调用mlock锁住内存，不让系统swap out出去的页列表；</p>
+<p>简单说下linux内核自动回收内存原理；内核有一个kswapd会周期性的检查内存使用情况，如果发现空闲内存定于pages_low，则kswapd会对lru_list前四个lru队列进行扫描，在活跃链表中查找不活跃的页，并添加不活跃链表；然后再遍历不活跃链表，逐个进行回收释放出32个页，知道free page数量达到pages_high；针对不同的页，回收方式也不一样；</p>
+<p>当然，当内存水平低于某个极限阈值时，会直接发出内存回收，原理和kswapd一样，但是这次回收力度更大，需要回收更多的内存；</p>
+<p>文件页：</p>
+<ol>
+<li>如果是脏页，则直接回写进磁盘，再回收内存；</li>
+<li>如果不是脏页，则直接释放回收；因为如果是io读缓存，直接释放掉，下次读时，缺页异常，直接到磁盘读回来即可；如果是文件映射页，直接释放掉，下次访问时，也是产生两个缺页异常，一次将文件内容读取进磁盘，另一次与进程虚拟内存关联；</li>
+</ol>
+<p>匿名页：
+因为匿名页没有回写的地方，如果释放掉，那么就找不到数据了，所以匿名页的回收是采取swap out到磁盘；并在页表项做个标记，下次缺页异常在从磁盘swap in进内存；</p>
+<p>swap换进换出其实是很占用系统IO的，如果系统内存需求突然间迅速增长，那么cpu将被io占用，系统会卡死，导致不能对外提供服务；因此系统提供一个参数，用于设置当进行内存回收时，执行回收cache和swap匿名页的，这个参数为:
+<figure class="highlight tcl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">/<span class="keyword">proc</span>/sys/vm/swappiness<span class="title"></span></div><div class="line">     The value<span class="title"> in</span> this<span class="title"> file</span> controls<span class="title"> how</span> aggressively<span class="title"> the</span> kernel<span class="title"> will</span></div><div class="line"><span class="title">     swap</span> memory<span class="title"> pages.</span> <span class="title"> Higher</span> values<span class="title"> increase</span> aggressiveness,<span class="title"> lower</span></div><div class="line"><span class="title">     values</span> decrease<span class="title"> aggressiveness.</span> <span class="title"> The</span> default<span class="title"> value</span> is 60.</div></pre></td></tr></table></figure></p>
+<p>意思就是说这个值越高，越可能使用swap的方式回收内存；最大值为100；如果设为0，则尽可能使用回收cache的方式释放内存；</p>
+<h1>总结</h1>
+<p>这篇博客主要是写了linux内存管理相关的东西；首先是回顾了进程地址空间；其次当进程消耗大量内存而导致内存不足时，我们可以有两种方式，第一是手动回收cache；另一种是系统后台线程swapd执行内存回收工作；最后当申请的内存大于系统剩余的内存时，这时就只会产生oom，杀死进程，释放内存；从这个过程，可以看出系统为了腾出足够的内存，是多么的努力啊！！！</p>
+<p>后记</p>
+<blockquote>
+<p>一开始决定在写最后一部分内存回收时，打算列出源码进行分析，但是发现linux内存回收比文件系统难看多了；所以暂时以分析原理为主，后面有时间，慢慢再看这块代码；</p>
+</blockquote>
+<blockquote>
+<p>我一直很支持学计算机的朋友学习linux和c/c++，因为现在服务器几乎都是linux系统，而且经典高性能服务器软件大部分是c/c++(nginx,redis,mysql,redis,leveldb等等)写的，且跑在linux系统上；其次就是，linux暴露给外界进入的入口就是系统调用，其他语言如果想嵌入内核，就必须封装系统调用接口；而C++主要是锻炼oop思想还有泛型思想；因此，学好了linux和c/c++，再学其他软件或语言，都会轻松很多；<strong>这也就是我一直喜欢linux和c/c++的原因</strong></p>
+</blockquote>
+<blockquote>
+<p>像这次实习接触golang语言；如果有c/c++基础，golang语法层面是很快熟悉的；然后如果了解linux系统系统调用以及内核原理，那么golang执行与系统相关的函数也会很好理解；像平时使用的网络编程，golang没有提供epoll接口，但是其实内部是有用这个epoll进行轮询的；后面要好好写写博客，聊聊golang</p>
+</blockquote>
+<p>还是那句话，如果有什么出错的地方，希望大家能指出来，感谢～</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/linux/" rel="tag">#linux</a>
+          
+            <a href="/tags/memory/" rel="tag">#memory</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/08/01/pipeof/" rel="next" title="从内核源码聊聊pipe实现">
+                <i class="fa fa-chevron-left"></i> 从内核源码聊聊pipe实现
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/08/23/golang01/" rel="prev" title="golang语言之groupcache">
+                golang语言之groupcache <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/08/13/linux-cache/"
+     data-title="linux内存分配与回收"
+     data-content=""
+     data-url="http://luodw.cc/2016/08/13/linux-cache/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/08/13/linux-cache/"
+           data-title="linux内存分配与回收" data-url="http://luodw.cc/2016/08/13/linux-cache/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">进程的内存申请与分配</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">内存耗尽之后OOM</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">系统申请的内存都在哪？</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.1.</span> <span class="nav-text">共享文件映射</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.2.</span> <span class="nav-text">私有文件映射段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.3.</span> <span class="nav-text">私有匿名映射</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.4.</span> <span class="nav-text">共享匿名映射</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">系统回收内存</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.1.</span> <span class="nav-text">手动回收内存</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#undefined"><span class="nav-number">4.1.1.</span> <span class="nav-text">tmpfs</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#undefined"><span class="nav-number">4.1.2.</span> <span class="nav-text">共享内存</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.2.</span> <span class="nav-text">内存自动释放方式</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

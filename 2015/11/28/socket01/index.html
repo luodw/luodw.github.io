@@ -1,0 +1,1158 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="Socket," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="linux系统最重要的两块知识:进程(线程)间的通信与同步和网络编程.之前暑期已看了一遍进程间的通信,从今天开始,打算好好看下网络编程.
+因为已经看过unix环境高级编程和redis的源码,所以对网络编程的基础api大概都懂,但是对于原理性的东西,啥都不知道.所以打算看网络编程这本书,以及后期看libevent和memchached源码实现,巩固下所学知识.我看了前五章,发现这本书的知识正是我需要">
+<meta property="og:type" content="article">
+<meta property="og:title" content="linux网络学习前五章读书笔记">
+<meta property="og:url" content="http://luodw.cc/2015/11/28/socket01/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="linux系统最重要的两块知识:进程(线程)间的通信与同步和网络编程.之前暑期已看了一遍进程间的通信,从今天开始,打算好好看下网络编程.
+因为已经看过unix环境高级编程和redis的源码,所以对网络编程的基础api大概都懂,但是对于原理性的东西,啥都不知道.所以打算看网络编程这本书,以及后期看libevent和memchached源码实现,巩固下所学知识.我看了前五章,发现这本书的知识正是我需要">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_041.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_042.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_043.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_044.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="linux网络学习前五章读书笔记">
+<meta name="twitter:description" content="linux系统最重要的两块知识:进程(线程)间的通信与同步和网络编程.之前暑期已看了一遍进程间的通信,从今天开始,打算好好看下网络编程.
+因为已经看过unix环境高级编程和redis的源码,所以对网络编程的基础api大概都懂,但是对于原理性的东西,啥都不知道.所以打算看网络编程这本书,以及后期看libevent和memchached源码实现,巩固下所学知识.我看了前五章,发现这本书的知识正是我需要">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_041.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/11/28/socket01/"/>
+
+
+  <title> linux网络学习前五章读书笔记 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                linux网络学习前五章读书笔记
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-11-28T15:35:35+08:00" content="2015-11-28">
+              2015-11-28
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Socket/" itemprop="url" rel="index">
+                    <span itemprop="name">Socket</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/11/28/socket01/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/11/28/socket01/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/11/28/socket01/" class="leancloud_visitors" data-flag-title="linux网络学习前五章读书笔记">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>linux系统最重要的两块知识:进程(线程)间的通信与同步和网络编程.之前暑期已看了一遍<strong>进程间的通信</strong>,从今天开始,打算好好看下<strong>网络编程</strong>.</p>
+<p>因为已经看过<strong>unix环境高级编程</strong>和redis的源码,所以对网络编程的基础api大概都懂,但是对于原理性的东西,啥都不知道.所以打算看<strong>网络编程</strong>这本书,以及后期看libevent和memchached源码实现,巩固下所学知识.我看了前五章,发现这本书的知识正是我需要的,所以对一些知识点,做个总结.</p>
+<h1>TCP连接的建立</h1>
+<hr>
+<p>两台计算机网络的建立,一定经过三次握手过程,先上示意图,来自<strong>网络编程卷1</strong>
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_041.png" alt="TCP连接建立和断开">
+首先要说明的是,客户端通过建立socket并调用connect连接服务器为主动打开,而服务器通过调用socket,bind,listen准备客户连接为被动过程.</p>
+<ol>
+<li>首先服务器端通过调用socket,bind,listen监听服务器端的套接字,然后调用accept并阻塞在accept,等待客户连接.</li>
+<li>客户端先调用socket创建套接字,然后阻塞在connect调用.这时内核将自动执行三次握手过程.当客户端向服务器端发送一个syn时，这时客户端处于SYN_SENT状态；当服务器收到客户发来的syn时，处于SYN_RECV状态，并返回ack和syn；</li>
+<li>当客户端收到服务器端发来的syn和ack时,返回一个ack并从connect返回,表明已连上服务器.此时客户端为ESTABLISHED状态；</li>
+<li>服务器端收到客户端的ack之后,从accept返回一个服务器套接字,这个套接字与客户端已建立连接,此时服务器处于ESTABLISHED状态，接着客户端一般情况下就阻塞在read调用.</li>
+</ol>
+<h1>TCP连接终止</h1>
+<hr>
+<p>四次挥手过程示意图如上．
+对于连接终止过程，可以由客户端或服务器端任何一端先发起，先发起断开的一端为主动关闭，则另一端为被动关闭．假设由先客户发起</p>
+<ol>
+<li>客户端调用close关闭套接字时，内核会向服务器端发生一个fin分节，此时客户端处于FIN_WAIT_1状态；</li>
+<li>服务器端收到客户端的fin分节之后，服务端反馈一个ack，并从read返回0字节，此时服务器处于CLOSE_WAIT；</li>
+<li>当客户端收到服务器端返回的ack时，客户端处于FIN_WAIT_2状态；</li>
+<li>当服务器端也调用close时，向客户发送一个fin，客户接收到fin之后，处于TIME_WAIT状态，等待2MSL，客户端就关闭了</li>
+<li>服务器端收到收到客户端的ack之后，立即处于CLOSED状态，即关闭连接．</li>
+</ol>
+<p>服务器端在CLOSE_WAIT和LAST_ACK状态之间还是可以发送数据的,但是客户端都已调用close函数,接下来也不会对这个数据进行处理,所以没啥意义.</p>
+<p>为什么主动关闭的那端会有TIME_WAIT状态了?</p>
+<ol>
+<li>可靠地实现TCP全双工连接的终止;</li>
+<li>允许老的重复分节在网络中消逝.</li>
+</ol>
+<p>对于第一点,我们可以假设最后那个ack丢失的情况.当最后ack丢失之后,服务器端因为没有收到ack,所以必须重发fin,这就导致客户端必须重发ack.从客户端发第一个ack到重发ack刚好是两倍的包存活最长时间MSL.(一个是第一个ack存活时间,一个是重传的fin包)</p>
+<p>对于第二点,有足够的时间让这个连接不会跟后面的连接混在一起（你要知道，有些自做主张的路由器会缓存IP数据包，如果连接被重用了，那么这些延迟收到的包就有可能会跟新连接混在一起）。</p>
+<h1>TCP基础知识</h1>
+<hr>
+<ol>
+<li>MSS:MSS 最大分节大小.在数据链路层,有MTU这个概念,解释为某个信道最大的通信量.所以如果IP层,数据量太大的话,必须将ip包进行分片传输,然后在接收端进行包重组,这样以来,会影响到效率问题.所以linux内核就在TCP阶段,将传给IP层的数据限制在一定大小,防止分片.而TCP这个数据量的大小就是MSS,即TCP层最大传输数据段大小.这个大小一般等于MTU-20(IP包头)-20(TCP包头),这样就可以防止IP层分片了.</li>
+</ol>
+<ul>
+<li>
+<p>当在连接建立开始阶段,双方会互相发送各自MSS的大小,最后通过协商,选择二者较小的数值作为双方的MSS</p>
+</li>
+<li>
+<p>当前以太网的MTU=1500,所以ipv4的MSS=1460,ipv6的MSS=1440(ipv6的首部为40字节).而在ipv4和ipv6都定义了最小重组缓冲区的大小,即ipv4和ipv6任何实现都必须保证支持的最小数据报的大小.ipv4最小重组缓冲区为576,ipv6为1500,这时的MSS分别为536和1440.</p>
+</li>
+</ul>
+<ol start="2">
+<li>
+<p>ipv4首部有个&quot;不分片位(DF)&quot;,如果被设置了,则不管是主机还是路由器都不准对这个数据报分片,那么当传到数据链路层时,如果大于MTU,则会产生一个ICMP&quot;目的地不可达,需要分片但是DF位已设置&quot;的错误消息.</p>
+</li>
+<li>
+<p>TCP分片还有一个窗口选项,用于向对端通知从ack序列号+1开始,还可以接收多少数据量.</p>
+</li>
+<li>
+<p>TCP为了拥塞避免,设置了一个拥塞窗口,拥塞窗口的大小为此时可以发送的数据量,以tcp报文为单位,则可以用MSS的个数来表示可以发送的数据量.TCP用慢启动和快重传来避免网络拥塞.</p>
+</li>
+<li>
+<p>判断系统大小端,可以用如下联合体来判断:
+<figure class="highlight crystal"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">union</span> &#123;</span></div><div class="line">	short s;</div><div class="line">	char c[<span class="keyword">sizeof</span>(short)];</div><div class="line">&#125;un</div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<h1>socket相关函数解释</h1>
+<hr>
+<h2>connect函数</h2>
+<p>当客户端调用socket获取一个套接字时,即可调用connect连接服务器.在调用connect之前,其实是可以调用bind绑定本地ip地址和端口,但是没必要,因为内核会自己选择一个ip地址和临时端口.</p>
+<p>当调用connect时,用户进程则会阻塞,内核则会触发三次握手过程,并且只有在建立成功或者出错时才返回,出错时,有以下情况:</p>
+<ol>
+<li>若TCP客户没有收到SYN分节的响应,则返回ETIMEDOUT错误.例如此时服务端还没开启时.</li>
+<li>若对客户的SYN的响应是RST(表示复位),则表明该服务器主机在我们指定的端口没有进程在与之连接,返回ECONNREFUCED错误.</li>
+</ol>
+<p>RST是TCP发生错误时发送的一种TCP分节.产生RST的三个条件是:目的地的目的端口SYN到达,但却没有服务器监听这个端口;TCP想取消一个已有连接;TCP接收到一个根本不存在的连接上的分节.
+3.若客户发出的SYN在中间某个路由器上引发了一个&quot;destination unreachable&quot;的ICMP错误,为软错误,则ICMP错误会作为EHOSTUNREACH或ENETUNREACH错误返回给进程.</p>
+<p>对于错误原因的研究非常重要,因为在服务器出现问题时,可以分析错误的根源,便于快速定位到错误.</p>
+<h2>bind函数</h2>
+<p>bind函数用于将ip地址和端口绑定到一个套接字上,可以指定一个ip地址,或者指定一个端口,或者两个都指定,或者两个都不指定.</p>
+<p>对于客户端而言,一般情况下不绑定ip地址和端口,调用connnect时,由内核选择.
+对于服务端而言,我们可以设置ip地址和端口,有如下组合:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_042.png" alt="bind函数ip地址和端口设置组合"></p>
+<p>ip地址的通配地址为INADDR_ANY,其值一般全为0,它告诉内核自己选择ip地址,一般就是回环地址127.0.0.1和本机局域网地址.</p>
+<p>实际开发中,服务器端口肯定是固定的,用于客户端连接,ip地址可以用通配符的格式,这样即可以本机连接,也可以其他机子连接.</p>
+<h2>listen函数</h2>
+<p>通过看这本书,我对listen函数从只会调用,到理解内核原理跨越.当socket创建套接字时,它默认被设置为主动套接字,也就是说它是一个调用connect发起主动连接的客户套接字.listen函数将这个套接字转换为一个被动套接字,指示内核应该接受指向该套接字的连接请求.</p>
+<p>listen函数的第二个参数是规定了内核应该为相应套接字排队的最大连接个数.内核为每个监听套接字维护两个队列:</p>
+<ol>
+<li>未完成连接队列 每个SYN分节对应其中一项:已由某个客户发出并达到服务器,而服务器正在等待完成相应的TCP三路握手过程,这些套接字处于SYN_RCVD状态.</li>
+<li>已完成连接队列 每个已完成TCP三路握手过程的客户对应其中一项,这些套接字处于ESTABLISHED状态.</li>
+</ol>
+<p>下图描绘了监听套接字的两个队列:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_043.png" alt="TCP为套接字维护的两个队列"></p>
+<p>当进程调用accept时,已完成队列的队头项将返回给进程;如果该队列为空,则进程将阻塞在accept函数中.</p>
+<p>listen函数的第二参数backlog参数为这两个队列的总和的最大值或者增加一个模糊因子:乘以1.5,例如通常backlog设为5,所以最大套接字排队为1.5*5=8个.</p>
+<p>在正常情况下(没有丢失,没有重传),未完成队列的每一项在其中的存活时间为RTT,如下图所示:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_044.png" alt="分节RTT存活时间"></p>
+<p>当一个客户SYN达到时,若队列是满的,TCP就忽略该分节,客户会重新发送SYN分节.因为这只是暂时的,很快队列就会腾出空位.如果一开始就返回一个RST错误,那么客户不知道这个RST是表示&quot;该端口没有服务器监听&quot;,还是意味着&quot;该端口有服务器在监听,不过他的队列满了&quot;.</p>
+<p>在三次握手完成后,但在调用accept之前达到的数据应由服务器TCP排队,最大数据量为相应已连接套接字的接收缓冲区大小.</p>
+<h2>accept函数</h2>
+<p>accept函数由TCP服务器调用,用于从以完成连接队列对头返回下一个已完成的连接,如果队列为空,则阻塞.</p>
+<p>accept后两个参数分别为客户端的地址以及该地址的大小,如果不感兴趣,可以同时设置为NULL.</p>
+<h1>并发服务器</h1>
+<hr>
+<p>现在并发程序的设计框架无非就是单进程(IO多路复用),多进程和多线程,网络编程这本书一开始先介绍了多进程编程.</p>
+<p>并发多进程的实现主要是通过fork来实现的.</p>
+<p>在多进程编程时,还需要考虑一个问题,即子进程结束时,避免成为僵尸进程.避免僵尸进程有三种方法:</p>
+<ol>
+<li>调用wait或者waitpid函数来等待子进程结束,并回收资源</li>
+<li>调用两次fork函数,即由父进程派生子进程,子进程派生孙进程,接着子进程结束.这样能避免僵尸进程主要原因是当子进程派生孙进程而结束时,子进程可以由父进程回收资源,然后孙进程由与子进程结束,就被过继给init进程,init进程会在孙进程结束时回收资源.</li>
+<li>设置SIG_CHID处理函数为SIG_IGN
+但是为了可移植性,在多进程程序中,避免僵尸进程的主要方法是在父进程捕获SIG_CHID信号,然后在处理函数中调用wait函数.</li>
+</ol>
+<p>在调用wait函数时,又出现了问题,这里就不介绍wait和waitpid函数的使用方法,主要讲下书本为什么调用waitpid而不是wait.</p>
+<p>在处理函数中,如果调用wait函数时为
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">pid=<span class="built_in">wait</span>(&amp;<span class="built_in">stat</span>);</div></pre></td></tr></table></figure></p>
+<p>如果为waitpid函数时为:
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">while( (<span class="name">pid=waitpid</span>(<span class="name">-1</span>,<span class="symbol">&amp;stat</span>,WNOHANG)) &gt; <span class="number">0</span>)</div><div class="line">    printf(<span class="string">"child %d terminated\n"</span>,pid)<span class="comment">;</span></div></pre></td></tr></table></figure></p>
+<p>书中例子,在客户端产生了5个套接字连接服务器,这导致服务器产生5个进程来处理这5个客户端.当客户终止时,这时几乎同时产生5个FIN发到服务器,服务器对于第一个结束的子进程,此时服务器执行于SIG_CHID处理函数中,后面达到的SIG_CHID信号则排队,因为SIG_CHID是不可靠信号,是不会一个一个执行的,最终只会处理调用两次信号处理函数,说明还有三个僵尸进程为处理.</p>
+<p>如果调用的是wait函数,就是上述描述的情况,会产生三个僵尸进程;</p>
+<p>如果是调用waitpid函数,-1表示等待第一个结束的进程,WNOHANG告诉内核在没有已终止子进程时不要阻塞,所以对于同时产生的5个SIG_CHID信号,则可以调用一次信号处理函数,在while循环中把5个子进程资源都回收了.如果把while循环调用的是wait,也不行,因为没办法防止wait在正运行的子进程尚有未终止时阻塞.</p>
+<p>如果信号是一个一个到达,也就是一个信号处理函数结束,再产生第二个SIG_CHID信号,上述两个都可以,但是对于同时产生信号而言,只能在while循环中调用waitpid函数.</p>
+<p>:wq</p>
+<p>未完待续...</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/Socket/" rel="tag">#Socket</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/11/19/STL-map/" rel="next" title="STL分析之map和set">
+                <i class="fa fa-chevron-left"></i> STL分析之map和set
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/12/18/socket02/" rel="prev" title="linux网络编程udp学习读书笔记">
+                linux网络编程udp学习读书笔记 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/11/28/socket01/"
+     data-title="linux网络学习前五章读书笔记"
+     data-content=""
+     data-url="http://luodw.cc/2015/11/28/socket01/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/11/28/socket01/"
+           data-title="linux网络学习前五章读书笔记" data-url="http://luodw.cc/2015/11/28/socket01/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">TCP连接的建立</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">TCP连接终止</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">TCP基础知识</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">socket相关函数解释</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.1.</span> <span class="nav-text">connect函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.2.</span> <span class="nav-text">bind函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.3.</span> <span class="nav-text">listen函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.4.</span> <span class="nav-text">accept函数</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">并发服务器</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

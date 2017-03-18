@@ -1,0 +1,1093 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="leveldb,block,sst文件,table," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="上篇文章介绍了leveldb缓冲池，这篇文章主要来分析leveldb是如何读取磁盘的数据。这里先要说明下，leveldb有两种缓冲池，一个是block_cache,另一个是table_cache。block_cache缓冲的是data block，table_cache缓冲的是每个sst文件的文件指针(RandomAccessFile指针)和这个文件对应的Table指针。
+当leveldb要获取键">
+<meta property="og:type" content="article">
+<meta property="og:title" content="leveldb源码分析之读sst文件">
+<meta property="og:url" content="http://luodw.cc/2015/10/24/leveldb-12/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="上篇文章介绍了leveldb缓冲池，这篇文章主要来分析leveldb是如何读取磁盘的数据。这里先要说明下，leveldb有两种缓冲池，一个是block_cache,另一个是table_cache。block_cache缓冲的是data block，table_cache缓冲的是每个sst文件的文件指针(RandomAccessFile指针)和这个文件对应的Table指针。
+当leveldb要获取键">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--Block_cache.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="leveldb源码分析之读sst文件">
+<meta name="twitter:description" content="上篇文章介绍了leveldb缓冲池，这篇文章主要来分析leveldb是如何读取磁盘的数据。这里先要说明下，leveldb有两种缓冲池，一个是block_cache,另一个是table_cache。block_cache缓冲的是data block，table_cache缓冲的是每个sst文件的文件指针(RandomAccessFile指针)和这个文件对应的Table指针。
+当leveldb要获取键">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/luodw--Block_cache.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/24/leveldb-12/"/>
+
+
+  <title> leveldb源码分析之读sst文件 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                leveldb源码分析之读sst文件
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-24T20:20:16+08:00" content="2015-10-24">
+              2015-10-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/24/leveldb-12/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/24/leveldb-12/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/24/leveldb-12/" class="leancloud_visitors" data-flag-title="leveldb源码分析之读sst文件">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>上篇文章介绍了leveldb缓冲池，这篇文章主要来分析leveldb是如何读取磁盘的数据。这里先要说明下，leveldb有两种缓冲池，一个是block_cache,另一个是table_cache。block_cache缓冲的是data block，table_cache缓冲的是每个sst文件的文件指针(RandomAccessFile指针)和这个文件对应的Table指针。</p>
+<p>当leveldb要获取键值对时，首先检测键值对是否在缓冲池中，如果在，直接从缓冲池中获取；如果不在缓冲池中，则先从磁盘中获取相应的块，存储在缓冲池中，然后再从缓冲池中获取数据，如果系统的局部性很强的话，那么缓冲是可以大大减少磁盘IO时间的。</p>
+<h1>block类</h1>
+<p>block类主要是磁盘的data block和index block在内存中的数据结构，当读取一个块时，首先把块内容存储在block里，然后table类再调用block的相应方法来处理数据。</p>
+<p>所以先来看下block类的定义：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">const</span> <span class="keyword">char</span>* data_;<span class="comment">//指向data block的内容首地址</span></div><div class="line"><span class="keyword">size_t</span> size_;<span class="comment">//data block数据长度</span></div><div class="line"><span class="keyword">uint32_t</span> restart_offset_;     <span class="comment">// 重启点数组的起始地址</span></div><div class="line"><span class="keyword">bool</span> owned_;   <span class="comment">//是否要用户自己delete这个block</span></div><div class="line"><span class="keyword">uint32_t</span> NumRestarts() <span class="keyword">const</span>;<span class="comment">//返回这个block重启点的个数</span></div><div class="line"><span class="keyword">size_t</span> size() <span class="keyword">const</span> &#123; <span class="keyword">return</span> size_; &#125;<span class="comment">//这个块数据长度</span></div><div class="line"><span class="function">Iterator* <span class="title">NewIterator</span><span class="params">(<span class="keyword">const</span> Comparator* comparator)</span></span>;<span class="comment">//返回这个block的迭代器</span></div></pre></td></tr></table></figure></p>
+<p>先来看下这个类的构造函数
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">Block::Block(<span class="keyword">const</span> BlockContents&amp; contents)</div><div class="line">    : data_(contents.data.data()),</div><div class="line">      size_(contents.data.size()),</div><div class="line">      owned_(contents.heap_allocated) &#123;</div><div class="line">  <span class="keyword">if</span> (size_ &lt; <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>)) &#123;</div><div class="line">    size_ = <span class="number">0</span>;  <span class="comment">// 一个block至少有一个重启点所占的字节数</span></div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">size_t</span> max_restarts_allowed = (size_-<span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>)) / <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>);</div><div class="line">    <span class="keyword">if</span> (NumRestarts() &gt; max_restarts_allowed) &#123;</div><div class="line">      <span class="comment">// size太小</span></div><div class="line">      size_ = <span class="number">0</span>;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      <span class="comment">//如果了解一个data block的布局，就知道重启点为啥是如下计算了。</span></div><div class="line">      restart_offset_ = size_ - (<span class="number">1</span> + NumRestarts()) * <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>);</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个构造函数出现一个BlockContent类型，这个类型用来存储从磁盘读取的数据，定义如下：
+<figure class="highlight thrift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">BlockContents</span> </span>&#123;</div><div class="line">  Slice data;           <span class="comment">// data block数据</span></div><div class="line">  <span class="built_in">bool</span> cachable;        <span class="comment">// 这个块是否放进缓存中，在ReadOption.fill_cache设置</span></div><div class="line">  <span class="built_in">bool</span> heap_allocated;  <span class="comment">// 是否是用户自己分配的内存，如果是，则需要用户自己delete。</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>block这个类主要的接口就是返回这个类的迭代器，用于从data block中获取数据。我们来看下迭代器是如何实现的。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">const</span> Comparator* <span class="keyword">const</span> comparator_;<span class="comment">//比较器</span></div><div class="line"> <span class="keyword">const</span> <span class="keyword">char</span>* <span class="keyword">const</span> data_;      <span class="comment">// block的内容</span></div><div class="line"> <span class="keyword">uint32_t</span> <span class="keyword">const</span> restarts_;     <span class="comment">// 重启点数组的偏移量</span></div><div class="line"> <span class="keyword">uint32_t</span> <span class="keyword">const</span> num_restarts_; <span class="comment">// 重启点的个数</span></div><div class="line"> <span class="comment">//以上4个参数由block传进来，赋值之后就不再变化</span></div><div class="line"></div><div class="line"> <span class="comment">// current_ 指向正在读取的记录，如果current</span></div><div class="line"> <span class="keyword">uint32_t</span> current_;</div><div class="line"> <span class="keyword">uint32_t</span> restart_index_;  <span class="comment">// 当前记录所在重启点区域</span></div><div class="line"> <span class="built_in">std</span>::<span class="built_in">string</span> key_;<span class="comment">//当前记录的键值</span></div><div class="line"> Slice value_;<span class="comment">//当前记录的值</span></div><div class="line"> Status status_;<span class="comment">//当前迭代器的状态</span></div></pre></td></tr></table></figure></p>
+<p>以上就是block的成员变量，由于该迭代器成员函数较多，我就从迭代器初始化到迭代器取出一个值的顺序分析下源码：</p>
+<p>构造函数:
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">public</span>:</div><div class="line">  Iter(<span class="keyword">const</span> Comparator* comparator,</div><div class="line">       <span class="keyword">const</span> <span class="keyword">char</span>* data,</div><div class="line">       uint32_t restarts,</div><div class="line">       uint32_t num_restarts)</div><div class="line">      : comparator_(comparator),</div><div class="line">        data_(data),</div><div class="line">        restarts_(restarts),</div><div class="line">        num_restarts_(num_restarts),</div><div class="line">        current_(restarts_),//当前记录指向重启点数组的首位置，表示无效</div><div class="line">        restart_index_(num_restarts_) &#123;<span class="comment">//当前记录所在重启点索引=重启点个数，表示无效</span></div><div class="line">    <span class="keyword">assert</span>(num_restarts_ &gt; <span class="number">0</span>);</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>构造出一个迭代器之后，首先要将迭代器的当前记录指向首位置，当前记录所在索引赋值为0，函数如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">SeekToFirst</span><span class="params">()</span> </span>&#123;</div><div class="line">  SeekToRestartPoint(<span class="number">0</span>);</div><div class="line">  ParseNextKey();</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>该函数调用了两个函数如下：
+<figure class="highlight glsl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div></pre></td><td class="code"><pre><div class="line">   <span class="type">void</span> SeekToRestartPoint(uint32_t <span class="keyword">index</span>) &#123;</div><div class="line">    key_.clear();<span class="comment">//一开始key_为空</span></div><div class="line">    restart_index_ = <span class="keyword">index</span>;<span class="comment">//当前记录所在重启点索引为0</span></div><div class="line"></div><div class="line">    <span class="comment">// ParseNextKey() starts at the end of value_, so set value_ accordingly</span></div><div class="line">    uint32_t <span class="keyword">offset</span> = GetRestartPoint(<span class="keyword">index</span>);<span class="comment">//找到这个索引重启点的偏移量</span></div><div class="line">    value_ = Slice(data_ + <span class="keyword">offset</span>, <span class="number">0</span>);<span class="comment">//value_一开始指向记录的首位置</span></div><div class="line">  &#125;</div><div class="line">  <span class="comment">//解析当前记录</span></div><div class="line">  <span class="type">bool</span> ParseNextKey() &#123;</div><div class="line">    current_ = NextEntryOffset();<span class="comment">//将要被解析记录的偏移量，一开始时，就是0</span></div><div class="line">    <span class="keyword">const</span> char* p = data_ + current_;<span class="comment">//p指向将要被解析的记录首位置</span></div><div class="line">    <span class="keyword">const</span> char* limit = data_ + restarts_;  <span class="comment">// 记录指针最大值为重启点数组首位置</span></div><div class="line">    <span class="keyword">if</span> (p &gt;= limit) &#123;</div><div class="line">      <span class="comment">// 表示迭代到data block最后一条记录结束</span></div><div class="line">      current_ = restarts_;</div><div class="line">      restart_index_ = num_restarts_;</div><div class="line">      <span class="keyword">return</span> <span class="literal">false</span>;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">    <span class="comment">// 解析出当前记录</span></div><div class="line">    uint32_t <span class="keyword">shared</span>, non_shared, value_length;</div><div class="line">    <span class="comment">//解析当前记录的共享长度，非共享长度，值的长度，然后返回的指针p指向非共享内容的首位置</span></div><div class="line">    p = DecodeEntry(p, limit, &amp;<span class="keyword">shared</span>, &amp;non_shared, &amp;value_length);</div><div class="line">    <span class="keyword">if</span> (p == NULL || key_.size() &lt; <span class="keyword">shared</span>) &#123;</div><div class="line">      CorruptionError();</div><div class="line">      <span class="keyword">return</span> <span class="literal">false</span>;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      key_.resize(<span class="keyword">shared</span>);<span class="comment">//第一条记录共享长度为0</span></div><div class="line">      key_.append(p, non_shared);<span class="comment">//第一条记录的非共享内容就是第一条完整记录</span></div><div class="line">      value_ = Slice(p + non_shared, value_length);<span class="comment">//解析出value值</span></div><div class="line">      <span class="keyword">while</span> (restart_index_ + <span class="number">1</span> &lt; num_restarts_ &amp;&amp;</div><div class="line">             GetRestartPoint(restart_index_ + <span class="number">1</span>) &lt; current_) &#123;</div><div class="line">        ++restart_index_;<span class="comment">//更新记录所在的重启点索引</span></div><div class="line">      &#125;</div><div class="line">      <span class="keyword">return</span> <span class="literal">true</span>;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>这个函数非常重要，因为迭代器重要任务就是解析出记录。但是有一个难点，就是需要区分重启点第一条记录和非第一条记录的解析方式。</p>
+<ol>
+<li>当为第一条记录时，共享部分为0， key_.append(p, non_shared);这行代码就是将第一条完整记录加在key_后面。</li>
+<li>当不是第一条记录时，此时key_.resize(shared);这行代码获取当前记录和上一条记录共享部分， key_.append(p, non_shared);这行代码就获得非共享部分，凑成完整的记录。</li>
+</ol>
+<p>经过上述函数，此时这个迭代器的key_指向第一条记录的key，value_指向第一条记录的value.</p>
+<p>最后一个就是返回这个block的迭代器函数;
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">Iterator* Block::NewIterator(<span class="keyword">const</span> Comparator* cmp) &#123;</div><div class="line">  <span class="keyword">if</span> (size_ &lt; <span class="keyword">sizeof</span>(<span class="keyword">uint32_t</span>)) &#123;</div><div class="line">    <span class="keyword">return</span> NewErrorIterator(Status::Corruption(<span class="string">"bad block contents"</span>));</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">const</span> <span class="keyword">uint32_t</span> num_restarts = NumRestarts();</div><div class="line">  <span class="keyword">if</span> (num_restarts == <span class="number">0</span>) &#123;</div><div class="line">    <span class="keyword">return</span> NewEmptyIterator();</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">new</span> Iter(cmp, data_, restart_offset_, num_restarts);</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>其他函数就不一一分析了，接下来，看下调用block，获取数据的Table类;</p>
+<h1>Table类</h1>
+<p>Table这个类是sst文件在内存的数据结构，保存了sst文件的index block,meta block，文件指针等等。Table这个类读取数据时，先从Block_cache查询，如果找到了，就直接返回，否则就到磁盘获取。先来看下这个类的属性定义：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> Table::Rep &#123;</div><div class="line">  ~Rep() &#123;</div><div class="line">    <span class="keyword">delete</span> filter;</div><div class="line">    <span class="keyword">delete</span> [] filter_data;</div><div class="line">    <span class="keyword">delete</span> index_block;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  Options options;<span class="comment">//上层传进来的options</span></div><div class="line">  Status status;<span class="comment">//这个表格的状态</span></div><div class="line">  RandomAccessFile* file;<span class="comment">//这个Table代表的文件</span></div><div class="line">  <span class="keyword">uint64_t</span> cache_id;<span class="comment">//缓存序号</span></div><div class="line">  FilterBlockReader* filter;<span class="comment">//读取Meta block类</span></div><div class="line">  <span class="keyword">const</span> <span class="keyword">char</span>* filter_data;<span class="comment">//Meta block数据</span></div><div class="line"></div><div class="line">  BlockHandle metaindex_handle;  <span class="comment">// 读取Metaindex_block的handle</span></div><div class="line">  Block* index_block;<span class="comment">//index Block</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>Table构造函数很简单，就是给Rep属性赋值。接来下，看下如何打开一个Table
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div><div class="line">78</div><div class="line">79</div><div class="line">80</div><div class="line">81</div><div class="line">82</div><div class="line">83</div><div class="line">84</div><div class="line">85</div><div class="line">86</div><div class="line">87</div><div class="line">88</div><div class="line">89</div><div class="line">90</div><div class="line">91</div><div class="line">92</div><div class="line">93</div><div class="line">94</div><div class="line">95</div><div class="line">96</div><div class="line">97</div><div class="line">98</div><div class="line">99</div><div class="line">100</div><div class="line">101</div><div class="line">102</div><div class="line">103</div><div class="line">104</div></pre></td><td class="code"><pre><div class="line">Status Table::Open(const Options&amp; options,</div><div class="line">                   RandomAccessFile* file,</div><div class="line">                   uint64_t size,</div><div class="line">                   Table** table) &#123;</div><div class="line">  *table = NULL;</div><div class="line">  <span class="keyword">if</span> (size &lt; Footer::kEncodedLength) &#123;</div><div class="line">    return Status::Corruption(<span class="string">"file is too short to be an sstable"</span>);</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  char footer_space[Footer::kEncodedLength];<span class="comment">//存储footer空间</span></div><div class="line">  Slice footer_input;<span class="comment">//footer内容</span></div><div class="line">  S<span class="function"><span class="title">tatus</span> s = file-&gt;</span>Read(size - Footer::kEncodedLength, Footer::kEncodedLength,</div><div class="line">                        &amp;footer_input, footer_space);<span class="comment">//从文件读取出footer</span></div><div class="line">  <span class="keyword">if</span> (!s.ok()) return s;</div><div class="line"></div><div class="line">  Footer footer;</div><div class="line">  s = footer.DecodeFrom(&amp;footer_input);<span class="comment">//从footer_input解码出footer这个类</span></div><div class="line">  <span class="keyword">if</span> (!s.ok()) return s;</div><div class="line"></div><div class="line">  <span class="comment">// 读取index block</span></div><div class="line">  BlockContents <span class="built_in">contents</span>;</div><div class="line">  Block* index_block = NULL;</div><div class="line">  <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">    ReadOptions opt;</div><div class="line">    <span class="keyword">if</span> (options.paranoid_checks) &#123;</div><div class="line">      opt.verify_checksums = <span class="literal">true</span>;</div><div class="line">    &#125;</div><div class="line">    s = ReadBlock(file, opt, footer.index_handle(), &amp;<span class="built_in">contents</span>);<span class="comment">//读取sst文件一个块函数，有crc检查</span></div><div class="line">    <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">      index_block = new Block(<span class="built_in">contents</span>);<span class="comment">//转换为block类</span></div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">    <span class="comment">// We've successfully read the footer and the index block: we're</span></div><div class="line">    <span class="comment">// ready to serve requests.</span></div><div class="line">    Rep* rep = new Table::Rep;<span class="comment">//给rep属性赋值</span></div><div class="line">    <span class="function"><span class="title">rep</span>-&gt;</span>options = options;</div><div class="line">    <span class="function"><span class="title">rep</span>-&gt;</span>file = file;</div><div class="line">    <span class="function"><span class="title">rep</span>-&gt;</span>metaindex_handle = footer.metaindex_handle();</div><div class="line">    <span class="function"><span class="title">rep</span>-&gt;</span>index_block = index_block;</div><div class="line">    <span class="function"><span class="title">rep</span>-&gt;</span><span class="function"><span class="title">cache_id</span> = (options.block_cache ? options.block_cache-&gt;</span>NewId() : <span class="number">0</span>);</div><div class="line">    <span class="function"><span class="title">rep</span>-&gt;</span>filter_data = NULL;</div><div class="line">    <span class="function"><span class="title">rep</span>-&gt;</span>filter = NULL;</div><div class="line">    *table = new Table(rep);</div><div class="line">    (*<span class="function"><span class="title">table</span>)-&gt;</span>ReadMeta(footer);<span class="comment">//读取Metaindex block</span></div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    <span class="keyword">if</span> (index_block) delete index_block;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  return s;</div><div class="line">&#125;</div><div class="line"></div><div class="line">void Table::ReadMeta(const Footer&amp; footer) &#123;</div><div class="line">  <span class="function"><span class="title">if</span> (rep_-&gt;</span>options.filter_policy == NULL) &#123;</div><div class="line">    return;  <span class="comment">// 表示没有Metaindex block数据</span></div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// TODO(sanjay): Skip this if footer.metaindex_handle() size indicates</span></div><div class="line">  <span class="comment">// it is an empty block.</span></div><div class="line">  ReadOptions opt;</div><div class="line">  <span class="function"><span class="title">if</span> (rep_-&gt;</span>options.paranoid_checks) &#123;</div><div class="line">    opt.verify_checksums = <span class="literal">true</span>;</div><div class="line">  &#125;</div><div class="line">  BlockContents <span class="built_in">contents</span>;</div><div class="line">  <span class="function"><span class="title">if</span> (!ReadBlock(rep_-&gt;</span>file, opt, footer.metaindex_handle(), &amp;<span class="built_in">contents</span>).ok()) &#123;</div><div class="line">    <span class="comment">// Do not propagate errors since meta info is not needed for operation</span></div><div class="line">    return;</div><div class="line">  &#125;</div><div class="line">  Block* meta = new Block(<span class="built_in">contents</span>);</div><div class="line"></div><div class="line">  I<span class="function"><span class="title">terator</span>* iter = meta-&gt;</span>NewIterator(BytewiseComparator());</div><div class="line">  std::string key = <span class="string">"filter."</span>;</div><div class="line">  <span class="function"><span class="title">key</span>.append(rep_-&gt;</span><span class="function"><span class="title">options</span>.filter_policy-&gt;</span>Name());</div><div class="line">  <span class="function"><span class="title">iter</span>-&gt;</span>Seek(key);<span class="comment">//查找目前过滤器Meta数据的handle</span></div><div class="line">  <span class="function"><span class="title">if</span> (iter-&gt;</span>V<span class="function"><span class="title">alid</span>() &amp;&amp; iter-&gt;</span>key() == Slice(key)) &#123;</div><div class="line">    R<span class="function"><span class="title">eadFilter</span>(iter-&gt;</span>value());<span class="comment">//读取Meta block，也就是filter条目</span></div><div class="line">  &#125;</div><div class="line">  delete iter;</div><div class="line">  delete meta;</div><div class="line">&#125;</div><div class="line"></div><div class="line">void Table::ReadFilter(const Slice&amp; filter_handle_value) &#123;</div><div class="line">  Slice v = filter_handle_value;</div><div class="line">  BlockHandle filter_handle;</div><div class="line">  <span class="keyword">if</span> (!filter_handle.DecodeFrom(&amp;v).ok()) &#123;<span class="comment">//转换为BlockHandle</span></div><div class="line">    return;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="comment">// We might want to unify with ReadBlock() if we start</span></div><div class="line">  <span class="comment">// requiring checksum verification in Table::Open.</span></div><div class="line">  ReadOptions opt;</div><div class="line">  <span class="function"><span class="title">if</span> (rep_-&gt;</span>options.paranoid_checks) &#123;</div><div class="line">    opt.verify_checksums = <span class="literal">true</span>;<span class="comment">//需要CRC检查</span></div><div class="line">  &#125;</div><div class="line">  BlockContents <span class="keyword">block</span>;</div><div class="line">  <span class="function"><span class="title">if</span> (!ReadBlock(rep_-&gt;</span>file, opt, filter_handle, &amp;<span class="keyword">block</span>).ok()) &#123;<span class="comment">//将Meta数据读入block</span></div><div class="line">    return;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">if</span> (<span class="keyword">block</span>.heap_allocated) &#123;</div><div class="line">    <span class="function"><span class="title">rep_</span>-&gt;</span>filter_data = <span class="keyword">block</span>.<span class="keyword">data</span>.<span class="keyword">data</span>();<span class="comment">//Meta block过滤数据</span></div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="title">rep_</span>-&gt;</span><span class="function"><span class="title">filter</span> = new FilterBlockReader(rep_-&gt;</span>options.filter_policy, <span class="keyword">block</span>.<span class="keyword">data</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数主要功能就是创建一个sst文件的Table结构。将index block和meta block读进内存，方便后续的操作</p>
+<p>接下来分析下Table读取一个block的函数。这个函数就涉及到将数据读进缓存，所以先介绍下block_cache的格式。</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/luodw--Block_cache.jpg" alt="block_cache键值对格式">;</p>
+<p>解释下：key值由这个block的cache_id和这个block在文件的偏移量组成，value即为这个block的block对象。</p>
+<p>好，现在来分析下这个函数;
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div></pre></td><td class="code"><pre><div class="line">Iterator* Table::BlockReader(void* arg,</div><div class="line">                             const ReadOptions&amp; options,</div><div class="line">                             const Slice&amp; index_value) &#123;</div><div class="line">  Table* table = reinterpret_cast&lt;Table*&gt;(arg);</div><div class="line">  C<span class="function"><span class="title">ache</span>* block_cache = table-&gt;</span><span class="function"><span class="title">rep_</span>-&gt;</span>options.block_cache;</div><div class="line">  Block* <span class="keyword">block</span> = NULL;</div><div class="line">  Cache::Handle* cache_handle = NULL;</div><div class="line"></div><div class="line">  BlockHandle handle;</div><div class="line">  Slice input = index_value;<span class="comment">//需要读取BlockHandle</span></div><div class="line">  Status s = handle.DecodeFrom(&amp;input);</div><div class="line">  <span class="comment">// We intentionally allow extra stuff in index_value so that we</span></div><div class="line">  <span class="comment">// can add more features in the future.</span></div><div class="line"></div><div class="line">  <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">    BlockContents <span class="built_in">contents</span>;</div><div class="line">    <span class="keyword">if</span> (block_cache != NULL) &#123;<span class="comment">//如果设置了block_cache</span></div><div class="line">      char cache_key_buffer[<span class="number">16</span>];<span class="comment">//block_cache的键值</span></div><div class="line">      E<span class="function"><span class="title">ncodeFixed64</span>(cache_key_buffer, table-&gt;</span><span class="function"><span class="title">rep_</span>-&gt;</span>cache_id);<span class="comment">//前8字节存储cache_id</span></div><div class="line">      EncodeFixed64(cache_key_buffer+<span class="number">8</span>, handle.offset());<span class="comment">//后8字节存储这个block的偏移量</span></div><div class="line">      Slice key(cache_key_buffer, sizeof(cache_key_buffer));</div><div class="line">      <span class="function"><span class="title">cache_handle</span> = block_cache-&gt;</span>Lookup(key);<span class="comment">//在缓存中查找这个cache_handle</span></div><div class="line">      <span class="keyword">if</span> (cache_handle != NULL) &#123;<span class="comment">//如果缓存找到，直接用缓存中的block</span></div><div class="line">        <span class="function"><span class="title">block</span> = reinterpret_cast&lt;Block*&gt;(block_cache-&gt;</span>Value(cache_handle));</div><div class="line">      &#125; <span class="keyword">else</span> &#123;<span class="comment">//如果缓存中没有</span></div><div class="line">        <span class="function"><span class="title">s</span> = ReadBlock(table-&gt;</span><span class="function"><span class="title">rep_</span>-&gt;</span>file, options, handle, &amp;<span class="built_in">contents</span>);从磁盘中读取出这个块</div><div class="line">        <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">          <span class="keyword">block</span> = new Block(<span class="built_in">contents</span>);</div><div class="line">          <span class="keyword">if</span> (<span class="built_in">contents</span>.cachable &amp;&amp; options.fill_cache) &#123;</div><div class="line">            <span class="function"><span class="title">cache_handle</span> = block_cache-&gt;</span>Insert(<span class="comment">//如果这个块设置了可缓存，插入缓存中</span></div><div class="line">                <span class="function"><span class="title">key</span>, <span class="keyword">block</span>, <span class="keyword">block</span>-&gt;</span>size(), &amp;DeleteCachedBlock);</div><div class="line">          &#125;</div><div class="line">        &#125;</div><div class="line">      &#125;</div><div class="line">    &#125; <span class="keyword">else</span> &#123;<span class="comment">//如果没设置block_cache，直接磁盘读取</span></div><div class="line">      <span class="function"><span class="title">s</span> = ReadBlock(table-&gt;</span><span class="function"><span class="title">rep_</span>-&gt;</span>file, options, handle, &amp;<span class="built_in">contents</span>);</div><div class="line">      <span class="keyword">if</span> (s.ok()) &#123;</div><div class="line">        <span class="keyword">block</span> = new Block(<span class="built_in">contents</span>);</div><div class="line">      &#125;</div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  Iterator* iter;</div><div class="line">  <span class="keyword">if</span> (<span class="keyword">block</span> != NULL) &#123;</div><div class="line">    <span class="function"><span class="title">iter</span> = <span class="keyword">block</span>-&gt;</span>N<span class="function"><span class="title">ewIterator</span>(table-&gt;</span><span class="function"><span class="title">rep_</span>-&gt;</span>options.comparator);<span class="comment">//获取这个块的迭代器</span></div><div class="line">    <span class="keyword">if</span> (cache_handle == NULL) &#123;</div><div class="line">      <span class="function"><span class="title">iter</span>-&gt;</span>RegisterCleanup(&amp;DeleteBlock, <span class="keyword">block</span>, NULL);<span class="comment">//如果没有设置缓存，那么注册删除block函数</span></div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      <span class="function"><span class="title">iter</span>-&gt;</span>RegisterCleanup(&amp;ReleaseBlock, block_cache, cache_handle);<span class="comment">//如果设置了缓存，那么注册释放block函数，就是引用数减1.</span></div><div class="line">    &#125;</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    iter = NewErrorIterator(s);</div><div class="line">  &#125;</div><div class="line">  return iter;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数最后是当构造Table的迭代器时，作为函数指针传进构造函数中，Table的迭代器为两层迭代器，什么叫两层迭代器了？我的理解是：如果要读取一个sst文件的某个键值对，首先要读取data block，然后才是从这个data block中读取键值对。所以有两次迭代，即两个迭代器。</p>
+<p>简要分析下，先看下Table返回两层迭代器的函数：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">Iterator* Table::NewIterator(<span class="keyword">const</span> ReadOptions&amp; options) <span class="keyword">const</span> &#123;</div><div class="line">  <span class="keyword">return</span> NewTwoLevelIterator(</div><div class="line">      rep_-&gt;index_block-&gt;NewIterator(rep_-&gt;options.comparator),首先穿进去的index block的迭代器，用于读取data block</div><div class="line">      &amp;Table::BlockReader, <span class="keyword">const_cast</span>&lt;Table*&gt;(<span class="keyword">this</span>), options);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>TwoLevelIterator类</h1>
+<p>分析下两次迭代器，不算很难懂，属性如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">BlockFunction block_function_;<span class="comment">//就是传进来的BlockReader函数</span></div><div class="line"><span class="keyword">void</span>* arg_;<span class="comment">//Table指针</span></div><div class="line"><span class="keyword">const</span> ReadOptions options_;<span class="comment">//读取配置选项</span></div><div class="line">Status status_;</div><div class="line">IteratorWrapper index_iter_;<span class="comment">//index block迭代器，就是上述第一个参数</span></div><div class="line">IteratorWrapper data_iter_; <span class="comment">// 可能为空，读取某个data block的迭代器</span></div><div class="line"><span class="comment">// If data_iter_ is non-NULL, then "data_block_handle_" holds the</span></div><div class="line"><span class="comment">// "index_value" passed to block_function_ to create the data_iter_.</span></div><div class="line"><span class="built_in">std</span>::<span class="built_in">string</span> data_block_handle_;<span class="comment">//用于判断两次data_iter是否相等。</span></div></pre></td></tr></table></figure></p>
+<p>鉴于迭代函数都挺多，我还是一样，读取第一条记录作为样本讲解，首先构造成功之后，定位到哦第一条记录：
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="literal">void</span> TwoLevelIterator<span class="type">::SeekToFirst</span>() &#123;</div><div class="line">  index_iter_.SeekToFirst();<span class="comment">//index_block迭代器指向第一条记录，也就是第一个块的blockhandle</span></div><div class="line">  InitDataBlock();</div><div class="line">  <span class="keyword">if</span> (data_iter_.iter() != <span class="built_in">NULL</span>) data_iter_.SeekToFirst();</div><div class="line">  SkipEmptyDataBlocksForward();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="literal">void</span> TwoLevelIterator<span class="type">::InitDataBlock</span>() &#123;</div><div class="line">  <span class="keyword">if</span> (!index_iter_.Valid()) &#123;</div><div class="line">    SetDataIterator(<span class="built_in">NULL</span>);</div><div class="line">  &#125; <span class="keyword">else</span> &#123;</div><div class="line">    Slice <span class="keyword">handle</span> = index_iter_.value();<span class="comment">//指向第一个块的handle</span></div><div class="line">    <span class="keyword">if</span> (data_iter_.iter() != <span class="built_in">NULL</span> &amp;&amp; <span class="keyword">handle</span>.compare(data_block_handle_) == <span class="number">0</span>) &#123;</div><div class="line">      <span class="comment">// data_iter_不为空，而且还是相同块的迭代器，所以不变</span></div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">      Iterator* iter = (*block_function_)(arg_, options_, <span class="keyword">handle</span>);<span class="comment">//调用BlockReader，获取这个块的迭代器。</span></div><div class="line">      data_block_handle_.assign(<span class="keyword">handle</span>.<span class="built_in">data</span>(), <span class="keyword">handle</span>.size());<span class="comment">//为data_block_handle_赋值，用于判断两次data_iter_是否相等</span></div><div class="line">      SetDataIterator(iter);<span class="comment">//设置data_iter_</span></div><div class="line">    &#125;</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>经过这两个函数之后，index_iter_指向index_block第一条记录，data_iter_指向第一个块的首位置。接下来通过查询来分析下两层迭代器如何获取数据。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">void</span> TwoLevelIterator::Seek(<span class="keyword">const</span> Slice&amp; target) &#123;</div><div class="line">  index_iter_.Seek(target);<span class="comment">//找到target所以块的handle</span></div><div class="line">  InitDataBlock();<span class="comment">//初始化data_iter_，即指向target所在的块首位置</span></div><div class="line">  <span class="keyword">if</span> (data_iter_.iter() != <span class="literal">NULL</span>) data_iter_.Seek(target);<span class="comment">//如果没报错即找到了，通过data_iter_.value即可获取值。</span></div><div class="line">  SkipEmptyDataBlocksForward();</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">void</span> TwoLevelIterator::SkipEmptyDataBlocksForward() &#123;</div><div class="line">  <span class="keyword">while</span> (data_iter_.iter() == <span class="literal">NULL</span> || !data_iter_.Valid()) &#123;</div><div class="line">    <span class="comment">// Move to next block</span></div><div class="line">    <span class="keyword">if</span> (!index_iter_.Valid()) &#123;</div><div class="line">      SetDataIterator(<span class="literal">NULL</span>);</div><div class="line">      <span class="keyword">return</span>;</div><div class="line">    &#125;</div><div class="line">    index_iter_.Next();</div><div class="line">    InitDataBlock();</div><div class="line">    <span class="keyword">if</span> (data_iter_.iter() != <span class="literal">NULL</span>) data_iter_.SeekToFirst();</div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>如果查询到了，代码还是很好理解的，关键是如果没有查询到时，我还不是很理解。</p>
+<p>从sst读取文件暂时分析到此。总结下，先 构造一个sst文件的Table类，然后构造出Table的迭代器，从迭代器就可以获取这个文件的任何键值。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/leveldb/" rel="tag">#leveldb</a>
+          
+            <a href="/tags/block/" rel="tag">#block</a>
+          
+            <a href="/tags/sst文件/" rel="tag">#sst文件</a>
+          
+            <a href="/tags/table/" rel="tag">#table</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/24/leveldb-11/" rel="next" title="leveldb源码分析之Cache">
+                <i class="fa fa-chevron-left"></i> leveldb源码分析之Cache
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/25/leveldb-13/" rel="prev" title="leveldb源码分析之Table_cache">
+                leveldb源码分析之Table_cache <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/24/leveldb-12/"
+     data-title="leveldb源码分析之读sst文件"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/24/leveldb-12/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/24/leveldb-12/"
+           data-title="leveldb源码分析之读sst文件" data-url="http://luodw.cc/2015/10/24/leveldb-12/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">block类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">Table类</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">TwoLevelIterator类</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

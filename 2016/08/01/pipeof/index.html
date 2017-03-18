@@ -1,0 +1,1164 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="pipe," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="用linux也有两年多了，从命令，系统调用，到内核原理一路学过来，我发现我是深深喜欢上这个系统；使用起来就是一个字“爽”；当初在看linux内核原理时，对linux内核源码有种敬畏的心理，不敢涉入，主要是看不懂，直到最近实习的时候，在某次分享会上，某位老师分享了OOM机制，我很感兴趣，就去看内核代码，发现，原来我能看懂了；所以想写篇博客，分享下从内核代码分析pipe的实现；
+
+这部分内容说简单也很">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从内核源码聊聊pipe实现">
+<meta property="og:url" content="http://luodw.cc/2016/08/01/pipeof/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="用linux也有两年多了，从命令，系统调用，到内核原理一路学过来，我发现我是深深喜欢上这个系统；使用起来就是一个字“爽”；当初在看linux内核原理时，对linux内核源码有种敬畏的心理，不敢涉入，主要是看不懂，直到最近实习的时候，在某次分享会上，某位老师分享了OOM机制，我很感兴趣，就去看内核代码，发现，原来我能看懂了；所以想写篇博客，分享下从内核代码分析pipe的实现；
+
+这部分内容说简单也很">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-39310_2010129_676673.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="从内核源码聊聊pipe实现">
+<meta name="twitter:description" content="用linux也有两年多了，从命令，系统调用，到内核原理一路学过来，我发现我是深深喜欢上这个系统；使用起来就是一个字“爽”；当初在看linux内核原理时，对linux内核源码有种敬畏的心理，不敢涉入，主要是看不懂，直到最近实习的时候，在某次分享会上，某位老师分享了OOM机制，我很感兴趣，就去看内核代码，发现，原来我能看懂了；所以想写篇博客，分享下从内核代码分析pipe的实现；
+
+这部分内容说简单也很">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-39310_2010129_676673.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/08/01/pipeof/"/>
+
+
+  <title> 从内核源码聊聊pipe实现 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                从内核源码聊聊pipe实现
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-08-01T16:42:50+08:00" content="2016-08-01">
+              2016-08-01
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/pipe/" itemprop="url" rel="index">
+                    <span itemprop="name">pipe</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/08/01/pipeof/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/08/01/pipeof/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/08/01/pipeof/" class="leancloud_visitors" data-flag-title="从内核源码聊聊pipe实现">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>用linux也有两年多了，从命令，系统调用，到内核原理一路学过来，我发现我是深深喜欢上这个系统；使用起来就是一个字“爽”；当初在看linux内核原理时，对linux内核源码有种敬畏的心理，不敢涉入，主要是看不懂，直到最近实习的时候，在某次分享会上，某位老师分享了OOM机制，我很感兴趣，就去看内核代码，发现，原来我能看懂了；所以想写篇博客，分享下从内核代码分析pipe的实现；</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-39310_2010129_676673.jpg" alt="厦大上弦场"></p>
+<p>这部分内容说简单也很简单，说难也难，其实就是需要了解linux内核一些原理，例如系统调用嵌入内核，虚拟文件系统等等；</p>
+<p>接下来，我会从以下小点介绍管道</p>
+<ul>
+<li>用户态管道的使用；</li>
+<li>虚拟文件系统</li>
+<li>内核态管道的实现原理；</li>
+<li>fifo命名管道实现</li>
+<li>总结；</li>
+</ul>
+<h1>管道的使用</h1>
+<hr>
+<p>一开始接触linux，相信很多人都是从命令开始；当一个命令的输出，需要作为另一个命令的输入时，我们就会使用管道来实现这个功能；例如，我们经常需要在某个文档中查找是否存在某个单词，我们就可以用如下方式:</p>
+<blockquote>
+<p>cat test.txt | grep 'hello'</p>
+</blockquote>
+<p>这行命令表示在test.txt文件中查找包含单词'hello'的句子。我们先解释下这行命令是怎么实现的；</p>
+<p>我们知道终端也是一个进程，当我们输入一个命令执行时，其实是终端程序调用fork和exec产生一个子进程执行命令程序；当终端在执行这行命令时，会先解析输入的参数，当发现输入的命令行中有‘|’符号时，就会知道在命令行中包含了管道，因此，在终端程序中，</p>
+<ul>
+<li>会先fork出一个子进程，并执行exec将cat载入内存；</li>
+<li>接着在cat程序中，用函数pipe定义出管道;</li>
+<li>在定义出管道之后，再调用fork，生成一个子进程；</li>
+<li>在父进程cat中关闭管道读端，将cat进程的标准输出重定向到管道的写端；</li>
+<li>在子进程中将管道的写端关闭，将标准输入重定向到管道的读端，再调用exec将grep进程载入内存；</li>
+<li>最后，cat的输出就可以最为grep的输入了；</li>
+</ul>
+<p>这里需要说明的是，父进程cat对管道的操作必须在fork之前，否则父进程cat对管道的操作会继承到子进程，这样会导致子进程无法读取父进程的数据；我们可以用一个简单的程序来模拟上述过程，为了简单起见，例子简单地将字符串从小写转为大写；程序如下:
+<figure class="highlight awk"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div></pre></td><td class="code"><pre><div class="line"><span class="comment">#include&lt;stdio.h&gt;</span></div><div class="line"><span class="comment">#include&lt;stdlib.h&gt;</span></div><div class="line"><span class="comment">#include&lt;unistd.h&gt;</span></div><div class="line"></div><div class="line">int main(void)</div><div class="line">&#123;</div><div class="line">  int fd[<span class="number">2</span>];</div><div class="line">  int ret=pipe(fd);<span class="regexp">//</span>创建管道</div><div class="line">  <span class="keyword">if</span> (ret==-<span class="number">1</span>)</div><div class="line">  &#123;</div><div class="line">    fprintf(stderr, <span class="string">"%s\n"</span>, <span class="string">"pipe error!"</span>);</div><div class="line">    <span class="keyword">exit</span>(-<span class="number">1</span>);</div><div class="line">  &#125;</div><div class="line">  int pid=fork();</div><div class="line">  <span class="keyword">if</span> (pid&lt;<span class="number">0</span>)</div><div class="line">  &#123;</div><div class="line">    fprintf(stderr, <span class="string">"%s\n"</span>, <span class="string">"fork error!"</span>);</div><div class="line">    <span class="keyword">exit</span>(-<span class="number">1</span>);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">if</span>(pid==<span class="number">0</span>)&#123;<span class="regexp">//</span>在子进程中</div><div class="line">      close(fd[<span class="number">1</span>]);</div><div class="line">      dup2(fd[<span class="number">0</span>],STDIN_FILENO);<span class="regexp">//</span>将子进程的标准输入重定向到fd[<span class="number">0</span>]</div><div class="line">      ret=execl(<span class="string">"./toUpper"</span>,<span class="string">"toUpper"</span>, <span class="string">""</span>,NULL);<span class="regexp">//</span>执行子进程</div><div class="line">      <span class="keyword">if</span>(ret==-<span class="number">1</span>)&#123;</div><div class="line">        fprintf(stderr, <span class="string">"%s\n"</span>, <span class="string">"execl error!"</span>);</div><div class="line">        <span class="keyword">exit</span>(-<span class="number">1</span>);</div><div class="line">      &#125;</div><div class="line">  &#125;</div><div class="line"></div><div class="line">  <span class="regexp">//</span> 以下是父进程</div><div class="line">  close(fd[<span class="number">0</span>]);</div><div class="line">  dup2(fd[<span class="number">1</span>],STDOUT_FILENO);<span class="regexp">//</span> 将父进程的标准输出重定向到fd[<span class="number">1</span>]</div><div class="line">  char buf[<span class="number">1024</span>];</div><div class="line">  int n=read(STDIN_FILENO,buf,<span class="number">1024</span>);<span class="regexp">//</span> 从标准输入读取数据</div><div class="line">  <span class="keyword">if</span> (n&lt;<span class="number">0</span>) &#123;</div><div class="line">    fprintf(stderr, <span class="string">"%s\n"</span>, <span class="string">"read error!"</span>);</div><div class="line">    <span class="keyword">exit</span>(-<span class="number">1</span>);</div><div class="line">  &#125;<span class="regexp">//</span> 将数据写入管道缓冲区中</div><div class="line">  write(STDOUT_FILENO, buf,n);</div><div class="line">  sleep(<span class="number">1</span>);</div><div class="line">  return <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>上述为主程序；在主程序中通过fork函数创建出一个子进程；在父进程中关闭管道读端，将标准输出重定向到管道写端；当在父进程有数据输出到标准输出时，就可以输出到管道的缓冲区；在子进程中，关闭管道写端，将标准输入重定向到管道读端，这样子进程从标准输入读取时，就可以从管道缓冲区读取；
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="meta">#<span class="meta-keyword">define</span> BUFSIZE 1024</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">char</span> <span class="title">chartoUp</span><span class="params">(<span class="keyword">char</span> ch)</span> </span>&#123;</div><div class="line">  <span class="keyword">if</span> (ch&gt;<span class="string">'a'</span> &amp;&amp; ch &lt;<span class="string">'z'</span>) &#123;</div><div class="line">    ch = ch - <span class="number">32</span>;</div><div class="line">  &#125;<span class="keyword">else</span> &#123;</div><div class="line">    ch = ch;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> ch;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span> </span>&#123;</div><div class="line">  <span class="keyword">char</span> buf[BUFSIZE];</div><div class="line">  <span class="comment">// 从标准输入读取数据，其实就是从管道缓冲区读取数据</span></div><div class="line">  <span class="keyword">int</span> n=read(STDIN_FILENO,buf,BUFSIZE);</div><div class="line">  <span class="keyword">if</span> (n&lt;<span class="number">0</span>) &#123;</div><div class="line">    <span class="built_in">fprintf</span>(<span class="built_in">stderr</span>, <span class="string">"%s\n"</span>, <span class="string">"read error!"</span>);</div><div class="line">    <span class="built_in">exit</span>(<span class="number">-1</span>);</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">for</span> (;i&lt;n;i++)</div><div class="line">  &#123;</div><div class="line">      buf[i]=toUp(buf[i]);</div><div class="line">  &#125;</div><div class="line">  <span class="built_in">printf</span>(<span class="string">"%s\n"</span>, buf);</div><div class="line">  <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>上述程序为父进程调用的子程序，先从管道缓冲区读取数据，然后将每个字母转换为大写字母，最后输出到标准输出；例子很简单，当然，也可以使用C语言io库封装好的popen函数来实现上述功能;</p>
+<h1>虚拟文件系统</h1>
+<hr>
+<p>在讲管道之前，必须先介绍下linux虚拟文件系统，否则很难说清楚在这里；虚拟文件系统是linux内核四大模块之一，我们知道linux下面everything is file。例如磁盘文件，管道，套接字，设备等等；我们都可以通过read和write函数来读取上述文件的数据；为了支持这一特性，linux引入虚拟文件系统，就是通过一层文件系统虚拟层，屏蔽不同文件系统的差异，实现相同的函数接口操作；linux支持非常多的文件系统，我们可以通过查看</p>
+<blockquote>
+<p>cat /proc/filesystems</p>
+</blockquote>
+<p>包括基于磁盘的文件ext4,ext3等，基于内存的文件系统proc,pipefs,sysfs,ramf以及tmpfs,和套接字文件系统sockfs;</p>
+<p>当我们在用户态调用read函数读取一个文件描述符时，主要过程如下:</p>
+<ol>
+<li>首先通过软中断嵌入内核，调用系统相应服务例程sys_read,sys_read函数如下:
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">asmlinkage ssize_t sys_read(unsigned int fd, <span class="keyword">char</span> __user * buf, size_t <span class="keyword">count</span>)</div><div class="line">&#123;</div><div class="line">    struct <span class="keyword">file</span> *<span class="keyword">file</span>;</div><div class="line">    ssize_t <span class="keyword">ret</span> = -EBADF;</div><div class="line">    int fput_needed;</div><div class="line">    <span class="comment">// fget_light函数从当前进程的文件描述符表中，通过文件描述符，</span></div><div class="line">    <span class="comment">//　获取file结构体</span></div><div class="line">    <span class="keyword">file</span> = fget_light(fd, &amp;fput_needed);</div><div class="line">    <span class="keyword">if</span> (<span class="keyword">file</span>) &#123;</div><div class="line">    	loff_t pos = file_pos_read(<span class="keyword">file</span>);<span class="comment">//获取读取文件的偏移量</span></div><div class="line">        <span class="keyword">ret</span> = vfs_read(<span class="keyword">file</span>, buf, <span class="keyword">count</span>, &amp;pos);<span class="comment">//调用虚拟文件系统调用层</span></div><div class="line">    	file_pos_write(<span class="keyword">file</span>, pos);<span class="comment">//　更新当前文件的偏移量</span></div><div class="line">    	fput_light(<span class="keyword">file</span>, fput_needed);<span class="comment">//　更新文件的引用计数</span></div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> <span class="keyword">ret</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>我们可以看到sys_read服务例程的参数和系统调用read的参数是一样的，首先通过fd从当前的文件数组中获取file实例，接着获取当前的读偏移量，然后进入虚拟文件系统vfs_read调用;</p>
+<ol start="2">
+<li>接下来看看vf_read虚拟层调用的过程:
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">ssize_t vfs_read(struct <span class="keyword">file</span> *<span class="keyword">file</span>, <span class="keyword">char</span> __user *buf, size_t <span class="keyword">count</span>, loff_t *pos)</div><div class="line">&#123;</div><div class="line">	struct inode *inode = <span class="keyword">file</span>-&gt;f_dentry-&gt;d_inode;</div><div class="line">	ssize_t <span class="keyword">ret</span>;</div><div class="line"> 	<span class="keyword">if</span> (!(<span class="keyword">file</span>-&gt;f_mode &amp; FMODE_READ))</div><div class="line">    		<span class="keyword">return</span> -EBADF;</div><div class="line">  	<span class="keyword">if</span> (!<span class="keyword">file</span>-&gt;f_op || (!<span class="keyword">file</span>-&gt;f_op-&gt;<span class="keyword">read</span> &amp;&amp; !<span class="keyword">file</span>-&gt;f_op-&gt;aio_read))</div><div class="line">    		<span class="keyword">return</span> -EINVAL;</div><div class="line">  	<span class="keyword">ret</span> = locks_verify_area(FLOCK_VERIFY_READ, inode, <span class="keyword">file</span>, *pos, <span class="keyword">count</span>);</div><div class="line">  	<span class="keyword">if</span> (!<span class="keyword">ret</span>) &#123;</div><div class="line">    		<span class="keyword">ret</span> = security_file_permission (<span class="keyword">file</span>, MAY_READ);</div><div class="line">    	<span class="keyword">if</span> (!<span class="keyword">ret</span>) &#123;</div><div class="line">      		<span class="keyword">if</span> (<span class="keyword">file</span>-&gt;f_op-&gt;<span class="keyword">read</span>)</div><div class="line">        		<span class="comment">// 进入具体文件系统</span></div><div class="line">        		<span class="keyword">ret</span> = <span class="keyword">file</span>-&gt;f_op-&gt;<span class="keyword">read</span>(<span class="keyword">file</span>, buf, <span class="keyword">count</span>, pos);</div><div class="line">      		<span class="keyword">else</span></div><div class="line">        		<span class="keyword">ret</span> = do_sync_read(<span class="keyword">file</span>, buf, <span class="keyword">count</span>, pos);</div><div class="line">        	<span class="keyword">if</span> (<span class="keyword">ret</span> &gt; 0)</div><div class="line">			 dnotify_parent(<span class="keyword">file</span>-&gt;f_dentry, DN_ACCESS);</div><div class="line">	&#125;</div><div class="line">  &#125;</div><div class="line">  <span class="keyword">return</span> <span class="keyword">ret</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></li>
+</ol>
+<p>在这个函数中，一开始先属性检查以及安全性检查，然后通过下面代码进入具体的文件系统</p>
+<blockquote>
+<p>ret = file-&gt;f_op-&gt;read(file, buf, count, pos);</p>
+</blockquote>
+<p>每种文件系统的file-&gt;f_op-&gt;read是不一样的，像基于磁盘的文件系统，file-&gt;f_op-&gt;read函数是先到缓存缓存获取数据，如果缓存没有数据，则到磁盘获取；基于内存的文件系统，file-&gt;f_op-&gt;read则是直接在内核缓存获取数据，而不会到磁盘获取数据;</p>
+<p>所以虚拟文件系统类似于面向对象多态的实现，首先设计好接口，不同的文件系统分别实现这些接口，这样就可以调用相同的接口，实现不同的操作;</p>
+<p>而这个file-&gt;f_op主要是从inode-&gt;i_fop中获得，因此对于不同的文件系统，inode也结构也是有区别的．当创建一个inode时，针对不同的文件系统需要设置不同的属性，最主要就是各种操作函数指针结构体，例如inode-&gt;i_op和inode-&gt;i_fop；这样不同的文件系统，就可以在f-&gt;f_op-&gt;read调用中，实现不同的操作.</p>
+<h1>内核管道的实现</h1>
+<hr>
+<p>上面给出了管道简单的操作以及稍微介绍了虚拟文件系统，pipefs主要的系统调用就是pipe，read和write. 下面来分析内核是怎么实现管道的；linux下的进程的用户态地址空间都是相互独立的，因此两个进程在用户态是没法直接通信的，因为找不到彼此的存在；而内核是进程间共享的，因此进程间想通信只能通过内核作为中间人，来传达信息. 下图显示了两个进程间通过内核缓存进行通信的过程:</p>
+<p><figure class="highlight gherkin"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">                写 |<span class="string"> 入         +-------+</span></div><div class="line">    +--------------+------------&lt;       |</div><div class="line">    |<span class="string">              </span>|<span class="string">            </span>|<span class="string"> 进程1 </span>|</div><div class="line">+---v----+         |<span class="string">            </span>|<span class="string">       </span>|</div><div class="line">|<span class="string">        </span>|<span class="string">         </span>|<span class="string">            +-------+</span></div><div class="line">|<span class="string"> 缓 存  </span>|<span class="string">     内  </span>|<span class="string">  用</span></div><div class="line">|<span class="string"> (page) </span>|<span class="string">     核  </span>|<span class="string">  户</span></div><div class="line">|<span class="string">        </span>|<span class="string">         </span>|<span class="string">  态</span></div><div class="line">+---v----+         |<span class="string">            +-------+</span></div><div class="line">    |<span class="string">              </span>|<span class="string">            </span>|<span class="string">       </span>|</div><div class="line">    |<span class="string">              </span>|<span class="string">            </span>|<span class="string"> 进程2 </span>|</div><div class="line">    +--------------+------------&gt;       |<span class="string"></span></div><div class="line">                读 |<span class="string"> 取         +-------+</span></div><div class="line">                   |</div></pre></td></tr></table></figure></p>
+<p>pipe的实现就是和上述图示一样，在pipefs文件系统的inode中有一个属性</p>
+<blockquote>
+<p>struct pipe_inode_info	*i_pipe;</p>
+</blockquote>
+<p>这个结构体定义如下:</p>
+<p><figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">//pipe_fs_i.h</div><div class="line">struct pipe_inode_info &#123;</div><div class="line">    wait_queue_head_t wait<span class="comment">;</span></div><div class="line">    char *base<span class="comment">;//指向管道缓存首地址</span></div><div class="line">    unsignedint len<span class="comment">;//管道缓存使用的长度</span></div><div class="line">    unsignedint start<span class="comment">;//读缓存开始的位置</span></div><div class="line">    unsignedint readers<span class="comment">;</span></div><div class="line">    unsignedint writers<span class="comment">;</span></div><div class="line">    unsignedint waiting_writers<span class="comment">;</span></div><div class="line">    unsignedint r_counter<span class="comment">;</span></div><div class="line">    unsignedint w_counter<span class="comment">;</span></div><div class="line">    struct fasync_struct *fasync_readers<span class="comment">;</span></div><div class="line">    struct fasync_struct *fasync_writers<span class="comment">;</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个结构体定义了管道的缓存，由base指向，缓存大小为一个内存页，有如下定义</p>
+<blockquote>
+<p>#define PIPE_SIZE		PAGE_SIZE</p>
+</blockquote>
+<p>其实到现在我们大概可以猜得到管道的是实现原理，在一个进程中，向管道中写入数据时，其实就是写入这个缓存中；然后在另一个进程读取管道时，其实就是从这个缓存读取，实现进程的通信．</p>
+<p>这个缓存也可以解释为什么管道是单通道的：</p>
+<blockquote>
+<p>因为只有一个缓存，如果是双通道，那么两个进程同时向这块缓存写数据时，这样会导致数据覆盖，即一个进程的数据被另一个进程的数据覆盖．而向套接字有读写缓存，因此套接字是双通道的．</p>
+</blockquote>
+<p>ok，接下来，从pipe函数开始，看看内核是如何创建管道的．pipe系统调用在内核对应的服务例程为sys_pipe，在sys_pipe函数中，接着调用do_pipe创建两个管道描述符，一个用于写，另一个用于读；我们来看下do_pipe都做了什么．</p>
+<h2>do_pipe函数</h2>
+<p>一开始先获得两个空file实例，一个对应管道读描述符，另一个对应管道写描述符</p>
+<p><figure class="highlight subunit"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">error </span>= -ENFILE;</div><div class="line">f1 = get_empty_filp();</div><div class="line">if (!f1)</div><div class="line">	goto no_files;</div><div class="line">f2 = get_empty_filp();</div><div class="line">if (!f2)</div><div class="line">	goto close_f1;</div></pre></td></tr></table></figure></p>
+<p>接着通过调用get_pipe_inode来实例化一个带有pipe属性的inode</p>
+<p><figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line">structinode* pipe_new(structinode* inode)</div><div class="line">&#123;</div><div class="line">	unsigned long <span class="built_in">page</span>;</div><div class="line">	<span class="comment">// 申请一个内存页，作为pipe的缓存</span></div><div class="line">	<span class="built_in">page</span> = __get_free_page(GFP_USER);</div><div class="line">	<span class="keyword">if</span> (!<span class="built_in">page</span>)</div><div class="line">		return NULL;</div><div class="line">	<span class="comment">// 为pipe_inode_info结构体分配内存</span></div><div class="line">	<span class="function"><span class="title">inode</span>-&gt;</span>i\_pipe = kmalloc(sizeof(structpipe_inode\_info), GFP_KERNEL);</div><div class="line">	<span class="function"><span class="title">if</span> (!inode-&gt;</span>i_pipe)</div><div class="line">		goto fail_page;	</div><div class="line">	<span class="comment">// 初始化pipe_inode_info属性</span></div><div class="line">	init_waitqueue_head(PIPE_WAIT(*inode));</div><div class="line">	PIPE_BASE(*inode) = (char*) <span class="built_in">page</span>;</div><div class="line">	PIPE_START(*inode) = PIPE_LEN(*inode) = <span class="number">0</span>;</div><div class="line">	PIPE_READERS(*inode) = PIPE_WRITERS(*inode) = <span class="number">0</span>;</div><div class="line">	PIPE_WAITING_WRITERS(*inode) = <span class="number">0</span>;</div><div class="line">	PIPE_RCOUNTER(*inode) = PIPE_WCOUNTER(*inode) = <span class="number">1</span>;</div><div class="line">	*PIPE_FASYNC_READERS(*inode) = *PIPE_FASYNC_WRITERS(*inode) = NULL;</div><div class="line">	return inode;</div><div class="line">	fail_page:</div><div class="line">		free_page(<span class="built_in">page</span>);</div><div class="line">	return NULL;</div><div class="line">&#125;</div><div class="line"><span class="comment">//----------------------------------------------------------------</span></div><div class="line">static struct inode * get_pipe_inode(void)</div><div class="line">&#123;</div><div class="line">	<span class="comment">//　从pipefs超级块中分配一个inode</span></div><div class="line">	<span class="function"><span class="title">struct</span>	inode *inode = new_inode(pipe_mnt-&gt;</span>mnt_sb);</div><div class="line">	<span class="keyword">if</span> (!inode)</div><div class="line">		goto fail_inode;</div><div class="line">	<span class="comment">// pipe_new函数主要用来为这个inode初始化pipe属性，就是pipe_inode_info结构体</span></div><div class="line">	<span class="keyword">if</span>(!pipe_new(inode))</div><div class="line">		goto fail_iput;</div><div class="line">	PIPE_READERS(*inode) = PIPE_WRITERS(*inode) = <span class="number">1</span>;</div><div class="line">	<span class="function"><span class="title">inode</span>-&gt;</span>i_fop = &amp;rdwr_pipe_fops;<span class="comment">//设置pipefs的inode操作函数集合，rdwr_pipe_fops</span></div><div class="line">	<span class="comment">// 为结构体，包含读写管道所有操作</span></div><div class="line"></div><div class="line">	<span class="function"><span class="title">inode</span>-&gt;</span>i_state = I_DIRTY;</div><div class="line">	<span class="function"><span class="title">inode</span>-&gt;</span>i_mode = S_IFIFO | S_IRUSR | S_IWUSR;</div><div class="line">	<span class="function"><span class="title">inode</span>-&gt;</span><span class="function"><span class="title">i_uid</span> = current-&gt;</span>fsuid;</div><div class="line">	<span class="function"><span class="title">inode</span>-&gt;</span><span class="function"><span class="title">i_gid</span> = current-&gt;</span>fsgid;</div><div class="line">	<span class="function"><span class="title">inode</span>-&gt;</span><span class="function"><span class="title">i_atime</span> = inode-&gt;</span><span class="function"><span class="title">i_mtime</span> = inode-&gt;</span>i_ctime = CURRENT_TIME;</div><div class="line">	<span class="function"><span class="title">inode</span>-&gt;</span>i_blksize = PAGE_SIZE</div><div class="line">	return inode;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>然后，在当前进程的files_struct结构中获取两个空的文件描述符，分别存储在i和j</p>
+<p><figure class="highlight subunit"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">error </span>= get_unused_fd();</div><div class="line">if (error &lt; 0)</div><div class="line">	goto close_f12_inode;</div><div class="line">i = error;</div><div class="line"><span class="keyword">error </span>= get_unused_fd();</div><div class="line">if (error &lt; 0)</div><div class="line">	goto close_f12_inode_i;</div><div class="line">j = error;</div></pre></td></tr></table></figure></p>
+<p>下一步就是为这个inode分配dentry目录项，dentry主要用于将file和inode连接起来,以及设置f1和f2的vfsmnt,dentry,mapping属性</p>
+<p><figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="title">sprintf</span>(<span class="keyword">name</span>, "[%lu]", inode-&gt;</span>i_ino);</div><div class="line">this.<span class="keyword">name</span> = <span class="keyword">name</span>;</div><div class="line">this.len = strlen(<span class="keyword">name</span>);</div><div class="line"><span class="function"><span class="title">this</span>.hash = inode-&gt;</span>i_ino; <span class="comment">/* will go */</span></div><div class="line"><span class="function"><span class="title">dentry</span> = d_alloc(pipe_mnt-&gt;</span><span class="function"><span class="title">mnt_sb</span>-&gt;</span>s_root, &amp;this);</div><div class="line"><span class="keyword">if</span> (!dentry)</div><div class="line">	goto close_f12_inode_i_j;</div><div class="line"><span class="function"><span class="title">dentry</span>-&gt;</span>d\_op = &amp;pipefs_dentry_operations;</div><div class="line">d_add(dentry, inode);</div><div class="line"><span class="function"><span class="title">f1</span>-&gt;</span><span class="function"><span class="title">f</span>\_vfsmnt = f2-&gt;</span>f\_vfsmnt = mntget(mntget(pipe_mnt));</div><div class="line"><span class="function"><span class="title">f1</span>-&gt;</span><span class="function"><span class="title">f</span>\_dentry = f2-&gt;</span>f_dentry = dget(dentry);</div><div class="line"><span class="function"><span class="title">f1</span>-&gt;</span><span class="function"><span class="title">f</span>\_mapping = f2-&gt;</span><span class="function"><span class="title">f</span>\_mapping = inode-&gt;</span>i_mapping;</div></pre></td></tr></table></figure></p>
+<p>最后，针对读写file实例设置不同的属性，并且将两个fd和两个file实例关联起来</p>
+<p><figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* read file */</span></div><div class="line"><span class="function"><span class="title">f1</span>-&gt;</span><span class="function"><span class="title">f</span>\_pos = f2-&gt;</span>f_pos = <span class="number">0</span>;</div><div class="line"><span class="function"><span class="title">f1</span>-&gt;</span>f\_flags = O_RDONLY;<span class="comment">//f1这个file实例只可读</span></div><div class="line"><span class="function"><span class="title">f1</span>-&gt;</span>f\_op = &amp;read_pipe_fops;<span class="comment">//这是这个可读file的操作函数集合结构体</span></div><div class="line"><span class="function"><span class="title">f1</span>-&gt;</span>f\_mode = FMODE_READ;</div><div class="line"><span class="function"><span class="title">f1</span>-&gt;</span>f_version = <span class="number">0</span>;</div><div class="line"></div><div class="line"><span class="comment">/* write file */</span></div><div class="line"><span class="function"><span class="title">f2</span>-&gt;</span>f_flags = O_WRONLY;<span class="comment">//f2这个file实例只可写</span></div><div class="line"><span class="function"><span class="title">f2</span>-&gt;</span>f_op = &amp;write_pipe_fops;<span class="comment">//这是这个只可写的file操作函数集合结构体</span></div><div class="line"><span class="function"><span class="title">f2</span>-&gt;</span>f_mode = FMODE_WRITE;</div><div class="line"><span class="function"><span class="title">f2</span>-&gt;</span>f_version = <span class="number">0</span>;</div><div class="line"></div><div class="line">fd_install(i, f1);<span class="comment">//将i(fd)和f1(file)关联起来</span></div><div class="line">fd_install(j, f2);<span class="comment">// 将j(fd)和f2(file)关联起来</span></div><div class="line">fd[<span class="number">0</span>] = i;</div><div class="line">fd[<span class="number">1</span>] = j;</div><div class="line">return <span class="number">0</span>;</div></pre></td></tr></table></figure></p>
+<p>到这里，do_pipe函数就算结束了，并且用i和j文件描述符填充了fd[2]数组，最后在sys_pipe函数中通过copy_to_user将fd[2]数组返回给用户程序；</p>
+<p>总结下do_pipe函数的执行过程:</p>
+<ol>
+<li>实例化两个空file结构体；</li>
+<li>创建带有pipe属性的inode结构；</li>
+<li>在当前进程文件描述符表中找出两个未使用的文件描述符;</li>
+<li>为这个inode分配dentry结构体，关联file和inode;</li>
+<li>针对可读和可写file结构，分别设置相应属性，主要是操作函数集合属性；</li>
+<li>关联文件描述符和file结构</li>
+<li>将两个文件描述符返回给用户;</li>
+</ol>
+<h2>pipe读操作</h2>
+<p>当通过pipe函数获取到两个文件描述符，即可使用read和write函数分别对这两个描述符进行读写;我们先来看下read操作;</p>
+<p>有之前虚拟文件系统知道，当用户态调用read函数时，对应于内核态sys_read，然后在sys_read函数中调用vfs_read函数，在vfs_read函数中调用file-&gt;f_op-&gt;read，由上述do_pipe函数可以知道，pipefs的read(file)实例对应的file-&gt;f_op为read_pipe_fpos，这个read_pipe_fpos结构体定义如下:</p>
+<p><figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">struct file_operations read_pipe_fops = &#123;</div><div class="line">	<span class="selector-class">.llseek</span>		= no_llseek,</div><div class="line">	<span class="selector-class">.read</span>		= pipe_read,</div><div class="line">	<span class="selector-class">.readv</span>		= pipe_readv,</div><div class="line">	<span class="selector-class">.write</span>		= bad_pipe_w,</div><div class="line">	<span class="selector-class">.poll</span>		= pipe_poll,</div><div class="line">	<span class="selector-class">.ioctl</span>		= pipe_ioctl,</div><div class="line">	<span class="selector-class">.open</span>		= pipe_read_open,</div><div class="line">	<span class="selector-class">.release</span>	= pipe_read_release,</div><div class="line">	<span class="selector-class">.fasync</span>		= pipe_read_fasync,</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>因此，在vfs_read函数中调用的(pipe)file-&gt;f_op-&gt;read即为pipe_read函数，这个函数定义在fs/pipe.c文件中,</p>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> ssize_t</span></div><div class="line"><span class="title">pipe_read</span><span class="params">(structfile *filp, <span class="keyword">char</span> __user *buf, <span class="keyword">size_t</span> count, <span class="keyword">loff_t</span> *ppos)</span></div><div class="line">&#123;</div><div class="line">  structiovec iov = &amp;#<span class="number">123</span>; .iov\_base = buf, .iov_len = count &amp;#<span class="number">125</span>;;</div><div class="line">  <span class="keyword">return</span> pipe_readv(filp, &amp;iov, <span class="number">1</span>, ppos);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>pipe_read函数将用户程序的接收数据缓冲区和大小转换为iovec结构，然后调用pipe_readv函数从缓冲区获取数据;在pipe_readv函数中，最主要部分如下:</p>
+<p><figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div></pre></td><td class="code"><pre><div class="line">intsize = PIPE_LEN(*inode);</div><div class="line"><span class="built_in">if</span> (<span class="built_in">size</span>) &#123;</div><div class="line">  <span class="comment">// 获取管道缓冲区读首地址</span></div><div class="line">  <span class="keyword">char</span> *pipebuf = PIPE_BASE(*inode) + PIPE_START(*inode);</div><div class="line">  <span class="comment">// 缓冲区可读最大值=PIPE\_SIZE - PIPE\_START(inode)</span></div><div class="line">  ssize_t chars = PIPE_MAX_RCHUNK(*inode);</div><div class="line"></div><div class="line">  <span class="comment">// 下面两个if语句用于比较缓冲区可读最大值，缓冲区数据长度以及</span></div><div class="line">  <span class="comment">// 用户态缓冲区的长度，取最小值</span></div><div class="line">  <span class="built_in">if</span> (chars &gt; total_len)</div><div class="line">  	chars = total_len;</div><div class="line">  <span class="built_in">if</span> (chars &gt; <span class="built_in">size</span>)</div><div class="line">  	chars = <span class="built_in">size</span>;</div><div class="line">  <span class="comment">// 调用如下函数把数据拷贝到用户态</span></div><div class="line">  <span class="built_in">if</span> (pipe_iov_copy_to_user(iov, pipebuf, chars)) &#123;</div><div class="line">    <span class="built_in">if</span> (!ret) ret = -EFAULT;</div><div class="line">      <span class="built_in">break</span>;</div><div class="line">  &#125;</div><div class="line">  ret += chars;</div><div class="line">  <span class="comment">// 更新缓冲区读首地址</span></div><div class="line">  PIPE_START(*inode) += chars;</div><div class="line">  <span class="comment">// 对缓冲区长度取模</span></div><div class="line">  PIPE_START(*inode) &amp;= (PIPE_SIZE - <span class="number">1</span>);</div><div class="line">  <span class="comment">// 更新缓冲区数据长度</span></div><div class="line">  PIPE_LEN(*inode) -= chars;</div><div class="line">  <span class="comment">// 更新用户态缓冲区长度</span></div><div class="line">  total_len -= chars;</div><div class="line">  do_wakeup = <span class="number">1</span>;</div><div class="line">  <span class="built_in">if</span> (!total_len)</div><div class="line">    <span class="built_in">break</span>;	<span class="comment">/* 如果用户态缓冲区已满，则读取成功 */</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>上述代码是在一个循环中，直到用户态缓冲区已满，或者管道缓冲区全部数据读取完毕；当然这还涉及到如果缓冲区为空，则当前进程阻塞(切换到其他进程)等等；我们来看下pipe_iov_copy_to_user函数</p>
+<p><figure class="highlight dockerfile"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">static inline int</div><div class="line">pipe_iov_copy_to_user(struct iovec *iov, constvoid *<span class="keyword">from</span>, unsignedlong len)</div><div class="line">&#123;</div><div class="line">    unsignedlongcopy;</div><div class="line"></div><div class="line">    while (len &gt; <span class="number">0</span>) &#123;</div><div class="line">      while (!iov-&gt;iov_len)</div><div class="line">      	iov++;</div><div class="line">      <span class="keyword">copy</span><span class="bash"> = min_t(unsignedlong, len, iov-&gt;iov_len);</span></div><div class="line"></div><div class="line">      if (copy_to_user(iov-&gt;iov_base, <span class="keyword">from</span>, <span class="keyword">copy</span><span class="bash">))</span></div><div class="line">          return -EFAULT;</div><div class="line">      <span class="keyword">from</span> += <span class="keyword">copy</span><span class="bash">;</span></div><div class="line">      len -= <span class="keyword">copy</span><span class="bash">;</span></div><div class="line">      iov-&gt;iov_base += <span class="keyword">copy</span><span class="bash">;</span></div><div class="line">      iov-&gt;iov_len -= <span class="keyword">copy</span><span class="bash">;</span></div><div class="line">    &#125;</div><div class="line">    return0;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数很简单，其实就是在一个循环中，将缓冲区中数据通过copy_to_user函数写到用户态空间缓冲区中。最后在用户态read函数返回之后，即可在缓冲区中读取到管道中数据。</p>
+<p>pipe的写过程其实就是和read的过程相反，首先也是通过系统调用嵌入内核write-&gt;sys_write-&gt;vfs_write,在vfs_write函数中调用file-&gt;f_op-&gt;write函数，而这个函数对应管道写file实例的pipe_write函数。后面的过程就是将用户态缓冲区的数据拷贝到内核管道缓冲区，不再叙述；</p>
+<h1>fifo命名管道的实现</h1>
+<hr>
+<p>因为pipe只能用在两个有亲缘关系的进程上，例如父子进程；如果要在两个没有关系的进程上用管道通信时，这时pipe就派不上用场了。我们可以思考一个问题，如何让两个不相干的进程找到带有pipe属性的inode了？我们自然就想到利用磁盘文件。因为linux下两个进程访问同一个文件时，虽然各自的file是不一样的，但是都是指向同一个inode节点。所以将pipe和磁盘文件结合，就产生了fifo命名管道；</p>
+<p>fifo的实现原理和pipe一样，我们可以看下fifo和pipe的read函数操作集合:</p>
+<p><figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//read_fifo_fpos</span></div><div class="line">struct file_operations read_fifo_fops = &#123;</div><div class="line">	<span class="selector-class">.read</span>		= pipe_read,</div><div class="line">	<span class="selector-class">.readv</span>		= pipe_readv,</div><div class="line">	<span class="selector-class">.write</span>		= bad_pipe_w,</div><div class="line">	<span class="selector-class">.poll</span>		= fifo_poll,</div><div class="line">	<span class="selector-class">.ioctl</span>		= pipe_ioctl,</div><div class="line">	<span class="selector-class">.open</span>		= pipe_read_open,</div><div class="line">	<span class="selector-class">.release</span>	= pipe_read_release,</div><div class="line">	<span class="selector-class">.fasync</span>		= pipe_read_fasync,</div><div class="line">&#125;</div><div class="line"><span class="comment">// read_pipe_fops</span></div><div class="line">struct file_operations read_pipe_fops = &#123;</div><div class="line">	<span class="selector-class">.llseek</span>		= no_llseek,</div><div class="line">	<span class="selector-class">.read</span>		= pipe_read,</div><div class="line">	<span class="selector-class">.readv</span>		= pipe_readv,</div><div class="line">	<span class="selector-class">.write</span>		= bad_pipe_w,</div><div class="line">	<span class="selector-class">.poll</span>		= pipe_poll,</div><div class="line">	<span class="selector-class">.ioctl</span>		= pipe_ioctl,</div><div class="line">	<span class="selector-class">.open</span>		= pipe_read_open,</div><div class="line">	<span class="selector-class">.release</span>	= pipe_read_release,</div><div class="line">	<span class="selector-class">.fasync</span>		= pipe_read_fasync,</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以看出来，二者操作函数一样，说明对fifo的读写操作也是对管道缓冲区进行读写；唯一不同点是轮询函数，其实fifo_poll和pipe_poll也是一样的</p>
+<blockquote>
+<p>#define fifo_poll pipe_poll</p>
+</blockquote>
+<p>而fifo创建的文件只是让读写进程能找到相同的inode，进而操作相同的pipe缓冲区。</p>
+<h1>总结</h1>
+<hr>
+<p>这篇文章，主要从内核代码介绍了pipe的实现，总结一点就是两个进程对同一块内存的操作，和进程内部多个线程操作同一个块内存类似。我这只是简单的说明pipe的实现原理，当然，实际上还有许多内容，例如管道阻塞和非阻塞，管道轮询等等。此外还介绍了fifo命名管道的实现原理。</p>
+<p>在准备写这篇文章时，我也看了些关于文件系统的资料以及内核其他文件系统的代码，我加深了对linux虚拟文件系统的实现机理。</p>
+<p>接下来文章，要开始分析了golang的底层实现了，因为在使用过程中，发现golang是一门非常好用的系统级语言，越来越多的公司引入了golang语言进行项目开发，知其然而不知所以然是一件很痛苦的事。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/pipe/" rel="tag">#pipe</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/07/02/helloworld/" rel="next" title="不忘初心，重新认识hello world">
+                <i class="fa fa-chevron-left"></i> 不忘初心，重新认识hello world
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/08/13/linux-cache/" rel="prev" title="linux内存分配与回收">
+                linux内存分配与回收 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/08/01/pipeof/"
+     data-title="从内核源码聊聊pipe实现"
+     data-content=""
+     data-url="http://luodw.cc/2016/08/01/pipeof/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/08/01/pipeof/"
+           data-title="从内核源码聊聊pipe实现" data-url="http://luodw.cc/2016/08/01/pipeof/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">管道的使用</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">虚拟文件系统</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">内核管道的实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.1.</span> <span class="nav-text">do_pipe函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.2.</span> <span class="nav-text">pipe读操作</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">fifo命名管道的实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

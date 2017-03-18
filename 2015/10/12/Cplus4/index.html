@@ -1,0 +1,1095 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="C++,对象模型,复制构造函数," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="上篇讲了C++构造函数语义学，这篇文章接着将C++复制构造函数语义学，也属于构造函数。
+C++有三种情况会用到C++复制构造函数
+
+直接用一个类对象类初始化另一个类对象
+类变量作为函数参数时，此时如果传进对象实参，形参将会用实参显试初始化。
+类变量作为函数返回值时。
+
+C++复制构造函数和构造函数一样，也是需要的时候才会产生。什么情况下会产生复制构造函数了？
+C++有分Bitwise Copy S">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++复制构造函数语义学">
+<meta property="og:url" content="http://luodw.cc/2015/10/12/Cplus4/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="上篇讲了C++构造函数语义学，这篇文章接着将C++复制构造函数语义学，也属于构造函数。
+C++有三种情况会用到C++复制构造函数
+
+直接用一个类对象类初始化另一个类对象
+类变量作为函数参数时，此时如果传进对象实参，形参将会用实参显试初始化。
+类变量作为函数返回值时。
+
+C++复制构造函数和构造函数一样，也是需要的时候才会产生。什么情况下会产生复制构造函数了？
+C++有分Bitwise Copy S">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.117Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="C++复制构造函数语义学">
+<meta name="twitter:description" content="上篇讲了C++构造函数语义学，这篇文章接着将C++复制构造函数语义学，也属于构造函数。
+C++有三种情况会用到C++复制构造函数
+
+直接用一个类对象类初始化另一个类对象
+类变量作为函数参数时，此时如果传进对象实参，形参将会用实参显试初始化。
+类变量作为函数返回值时。
+
+C++复制构造函数和构造函数一样，也是需要的时候才会产生。什么情况下会产生复制构造函数了？
+C++有分Bitwise Copy S">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/12/Cplus4/"/>
+
+
+  <title> C++复制构造函数语义学 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                C++复制构造函数语义学
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-12T19:04:22+08:00" content="2015-10-12">
+              2015-10-12
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/C-C/" itemprop="url" rel="index">
+                    <span itemprop="name">C/C++</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/12/Cplus4/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/12/Cplus4/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/12/Cplus4/" class="leancloud_visitors" data-flag-title="C++复制构造函数语义学">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>上篇讲了C++构造函数语义学，这篇文章接着将C++复制构造函数语义学，也属于构造函数。
+C++有三种情况会用到C++复制构造函数</p>
+<ol>
+<li>直接用一个类对象类初始化另一个类对象</li>
+<li>类变量作为函数参数时，此时如果传进对象实参，形参将会用实参显试初始化。</li>
+<li>类变量作为函数返回值时。</li>
+</ol>
+<p>C++复制构造函数和构造函数一样，也是需要的时候才会产生。什么情况下会产生复制构造函数了？</p>
+<p>C++有分Bitwise Copy Semantics和Memberwise Copy Semantics。默认情况下，C++用的是Bitwise Copy Semantics，即一个个bit拷贝复制。但是在以下情况下，必须用Memberwise Copy Semantics，即成员变量为单位复制。</p>
+<ol>
+<li>当class内含一个member object，而后者的class声明有一个copy constructor时（不论是用户自己定义的，还是编译器生成的）。</li>
+<li>当class继承自一个base class而后者存在一个copy constructor时（再次强调，不论是显示声明或编译器合成）</li>
+<li>当class声明了一个或多个virtual functions时。</li>
+<li>当class派生自一个继承串链时，其中有一个或多个virtual base classes时。</li>
+</ol>
+<p>前两个相对较简单，我用一个例子来测试第三条。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;cstdio&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;cstdlib&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></div><div class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</div><div class="line"></div><div class="line"><span class="keyword">class</span> A </div><div class="line">&#123;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">	A(<span class="keyword">int</span> a=<span class="number">0</span>):a(a)&#123;</div><div class="line">	&#125;</div><div class="line">	<span class="function"><span class="keyword">void</span> <span class="title">test</span><span class="params">()</span></span></div><div class="line">	&#123;</div><div class="line">		<span class="built_in">cout</span>&lt;&lt;<span class="string">"test"</span>&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">	&#125;</div><div class="line"><span class="keyword">private</span>:</div><div class="line">	<span class="keyword">int</span> a;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></div><div class="line">&#123;</div><div class="line">	A a;</div><div class="line">	A a1=a;</div><div class="line">	a1.test();</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>main函数反汇编代码如下：
+<figure class="highlight xquery"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line">(gdb) disas main</div><div class="line">Dump <span class="keyword">of</span> assembler code <span class="keyword">for</span> <span class="keyword">function</span> main():</div><div class="line">   <span class="number">0x000000000040085d</span> &lt;+<span class="number">0</span>&gt;:	push   <span class="meta">%rbp</span></div><div class="line">   <span class="number">0x000000000040085e</span> &lt;+<span class="number">1</span>&gt;:	mov    <span class="meta">%rsp</span>,<span class="meta">%rbp</span></div><div class="line">   <span class="number">0x0000000000400861</span> &lt;+<span class="number">4</span>&gt;:	sub    $0x20,<span class="meta">%rsp</span></div><div class="line">   <span class="number">0x0000000000400865</span> &lt;+<span class="number">8</span>&gt;:	lea    -<span class="number">0x20</span>(<span class="meta">%rbp</span>),<span class="meta">%rax</span></div><div class="line">   <span class="number">0x0000000000400869</span> &lt;+<span class="number">12</span>&gt;:	mov    $0x0,<span class="meta">%esi</span></div><div class="line">   <span class="number">0x000000000040086e</span> &lt;+<span class="number">17</span>&gt;:	mov    <span class="meta">%rax</span>,<span class="meta">%rdi</span></div><div class="line">   <span class="number">0x0000000000400871</span> &lt;+<span class="number">20</span>&gt;:	callq  <span class="number">0x4008e2</span> &lt;A::A(int)&gt;</div><div class="line">   <span class="number">0x0000000000400876</span> &lt;+<span class="number">25</span>&gt;:	mov    -<span class="number">0x20</span>(<span class="meta">%rbp</span>),<span class="meta">%eax</span></div><div class="line">   <span class="number">0x0000000000400879</span> &lt;+<span class="number">28</span>&gt;:	mov    <span class="meta">%eax</span>,-<span class="number">0x10</span>(<span class="meta">%rbp</span>)</div><div class="line">   <span class="number">0x000000000040087c</span> &lt;+<span class="number">31</span>&gt;:	lea    -<span class="number">0x10</span>(<span class="meta">%rbp</span>),<span class="meta">%rax</span></div><div class="line">   <span class="number">0x0000000000400880</span> &lt;+<span class="number">35</span>&gt;:	mov    <span class="meta">%rax</span>,<span class="meta">%rdi</span></div><div class="line">   <span class="number">0x0000000000400883</span> &lt;+<span class="number">38</span>&gt;:	callq  <span class="number">0x4008f8</span> &lt;A::test()&gt;</div><div class="line">   <span class="number">0x0000000000400888</span> &lt;+<span class="number">43</span>&gt;:	mov    $0x0,<span class="meta">%eax</span></div><div class="line">   <span class="number">0x000000000040088d</span> &lt;+<span class="number">48</span>&gt;:	leaveq </div><div class="line">   <span class="number">0x000000000040088e</span> &lt;+<span class="number">49</span>&gt;:	retq   </div><div class="line">End <span class="keyword">of</span> assembler dump.</div></pre></td></tr></table></figure></p>
+<p>并没有调用复制构造函数。</p>
+<p>当我把<strong>test函数改成virtual</strong>时，汇编代码如下：
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">(gdb) disas main</div><div class="line">Dump of assembler code for function main():</div><div class="line">   <span class="number">0x00000000004008cd</span> &lt;+<span class="number">0</span>&gt;:	<span class="keyword">push</span>   %rbp</div><div class="line">   <span class="number">0x00000000004008ce</span> &lt;+<span class="number">1</span>&gt;:	<span class="keyword">mov</span>    %rsp,%rbp</div><div class="line">   <span class="number">0x00000000004008d1</span> &lt;+<span class="number">4</span>&gt;:	<span class="keyword">sub</span>    <span class="number">$0</span>x20,%rsp</div><div class="line">   <span class="number">0x00000000004008d5</span> &lt;+<span class="number">8</span>&gt;:	<span class="keyword">lea</span>    -<span class="number">0x20</span>(%rbp),%rax</div><div class="line">   <span class="number">0x00000000004008d9</span> &lt;+<span class="number">12</span>&gt;:	<span class="keyword">mov</span>    <span class="number">$0</span>x0,%esi</div><div class="line">   <span class="number">0x00000000004008de</span> &lt;+<span class="number">17</span>&gt;:	<span class="keyword">mov</span>    %rax,%rdi</div><div class="line">   <span class="number">0x00000000004008e1</span> &lt;+<span class="number">20</span>&gt;:	callq  <span class="number">0x40095e</span> &lt;A::A(<span class="keyword">int</span>)&gt;</div><div class="line">   <span class="number">0x00000000004008e6</span> &lt;+<span class="number">25</span>&gt;:	<span class="keyword">lea</span>    -<span class="number">0x20</span>(%rbp),%rdx</div><div class="line">   <span class="number">0x00000000004008ea</span> &lt;+<span class="number">29</span>&gt;:	<span class="keyword">lea</span>    -<span class="number">0x10</span>(%rbp),%rax</div><div class="line">   <span class="number">0x00000000004008ee</span> &lt;+<span class="number">33</span>&gt;:	<span class="keyword">mov</span>    %rdx,%rsi</div><div class="line">   <span class="number">0x00000000004008f1</span> &lt;+<span class="number">36</span>&gt;:	<span class="keyword">mov</span>    %rax,%rdi</div><div class="line">   <span class="number">0x00000000004008f4</span> &lt;+<span class="number">39</span>&gt;:	callq  <span class="number">0x4009aa</span> &lt;A::A(A const&amp;)&gt;</div><div class="line">   <span class="number">0x00000000004008f9</span> &lt;+<span class="number">44</span>&gt;:	<span class="keyword">lea</span>    -<span class="number">0x10</span>(%rbp),%rax</div><div class="line">   <span class="number">0x00000000004008fd</span> &lt;+<span class="number">48</span>&gt;:	<span class="keyword">mov</span>    %rax,%rdi</div><div class="line">   <span class="number">0x0000000000400900</span> &lt;+<span class="number">51</span>&gt;:	callq  <span class="number">0x400980</span> &lt;A::<span class="keyword">test</span>()&gt;</div><div class="line">   <span class="number">0x0000000000400905</span> &lt;+<span class="number">56</span>&gt;:	<span class="keyword">mov</span>    <span class="number">$0</span>x0,%eax</div><div class="line">   <span class="number">0x000000000040090a</span> &lt;+<span class="number">61</span>&gt;:	leaveq </div><div class="line">   <span class="number">0x000000000040090b</span> &lt;+<span class="number">62</span>&gt;:	retq   </div><div class="line">End of assembler dump.</div></pre></td></tr></table></figure></p>
+<p>我们可以看到调用**callq  0x4009aa &lt;A::A(A const&amp;)&gt;**复制构造函数。跟进到这个复制构造函数时，可以看到这个函数只是简单的将虚拟函数表复制给对象的首8个字节，因为没有用户其他代码。</p>
+<p>当我再一次改造这个程序时，即用子类来初始化父类时：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;cstdio&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;cstdlib&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;iostream&gt;</span></span></div><div class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</div><div class="line"><span class="keyword">class</span> B</div><div class="line">&#123;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">	B(<span class="keyword">int</span> i=<span class="number">0</span>):b(i)&#123;&#125;</div><div class="line">	B(B <span class="keyword">const</span>&amp; b)</div><div class="line">	&#123;</div><div class="line">		</div><div class="line">	&#125;</div><div class="line">	<span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">test1</span><span class="params">()</span></span></div><div class="line">	&#123;</div><div class="line">		<span class="built_in">cout</span>&lt;&lt;<span class="string">"test"</span>&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">	&#125;</div><div class="line"><span class="keyword">private</span>:</div><div class="line">	<span class="keyword">int</span> b;</div><div class="line"> &#125;;</div><div class="line"></div><div class="line"><span class="keyword">class</span> A :<span class="keyword">public</span> B</div><div class="line">&#123;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">	A(<span class="keyword">int</span> a=<span class="number">0</span>,<span class="keyword">int</span> b=<span class="number">0</span>):B(b),a(a)&#123;</div><div class="line">	&#125;</div><div class="line">	<span class="function"><span class="keyword">virtual</span> <span class="keyword">void</span> <span class="title">test2</span><span class="params">()</span></span></div><div class="line">	&#123;</div><div class="line">		<span class="built_in">cout</span>&lt;&lt;<span class="string">"test"</span>&lt;&lt;<span class="built_in">endl</span>;</div><div class="line">	&#125;</div><div class="line"><span class="keyword">private</span>:</div><div class="line">	<span class="keyword">int</span> a;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></div><div class="line">&#123;</div><div class="line">	A a;</div><div class="line">	B b=a;</div><div class="line">	b.test1();</div><div class="line">	<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这时我深入到B的复制构造函数中，即断点在B(B const&amp; b)函数里，该函数的汇编代码为：
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">(gdb) disas</div><div class="line">Dump of assembler code for function B::B(B const&amp;):</div><div class="line">   <span class="number">0x00000000004009e6</span> &lt;+<span class="number">0</span>&gt;:	<span class="keyword">push</span>   %rbp</div><div class="line">   <span class="number">0x00000000004009e7</span> &lt;+<span class="number">1</span>&gt;:	<span class="keyword">mov</span>    %rsp,%rbp</div><div class="line">   <span class="number">0x00000000004009ea</span> &lt;+<span class="number">4</span>&gt;:	<span class="keyword">mov</span>    %rdi,-<span class="number">0x8</span>(%rbp)</div><div class="line">   <span class="number">0x00000000004009ee</span> &lt;+<span class="number">8</span>&gt;:	<span class="keyword">mov</span>    %rsi,-<span class="number">0x10</span>(%rbp)</div><div class="line">   <span class="number">0x00000000004009f2</span> &lt;+<span class="number">12</span>&gt;:	<span class="keyword">mov</span>    -<span class="number">0x8</span>(%rbp),%rax</div><div class="line">   <span class="number">0x00000000004009f6</span> &lt;+<span class="number">16</span>&gt;:	<span class="keyword">movq</span>   <span class="number">$0</span>x400b70,(%rax)</div><div class="line">=&gt; <span class="number">0x00000000004009fd</span> &lt;+<span class="number">23</span>&gt;:	<span class="keyword">pop</span>    %rbp</div><div class="line">   <span class="number">0x00000000004009fe</span> &lt;+<span class="number">24</span>&gt;:	retq   </div><div class="line">End of assembler dump.</div><div class="line">(gdb) x /x $<span class="built_in">rdi</span></div><div class="line"><span class="number">0x7fffffffd710</span>:	<span class="number">0x00400b70</span></div><div class="line">(gdb) x /x $<span class="built_in">rsi</span></div><div class="line"><span class="number">0x7fffffffd700</span>:	<span class="number">0x00400b50</span></div><div class="line">(gdb)</div></pre></td></tr></table></figure></p>
+<p>0x00400b70这是B的虚函数地址，0x00400b50这是A的虚函数地址，由汇编可以看出，B b=a，调用的是B的复制构造函数，在复制构造函数内，直接把B的虚函数地址复制给b。所以类里面有虚函数必须合成默认构造函数，否则用子类的的对象来初始化父类对象时，如果采用bitwise复制，那么复制的是子类的虚函数表，这显然是错误的。</p>
+<h3>编译器优化</h3>
+<p>当有以下代码时，
+<figure class="highlight abnf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">A foo()</div><div class="line">&#123;</div><div class="line">	A a<span class="comment">;</span></div><div class="line">	a.test()<span class="comment">;</span></div><div class="line">	return a<span class="comment">;</span></div><div class="line">&#125;</div><div class="line"> </div><div class="line">A a=foo()<span class="comment">;</span></div></pre></td></tr></table></figure></p>
+<p>按正常理解，最后一句是会调用复制构造函数，然而编译器会做出优化，编译器正真做的就和我普通想得不一样了。</p>
+<p>编译器会改写这个函数，这样以来就不用调用复制构造函数了，因为当类成员很多很大时，复制操作是很耗时的。
+<figure class="highlight gcode"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">void foo<span class="comment">(A &amp;_result)</span></div><div class="line">&#123;</div><div class="line">	_result.test<span class="comment">()</span>;</div><div class="line">&#125;</div><div class="line">A a;</div><div class="line">foo<span class="comment">(a)</span>;</div></pre></td></tr></table></figure></p>
+<p>通过查看反汇编也可以看出编译器这样的改写，这中优化也叫作named return value(NRV)
+，自己也可以写个程序测试下，并没有调用复制构造函数。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag">#C++</a>
+          
+            <a href="/tags/对象模型/" rel="tag">#对象模型</a>
+          
+            <a href="/tags/复制构造函数/" rel="tag">#复制构造函数</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/11/Cplus3-1/" rel="next" title="C++构造函数语义学">
+                <i class="fa fa-chevron-left"></i> C++构造函数语义学
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/12/Cplus5-md/" rel="prev" title="C++赋值操作符和析构函数语义学">
+                C++赋值操作符和析构函数语义学 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/12/Cplus4/"
+     data-title="C++复制构造函数语义学"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/12/Cplus4/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/12/Cplus4/"
+           data-title="C++复制构造函数语义学" data-url="http://luodw.cc/2015/10/12/Cplus4/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">编译器优化</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

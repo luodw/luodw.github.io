@@ -1,0 +1,1084 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="C++,STL,内存池,空间配置器," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="最近在写论文程序，经常用到C++ STL里的模板库，但是经常记不清那些模板类的成员方法，以及当用find函数查找时，不知道怎么判断是否未找到，所以我下定决心，索性把 STL源码剖看了，顺便把源码学习一遍。。。
+C++ STL配置器分为两层配置器，当请求的内存大于128b时，就用第一层配置器分配内存，当请求的内存小于等于128b时就调用第二层配置器。这有点类似leveldb内存池arana，当需求大">
+<meta property="og:type" content="article">
+<meta property="og:title" content="C++STL内存池和空间配置器">
+<meta property="og:url" content="http://luodw.cc/2015/10/26/Calloc/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="最近在写论文程序，经常用到C++ STL里的模板库，但是经常记不清那些模板类的成员方法，以及当用find函数查找时，不知道怎么判断是否未找到，所以我下定决心，索性把 STL源码剖看了，顺便把源码学习一遍。。。
+C++ STL配置器分为两层配置器，当请求的内存大于128b时，就用第一层配置器分配内存，当请求的内存小于等于128b时就调用第二层配置器。这有点类似leveldb内存池arana，当需求大">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_019.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_020.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_021.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.117Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="C++STL内存池和空间配置器">
+<meta name="twitter:description" content="最近在写论文程序，经常用到C++ STL里的模板库，但是经常记不清那些模板类的成员方法，以及当用find函数查找时，不知道怎么判断是否未找到，所以我下定决心，索性把 STL源码剖看了，顺便把源码学习一遍。。。
+C++ STL配置器分为两层配置器，当请求的内存大于128b时，就用第一层配置器分配内存，当请求的内存小于等于128b时就调用第二层配置器。这有点类似leveldb内存池arana，当需求大">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_019.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/10/26/Calloc/"/>
+
+
+  <title> C++STL内存池和空间配置器 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                C++STL内存池和空间配置器
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-26T15:49:27+08:00" content="2015-10-26">
+              2015-10-26
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/STL/" itemprop="url" rel="index">
+                    <span itemprop="name">STL</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/10/26/Calloc/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/10/26/Calloc/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/26/Calloc/" class="leancloud_visitors" data-flag-title="C++STL内存池和空间配置器">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>最近在写论文程序，经常用到C++ STL里的模板库，但是经常记不清那些模板类的成员方法，以及当用find函数查找时，不知道怎么判断是否未找到，所以我下定决心，索性把 <strong>STL源码剖</strong>看了，顺便把源码学习一遍。。。</p>
+<p>C++ STL配置器分为两层配置器，当请求的内存大于128b时，就用第一层配置器分配内存，当请求的内存小于等于128b时就调用第二层配置器。这有点类似leveldb内存池arana，当需求大于1024时，则重新分配一块内存使用，小于1024时，从内存池里获取。这样的好处就是可以减少内存分配系统调用。试想，对于128b大小的内存，如果来了一个128b请求，则第二次128b请求就需要到系统分配内存了，但是如果来了一个32b的请求，则第四次32b请求才到系统分配内存。</p>
+<h1>第一级配置器</h1>
+<p>先来看下源码：
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">int</span> inst&gt;</div><div class="line"><span class="keyword">class</span> __malloc_alloc_template &#123;</div><div class="line"></div><div class="line"><span class="keyword">private</span>:</div><div class="line"><span class="comment">//malloc调用内存不足时调用函数</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">void</span> *oom_malloc(size_t);</div><div class="line"><span class="comment">//realloc调用内存不足时调用函数</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">void</span> *oom_realloc(<span class="keyword">void</span> *, size_t);</div><div class="line"><span class="comment">//错误处理函数，类似C++的set_new_handler，默认值为０，如果不设置，则内存分配失败时，返回THROW_BAD_ALLOC</span></div><div class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __STL_STATIC_TEMPLATE_MEMBER_BUG</span></div><div class="line">    <span class="keyword">static</span> <span class="keyword">void</span> (* __malloc_alloc_oom_handler)();</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></div><div class="line"></div><div class="line"><span class="keyword">public</span>:</div><div class="line"></div><div class="line"><span class="keyword">static</span> <span class="keyword">void</span> * allocate(size_t n)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">void</span> *result = malloc(n);	第一级配置器直接使用malloc分配内存</div><div class="line">    <span class="built_in">if</span> (<span class="number">0</span> == result) result = oom_malloc(n);<span class="comment">//如果分配失败，则调用oom_malloc()</span></div><div class="line">    <span class="built_in">return</span> result;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">static</span> <span class="keyword">void</span> deallocate(<span class="keyword">void</span> *p, size_t <span class="comment">/* n */</span>)</div><div class="line">&#123;</div><div class="line">    free(p);	<span class="comment">//第一级配置器用free回收内存</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">static</span> <span class="keyword">void</span> * reallocate(<span class="keyword">void</span> *p, size_t <span class="comment">/* old_sz */</span>, size_t new_sz)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">void</span> * result = realloc(p, new_sz);	<span class="comment">//第一级配置器用reallocate重分配内存</span></div><div class="line">    <span class="built_in">if</span> (<span class="number">0</span> == result) result = oom_realloc(p, new_sz);／／分配失败，调用oom_realloc分配</div><div class="line">    <span class="built_in">return</span> result;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// 设置分配错误处理函数，用于在oom_malloc和oom_realloc中使用</span></div><div class="line"><span class="keyword">static</span> <span class="keyword">void</span> (* set_malloc_handler(<span class="keyword">void</span> (*f)()))()</div><div class="line">&#123;</div><div class="line">    <span class="keyword">void</span> (* old)() = __malloc_alloc_oom_handler;</div><div class="line">    __malloc_alloc_oom_handler = f;</div><div class="line">    <span class="built_in">return</span>(old);</div><div class="line">&#125;</div><div class="line"></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>第一级配置器相对简单，因为使用的正是我们平常使用的malloc，dealloc，free等，但是这个配置器提供了当内存配置错误时的处理函数oom_malloc，这个函数会调用__malloc_alloc_oom_handler)() 这个函数，去企图释放内存，然后重新调用malloc分配内存。这个函数默认是0，所以malloc调用失败默认操作是返回_THROW_BAD_ALLOC，来看下这个两个函数：</p>
+<p>首先__malloc_alloc_oom_handler)() 默认值为0
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __STL_STATIC_TEMPLATE_MEMBER_BUG</span></div><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">int</span> inst&gt;</div><div class="line"><span class="keyword">void</span> (* __malloc_alloc_template&lt;inst&gt;::__malloc_alloc_oom_handler)() = <span class="number">0</span>;</div><div class="line"><span class="meta">#endi</span></div></pre></td></tr></table></figure></p>
+<p>然后是两个内存分配失败函数oom_malloc和oom_realloc
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">int</span> inst&gt;</div><div class="line"><span class="keyword">void</span> * __malloc_alloc_template&lt;inst&gt;::oom_malloc(<span class="keyword">size_t</span> n)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">void</span> (* my_malloc_handler)();<span class="comment">//声明一个函数指针，用于赋值 __malloc_alloc_oom_handler</span></div><div class="line">    <span class="keyword">void</span> *result;<span class="comment">//返回的内存指针</span></div><div class="line"></div><div class="line">    <span class="keyword">for</span> (;;) &#123;	<span class="comment">// 不断尝试释放内存，分配，再释放，再分配...</span></div><div class="line">        my_malloc_handler = __malloc_alloc_oom_handler;</div><div class="line">        <span class="keyword">if</span> (<span class="number">0</span> == my_malloc_handler) &#123; __THROW_BAD_ALLOC; &#125;<span class="comment">//为设置处理函数时，抛出错误</span></div><div class="line">        (*my_malloc_handler)();		<span class="comment">// 调用处理函数，尝试释放内存</span></div><div class="line">        result = <span class="built_in">malloc</span>(n);			<span class="comment">// 再重新分配内存。</span></div><div class="line">        <span class="keyword">if</span> (result) <span class="keyword">return</span>(result);<span class="comment">//如果分配成功，返回指针</span></div><div class="line">    &#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">int</span> inst&gt;</div><div class="line"><span class="keyword">void</span> * __malloc_alloc_template&lt;inst&gt;::oom_realloc(<span class="keyword">void</span> *p, <span class="keyword">size_t</span> n)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">void</span> (* my_malloc_handler)();</div><div class="line">    <span class="keyword">void</span> *result;</div><div class="line"></div><div class="line">    <span class="keyword">for</span> (;;) &#123;	<span class="comment">// 不断尝试释放内存，分配，再释放，再分配...</span></div><div class="line">        my_malloc_handler = __malloc_alloc_oom_handler;</div><div class="line">        <span class="keyword">if</span> (<span class="number">0</span> == my_malloc_handler) &#123; __THROW_BAD_ALLOC; &#125;<span class="comment">////为设置处理函数时，抛出错误</span></div><div class="line">        (*my_malloc_handler)();	<span class="comment">//  调用处理函数，尝试释放内存</span></div><div class="line">        result = <span class="built_in">realloc</span>(p, n);	<span class="comment">// 再重新分配内存。</span></div><div class="line">        <span class="keyword">if</span> (result) <span class="keyword">return</span>(result);<span class="comment">////如果分配成功，返回指针</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这两个函数，在当内存分配失败时，会不断尝试区内存释放内存，再分配内存，所以再一定程度上提高内存分配成功。当需求内存不足128b时，会调用第二层配置器，接下来分析第二层配置器。</p>
+<h1>第二层配置器</h1>
+<p>第二层配置器有有一个内存池，用一个union obj数组free_list来存储内存的地址，数组的每一个元素都指向一个obj链表，也就是内存链表。数组从小到大表示负责8b,16b,24b,...,120b,128b内存请求。当请求的内存为n时，会将请求上条至2的指数大小，并从数组相应位置获取内存。例如如果请求为20b，则请求会上调至24b
+。
+先看下union obj这个定义:
+<figure class="highlight crystal"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">union</span> <span class="title">obj</span> &#123;</span></div><div class="line">      <span class="class"><span class="keyword">union</span> <span class="title">obj</span> * <span class="title">free_list_link</span>;</span>/<span class="regexp">/指向下一个内存的地址</span></div><div class="line">      char client_data[1];    /<span class="regexp">/内存的首地址</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>这个定义如果看不懂，可以查看我之前写的<strong>柔性数组</strong></p>
+<p>来看下内存池模型图，来自于《STL源码剖析》:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_019.png" alt="当从内存池请求内存时"></p>
+<p>这个图展示了当有内存请求到达时，先找到负责这个内存大小的数组元素指向的内存链表，取出第一块内存，然后把数组元素(obj指针)指向第二块内存的首地址，先介绍下几个成员:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">enum</span> &#123;__ALIGN = <span class="number">8</span>&#125;; <span class="comment">//内存对齐大小</span></div><div class="line"><span class="keyword">enum</span> &#123;__MAX_BYTES = <span class="number">128</span>&#125;;<span class="comment">//这个数组负责最大的内存</span></div><div class="line"><span class="keyword">enum</span> &#123;__NFREELISTS = __MAX_BYTES/__ALIGN&#125;;<span class="comment">//数组大小</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> size_t <span class="title">ROUND_UP</span><span class="params">(<span class="keyword">size_t</span> bytes)</span> </span>&#123;</div><div class="line">      <span class="keyword">return</span> (((bytes) + __ALIGN<span class="number">-1</span>) &amp; ~(__ALIGN - <span class="number">1</span>));</div><div class="line">&#125;<span class="comment">//将bytes上调至2的指数倍，这里就是8的倍数</span></div><div class="line"> </div><div class="line"><span class="keyword">static</span> obj * __VOLATILE free_list[__NFREELISTS];<span class="comment">//内存池链表 </span></div><div class="line"><span class="function"><span class="keyword">static</span>  size_t <span class="title">FREELIST_INDEX</span><span class="params">(<span class="keyword">size_t</span> bytes)</span> </span>&#123;</div><div class="line">      <span class="keyword">return</span> (((bytes) + __ALIGN<span class="number">-1</span>)/__ALIGN - <span class="number">1</span>);</div><div class="line">&#125;<span class="comment">//返回负责这个内存长度的数组索引</span></div></pre></td></tr></table></figure></p>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> * <span class="title">allocate</span><span class="params">(<span class="keyword">size_t</span> n)</span></span></div><div class="line"> &#123;</div><div class="line">   obj * __VOLATILE * my_free_list;<span class="comment">//指向数组元素的指针</span></div><div class="line">   obj * __RESTRICT result;<span class="comment">//返回的内存地址</span></div><div class="line"></div><div class="line">   <span class="keyword">if</span> (n &gt; (<span class="keyword">size_t</span>) __MAX_BYTES) &#123;<span class="comment">//如果请求内存大于128b，则调用第一级配置器</span></div><div class="line">       <span class="keyword">return</span>(malloc_alloc::allocate(n));</div><div class="line">   &#125;</div><div class="line">   my_free_list = free_list + FREELIST_INDEX(n);</div><div class="line">   <span class="comment">// 根据请求内存大小，找到数组负责这个大小的索引位置的地址</span></div><div class="line">   result = *my_free_list;<span class="comment">//取出链表的第一块内存</span></div><div class="line">   <span class="keyword">if</span> (result == <span class="number">0</span>) &#123;<span class="comment">//这个链表不够内存时，调用refill重新从内存池分配</span></div><div class="line">       <span class="keyword">void</span> *r = refill(ROUND_UP(n));</div><div class="line">       <span class="keyword">return</span> r;</div><div class="line">   &#125;</div><div class="line">   *my_free_list = result -&gt; free_list_link;<span class="comment">//对应索引数组的指针指向内存链表的下一块内存</span></div><div class="line">   <span class="keyword">return</span> (result);</div><div class="line"> &#125;;</div></pre></td></tr></table></figure></p>
+<p>这是第二层配置器从内存池获取内存的调用函数，先判断请求内存是否大于128b，如果是，则调用第一级配置器，如果不是，则从第二级配置器请求一块内存。</p>
+<p>当程序释放这块内存时，第二级配置器还负责回收这块内存，等下次有请求时，可以直接使用这块内存。示意图如下，从《STL源码剖析》摘取:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_020.png" alt="内存池回收内存">;</p>
+<p>先计算机这块内存属于哪个数组元素负责，然后将这块回收的内存放置链表的第一个位置，这块内存的下一块内存为这个链表原先的第一块内存。源码如下：
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">deallocate</span><span class="params">(<span class="keyword">void</span> *p, <span class="keyword">size_t</span> n)</span></span></div><div class="line">&#123;</div><div class="line">  obj *q = (obj *)p;<span class="comment">//将被回收的内存转换为obj</span></div><div class="line">  obj * __VOLATILE * my_free_list;</div><div class="line"></div><div class="line">  <span class="keyword">if</span> (n &gt; (<span class="keyword">size_t</span>) __MAX_BYTES) &#123;<span class="comment">//大于128b，调用第一级配置器回收</span></div><div class="line">      malloc_alloc::deallocate(p, n);</div><div class="line">      <span class="keyword">return</span>;</div><div class="line">  &#125;</div><div class="line">  my_free_list = free_list + FREELIST_INDEX(n);<span class="comment">//找到负责这块内存的数组元素</span></div><div class="line">  q -&gt; free_list_link = *my_free_list;<span class="comment">//回收的内存的下一块内存指向原链表的第一块内存</span></div><div class="line">  *my_free_list = q;<span class="comment">//链表第一块内存指向被回收的内存</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>之前分析分配内存时，当free_list没有可用的内存时，会调用refill来从内存池分配内存。例如，如果请求内存为32b，此时内存链表中没有足够的内存了，那么refill会分配20块32b的内存块，然后把第一块返回给程序，其他19块由数组相应链表管理，源码如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">bool</span> threads, <span class="keyword">int</span> inst&gt;</div><div class="line"><span class="keyword">void</span>* __default_alloc_template&lt;threads, inst&gt;::refill(<span class="keyword">size_t</span> n)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">int</span> nobjs = <span class="number">20</span>;<span class="comment">//默认分配20块内存块</span></div><div class="line">    <span class="keyword">char</span> * chunk = chunk_alloc(n, nobjs);<span class="comment">//从内存池获取，返回第一块</span></div><div class="line">    obj * __VOLATILE * my_free_list;</div><div class="line">    obj * result;</div><div class="line">    obj * current_obj, * next_obj;</div><div class="line">    <span class="keyword">int</span> i;</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (<span class="number">1</span> == nobjs) <span class="keyword">return</span>(chunk);<span class="comment">//如果只返回一块内存，直接返回</span></div><div class="line">    my_free_list = free_list + FREELIST_INDEX(n);</div><div class="line"></div><div class="line">      result = (obj *)chunk;<span class="comment">//不止一块内存，取出第一块内存</span></div><div class="line">      *my_free_list = next_obj = (obj *)(chunk + n);<span class="comment">//数组元素链表指针指向第二块内存</span></div><div class="line">      <span class="keyword">for</span> (i = <span class="number">1</span>; ; i++) &#123;<span class="comment">//for循环为后续内存快建立链表关系</span></div><div class="line">        current_obj = next_obj;<span class="comment">//当前内存快</span></div><div class="line">        next_obj = (obj *)((<span class="keyword">char</span> *)next_obj + n);<span class="comment">//下一块内存快</span></div><div class="line">        <span class="keyword">if</span> (nobjs - <span class="number">1</span> == i) &#123;</div><div class="line">            current_obj -&gt; free_list_link = <span class="number">0</span>;<span class="comment">//最后一块的free_list_link为空</span></div><div class="line">            <span class="keyword">break</span>;</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            current_obj -&gt; free_list_link = next_obj;<span class="comment">//当前块的free_list_link指向下一块指针。</span></div><div class="line">        &#125;</div><div class="line">      &#125;</div><div class="line">    <span class="keyword">return</span>(result);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>接下来分析真正从内存池获取内存的函数chunk_alloc。先给下内存池实际操作示意图:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_021.png" alt="内存池实际操作示意图">;</p>
+<p>当free_list没有内存返回给用户时，refill函数会调用chunk_alloc从内存池获取内存，如果内存池剩余的内存(end_free-start_free)满足需求的内存(size*nobjs)，则直接从从内存池获取内存，返回给程序；当内存池的块不能满足20块时，返回一个以上的内存块；当内存池一块都不能满足时，先是回收剩余的内存，然后调用malloc从系统获取内存。如果系统内存不足，则先从数组其他链表获取内存，如果其他链表也不足够内存的话，就调用第一级内存来分配，因为第一级内存分配失败，有处理函数来解决。源码如下:
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">bool</span> threads, <span class="keyword">int</span> inst&gt;</div><div class="line"><span class="keyword">char</span>*</div><div class="line">__default_alloc_template&lt;threads, inst&gt;::chunk_alloc(size_t <span class="built_in">size</span>, <span class="keyword">int</span>&amp; nobjs)</div><div class="line">&#123;</div><div class="line">    <span class="keyword">char</span> * result;</div><div class="line">    size_t total_bytes = <span class="built_in">size</span> * nobjs;<span class="comment">//总需求内存</span></div><div class="line">    size_t bytes_left = end_free - start_free;<span class="comment">//内存池剩余的内存</span></div><div class="line"></div><div class="line">    <span class="built_in">if</span> (bytes_left &gt;= total_bytes) &#123;<span class="comment">//当内存池足够内存时，从内存池里获取</span></div><div class="line">        result = start_free;</div><div class="line">        start_free += total_bytes;</div><div class="line">        <span class="built_in">return</span>(result);</div><div class="line">    &#125; <span class="built_in">else</span> <span class="built_in">if</span> (bytes_left &gt;= <span class="built_in">size</span>) &#123;<span class="comment">//内存池不能满足，但是又可以满足一块以上时</span></div><div class="line">        nobjs = bytes_left/<span class="built_in">size</span>;<span class="comment">//重新设置内存块数</span></div><div class="line">        total_bytes = <span class="built_in">size</span> * nobjs;</div><div class="line">        result = start_free;</div><div class="line">        start_free += total_bytes;</div><div class="line">        <span class="built_in">return</span>(result);</div><div class="line">    &#125; <span class="built_in">else</span> &#123;<span class="comment">//当内存池的内存小于一块内存的大小时，先将剩余内存加在数组适当的位置</span></div><div class="line">        size_t bytes_to_get = <span class="number">2</span> * total_bytes + ROUND_UP(heap_size &gt;&gt; <span class="number">4</span>);</div><div class="line">        <span class="comment">// 将剩余内存利用起来</span></div><div class="line">        <span class="built_in">if</span> (bytes_left &gt; <span class="number">0</span>) &#123;</div><div class="line">            obj * __VOLATILE * my_free_list =</div><div class="line">                        free_list + FREELIST_INDEX(bytes_left);</div><div class="line"></div><div class="line">            ((obj *)start_free) -&gt; free_list_link = *my_free_list;</div><div class="line">            *my_free_list = (obj *)start_free;</div><div class="line">        &#125;</div><div class="line"></div><div class="line">　　　　<span class="comment">//调用malloc从内存分配</span></div><div class="line">        start_free = (<span class="keyword">char</span> *)malloc(bytes_to_get);</div><div class="line">        <span class="built_in">if</span> (<span class="number">0</span> == start_free) &#123;<span class="comment">//系统内存不足时</span></div><div class="line">            <span class="keyword">int</span> i;</div><div class="line">            obj * __VOLATILE * my_free_list, *p;</div><div class="line">            <span class="comment">// 利用好自己拥有的内存，即从其他空闲链表获取内存.</span></div><div class="line">            <span class="built_in">for</span> (i = <span class="built_in">size</span>; i &lt;= __MAX_BYTES; i += __ALIGN) &#123;</div><div class="line">                my_free_list = free_list + FREELIST_INDEX(i);</div><div class="line">                p = *my_free_list;</div><div class="line">                <span class="built_in">if</span> (<span class="number">0</span> != p) &#123;</div><div class="line">                    *my_free_list = p -&gt; free_list_link;</div><div class="line">                    start_free = (<span class="keyword">char</span> *)p;</div><div class="line">                    end_free = start_free + i;</div><div class="line">		　　<span class="comment">//递归调用chunk_alloc，因为此时获取内存了</span></div><div class="line">                    <span class="comment">//所以，递归调用时，在else if语句时，即可返回　</span></div><div class="line">                    <span class="built_in">return</span>(chunk_alloc(<span class="built_in">size</span>, nobjs));</div><div class="line">                &#125;</div><div class="line">            &#125;</div><div class="line">	    end_free = <span class="number">0</span>;	<span class="comment">// 从其他链表也没获取到内存</span></div><div class="line">            start_free = (<span class="keyword">char</span> *)malloc_alloc::allocate(bytes_to_get);</div><div class="line">            <span class="comment">// 调用第一级配置器，因为有错误处理函数，也是最后的补救办法了</span></div><div class="line">        &#125;</div><div class="line">        heap_size += bytes_to_get;<span class="comment">//当从系统分配到内存时，更新到目前为止的内存总数</span></div><div class="line">        end_free = start_free + bytes_to_get;</div><div class="line">        <span class="built_in">return</span>(chunk_alloc(<span class="built_in">size</span>, nobjs));<span class="comment">//递归调用，在第一个if语句即可返回。</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>使用配置器</h1>
+<p>至此，STL两层配置器就分析结束了，接下来看下配置器使如何使用的。
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span>&lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc&gt;</div><div class="line"><span class="keyword">class</span> simple_alloc &#123;</div><div class="line"></div><div class="line"><span class="keyword">public</span>:</div><div class="line">    <span class="function"><span class="keyword">static</span> T *<span class="title">allocate</span><span class="params">(<span class="keyword">size_t</span> n)</span></span></div><div class="line">                &#123; <span class="keyword">return</span> <span class="number">0</span> == n? <span class="number">0</span> : (T*) Alloc::allocate(n * <span class="keyword">sizeof</span> (T)); &#125;</div><div class="line">    <span class="function"><span class="keyword">static</span> T *<span class="title">allocate</span><span class="params">(<span class="keyword">void</span>)</span></span></div><div class="line">                &#123; <span class="keyword">return</span> (T*) Alloc::allocate(<span class="keyword">sizeof</span> (T)); &#125;</div><div class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">deallocate</span><span class="params">(T *p, <span class="keyword">size_t</span> n)</span></span></div><div class="line">                &#123; <span class="keyword">if</span> (<span class="number">0</span> != n) Alloc::deallocate(p, n * <span class="keyword">sizeof</span> (T)); &#125;</div><div class="line">    <span class="function"><span class="keyword">static</span> <span class="keyword">void</span> <span class="title">deallocate</span><span class="params">(T *p)</span></span></div><div class="line">                &#123; Alloc::deallocate(p, <span class="keyword">sizeof</span> (T)); &#125;</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>这个类封装了Alloc的分配和回收内存函数，并提供了四个用于内存操作的函数接口，一个模板是如何请求内存呢？
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc = alloc&gt;  <span class="comment">//alloc被默认为第二级配置器</span></div><div class="line"><span class="keyword">class</span> <span class="built_in">vector</span> &#123;</div><div class="line"><span class="keyword">public</span>:</div><div class="line">  <span class="keyword">typedef</span> T value_type;</div><div class="line">  ...</div><div class="line"><span class="keyword">protected</span>:</div><div class="line">  <span class="keyword">typedef</span> simple_alloc&lt;value_type, Alloc&gt; data_allocator;</div></pre></td></tr></table></figure></p>
+<p>有代码可以看出，vector内嵌了data_allocator类型，当需要分配内存时，调用simple_alloc的成员方法即可。</p>
+<p>参考:《STL源码剖析》和<a href="http://www.cnblogs.com/lfsblack/archive/2012/11/10/2764334.html" target="_blank" rel="external">lfsblackoverflow的博客</a></p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/C/" rel="tag">#C++</a>
+          
+            <a href="/tags/STL/" rel="tag">#STL</a>
+          
+            <a href="/tags/内存池/" rel="tag">#内存池</a>
+          
+            <a href="/tags/空间配置器/" rel="tag">#空间配置器</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/10/25/leveldb-13/" rel="next" title="leveldb源码分析之Table_cache">
+                <i class="fa fa-chevron-left"></i> leveldb源码分析之Table_cache
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/10/27/STL-vec/" rel="prev" title="STL源码分析之vector">
+                STL源码分析之vector <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/10/26/Calloc/"
+     data-title="C++STL内存池和空间配置器"
+     data-content=""
+     data-url="http://luodw.cc/2015/10/26/Calloc/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/10/26/Calloc/"
+           data-title="C++STL内存池和空间配置器" data-url="http://luodw.cc/2015/10/26/Calloc/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">第一级配置器</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">第二层配置器</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">使用配置器</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

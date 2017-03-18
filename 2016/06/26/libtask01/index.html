@@ -1,0 +1,1095 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="libtask," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="用过golang语言，都知道golang最吸引人的特性就是goroutine和channel．goroutine可以称呼为go程，其实就是go语言协程；channel即为通道，用于goroutine之间进行通信；比较直观的理解，channel实现可以认为生产者和消费者模型，即一个goroutine写入消息，另一个协程读取消息；当然，具体如何实现，可以看libtask的channel实现，即可略知一">
+<meta property="og:type" content="article">
+<meta property="og:title" content="libtask之channel实现机制">
+<meta property="og:url" content="http://luodw.cc/2016/06/26/libtask01/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="用过golang语言，都知道golang最吸引人的特性就是goroutine和channel．goroutine可以称呼为go程，其实就是go语言协程；channel即为通道，用于goroutine之间进行通信；比较直观的理解，channel实现可以认为生产者和消费者模型，即一个goroutine写入消息，另一个协程读取消息；当然，具体如何实现，可以看libtask的channel实现，即可略知一">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="libtask之channel实现机制">
+<meta name="twitter:description" content="用过golang语言，都知道golang最吸引人的特性就是goroutine和channel．goroutine可以称呼为go程，其实就是go语言协程；channel即为通道，用于goroutine之间进行通信；比较直观的理解，channel实现可以认为生产者和消费者模型，即一个goroutine写入消息，另一个协程读取消息；当然，具体如何实现，可以看libtask的channel实现，即可略知一">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/06/26/libtask01/"/>
+
+
+  <title> libtask之channel实现机制 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                libtask之channel实现机制
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-06-26T17:19:33+08:00" content="2016-06-26">
+              2016-06-26
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/libtask/" itemprop="url" rel="index">
+                    <span itemprop="name">libtask</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/06/26/libtask01/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/06/26/libtask01/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/06/26/libtask01/" class="leancloud_visitors" data-flag-title="libtask之channel实现机制">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>用过golang语言，都知道golang最吸引人的特性就是goroutine和channel．goroutine可以称呼为go程，其实就是go语言协程；channel即为通道，用于goroutine之间进行通信；比较直观的理解，channel实现可以认为生产者和消费者模型，即一个goroutine写入消息，另一个协程读取消息；当然，具体如何实现，可以看libtask的channel实现，即可略知一二．</p>
+<p>libtask的channel模块，理解起来没有task模块轻松，逻辑比较复杂，我在计划写这篇博客时，还是很担心不能够写明白libtask的channel是如何运行的；这篇博客主要是以例子以及解析源码的形式来分析channel的实现；</p>
+<p>go  channel分为有有缓存和无缓存，对应于libtask也是如此，我们先来看下无缓存是如何实现的；</p>
+<h2>无缓存channel实现</h2>
+<hr>
+<p>下面是一个简单的例子，用于说明libtask中channel的实现
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;stdlib.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;unistd.h&gt;</span></span></div><div class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;task.h&gt;</span></span></div><div class="line"></div><div class="line">Channel *c=<span class="literal">NULL</span>;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span></span></div><div class="line"><span class="title">counttask1</span><span class="params">(<span class="keyword">void</span> *arg)</span></div><div class="line">&#123;</div><div class="line">    <span class="built_in">printf</span>(<span class="string">"test3-----\n"</span> );</div><div class="line">    <span class="keyword">unsigned</span> <span class="keyword">long</span> x = chanrecvul(c);</div><div class="line">    <span class="built_in">printf</span>(<span class="string">"%ld\n"</span>,x );</div><div class="line">    <span class="built_in">printf</span>(<span class="string">"test4-----\n"</span> );</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">void</span></span></div><div class="line"><span class="title">taskmain</span><span class="params">(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv)</span></div><div class="line">&#123;</div><div class="line">    c = chancreate(<span class="keyword">sizeof</span>(<span class="keyword">unsigned</span> <span class="keyword">long</span>),<span class="number">0</span>);</div><div class="line">    taskcreate(counttask1, <span class="literal">NULL</span>, <span class="number">32768</span>);</div><div class="line">    <span class="built_in">printf</span>(<span class="string">"test1-----\n"</span> );</div><div class="line">    chansendul(c, <span class="number">1</span>);</div><div class="line">    <span class="built_in">printf</span>(<span class="string">"test2-----\n"</span> );</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>编译程序</p>
+<blockquote>
+<p>gcc -g mytest.c -o mytest -ltask</p>
+</blockquote>
+<p>最后得到结果如下:
+<figure class="highlight ada"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">test1<span class="comment">-----</span></div><div class="line">test3<span class="comment">-----</span></div><div class="line"><span class="number">1</span></div><div class="line">test4<span class="comment">-----</span></div><div class="line">test2<span class="comment">-----</span></div></pre></td></tr></table></figure></p>
+<p>先来分析下结果，当然如果你熟悉golang，这结果是很明显的．</p>
+<ol>
+<li>一开始任务队列中只有taskmain任务，所以调度器直接调度taskmain任务；</li>
+<li>在taskmain任务中，创建了counttask1任务，然后输出&quot;test1------&quot;，接着向管道中写入一个无符号长整形1，由于是无缓存的channel，所以taskmain任务阻塞并切换到调度器;</li>
+<li>此时任务队列只有counttask1，调度器调度counttask1任务执行;</li>
+<li>在counttask1任务中，从channel中读取一个元素，因为channel中已经有一个元素，所以直接返回channel中的数值，最后输出&quot;test4----&quot;;</li>
+<li>调度器切回taskmain执行，最后结束任务队列为空，退出整个程序；</li>
+</ol>
+<h2>源码实现</h2>
+<hr>
+<p>libtask中关于channel的源码实现主要是在文件channel.c中，我在初次看channel的实现时，就三个字＂看不懂＂；主要逻辑在chanalt和altexec函数中，这两个函数最晦涩难懂；最后只能祭出上古神器gdb；跟着gdb，设断点，一步一步跟踪程序，最后终于把channel搞懂了；所以建议从代码字面看不懂的同学，可以和我一样，利用gdb；</p>
+<p>好了，不多说，来开始代码之旅；</p>
+<h3>向channel发送数据代码逻辑</h3>
+<p>测试例子程序中，我们先看下创建channel的代码逻辑
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div></pre></td><td class="code"><pre><div class="line"><span class="function">Channel*</span></div><div class="line"><span class="title">chancreate</span><span class="params">(<span class="keyword">int</span> elemsize, <span class="keyword">int</span> bufsize)</span></div><div class="line">&#123;</div><div class="line">	Channel *c;</div><div class="line">	<span class="comment">// 为channel分配内存</span></div><div class="line">	c = <span class="built_in">malloc</span>(<span class="keyword">sizeof</span> *c+bufsize*elemsize);</div><div class="line">	<span class="keyword">if</span>(c == nil)&#123;</div><div class="line">		fprint(<span class="number">2</span>, <span class="string">"chancreate malloc: %r"</span>);</div><div class="line">		<span class="built_in">exit</span>(<span class="number">1</span>);</div><div class="line">	&#125;</div><div class="line">	<span class="built_in">memset</span>(c, <span class="number">0</span>, <span class="keyword">sizeof</span> *c);</div><div class="line">	c-&gt;elemsize = elemsize;<span class="comment">// channel中每个元素的大小</span></div><div class="line">	c-&gt;bufsize = bufsize;</div><div class="line">	c-&gt;nbuf = <span class="number">0</span>;<span class="comment">//缓存已使用量</span></div><div class="line">	c-&gt;buf = (uchar*)(c+<span class="number">1</span>);<span class="comment">//指向缓存首地址</span></div><div class="line">	<span class="keyword">return</span> c;</div><div class="line">&#125;</div><div class="line"><span class="comment">//--------------------------------------------------------</span></div><div class="line"><span class="keyword">struct</span> Channel</div><div class="line">&#123;</div><div class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span>	bufsize;<span class="comment">//缓存大小，即缓存元素个数</span></div><div class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span>	elemsize;<span class="comment">//channel每个元素的大小</span></div><div class="line">	<span class="keyword">unsigned</span> <span class="keyword">char</span>	*buf;<span class="comment">//指向缓存的指针</span></div><div class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span>	nbuf;<span class="comment">//缓存已使用量</span></div><div class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span>	off;<span class="comment">//当前读取的元素个数</span></div><div class="line">	Altarray	asend;<span class="comment">//发送队列</span></div><div class="line">	Altarray	arecv;<span class="comment">//接收队列</span></div><div class="line">	<span class="keyword">char</span>		*name;</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>从这段代码，我们可以看出来参数elemsize表示channel中每个元素的大小，bufsize表示缓存可以容纳多少个元素，即缓存的size；因此有无缓存，主要是看bufsize的值，如果为0，则无缓存，如果不为0，则有缓存；</p>
+<p>创建好channel之后，接下来看下chansendul(c, 1)函数的代码逻辑，这个函数直接调用_chanop函数
+<figure class="highlight groovy"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="keyword">int</span></div><div class="line">_chanop(Channel *c, <span class="keyword">int</span> op, <span class="keyword">void</span> *p, <span class="keyword">int</span> canblock)</div><div class="line">&#123;</div><div class="line">	Alt a[<span class="number">2</span>];</div><div class="line"></div><div class="line">	a[<span class="number">0</span>].c = c;</div><div class="line">	a[<span class="number">0</span>].op = op;</div><div class="line">	a[<span class="number">0</span>].v = p;</div><div class="line">	a[<span class="number">1</span>].op = canblock ? CHANEND : CHANNOBLK;</div><div class="line">	<span class="keyword">if</span>(chanalt(a) &lt; <span class="number">0</span>)</div><div class="line">		<span class="keyword">return</span> <span class="number">-1</span>;</div><div class="line">	<span class="keyword">return</span> <span class="number">1</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>第一次看代码的时候，会被这个alt数组给弄混淆了，代码中可以看出其实就是第一个alt存储数据，第二个并没有存储数据；看到后面之后，才会发现其实第二个alt就是用于一些条件的判断；</p>
+<p>ok，接下来，到最重要的函数chanalt，省去一些无关紧要的代码,
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div></pre></td><td class="code"><pre><div class="line">int</div><div class="line">chanalt(<span class="type">Alt</span> *a)</div><div class="line">&#123;</div><div class="line">	<span class="comment">/* 省去一些代码 */</span></div><div class="line">	<span class="comment">/* 此时n=1 */</span></div><div class="line">	ncan = <span class="number">0</span>;</div><div class="line">	<span class="keyword">for</span>(i=<span class="number">0</span>; i&lt;n; i++)&#123;</div><div class="line">		<span class="built_in">c</span> = a[i].<span class="built_in">c</span>;</div><div class="line">		<span class="keyword">if</span>(altcanexec(&amp;a[i]))&#123;</div><div class="line">				ncan++;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="comment">/* ......  */</span></div><div class="line">	<span class="keyword">for</span>(i=<span class="number">0</span>; i&lt;n; i++)&#123;</div><div class="line">		<span class="keyword">if</span>(a[i].op != <span class="type">CHANNOP</span>)</div><div class="line">			altqueue(&amp;a[i]);</div><div class="line">	&#125;</div><div class="line">	taskswitch();</div><div class="line"><span class="comment">//------------------------------------------------</span></div><div class="line"><span class="keyword">static</span> int</div><div class="line">altcanexec(<span class="type">Alt</span> *a)</div><div class="line">&#123;</div><div class="line">	<span class="type">Altarray</span> *ar;</div><div class="line">	<span class="type">Channel</span> *<span class="built_in">c</span>;</div><div class="line"></div><div class="line">	<span class="keyword">if</span>(a-&gt;op == <span class="type">CHANNOP</span>)</div><div class="line">		<span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">	<span class="built_in">c</span> = a-&gt;<span class="built_in">c</span>;</div><div class="line">	<span class="keyword">if</span>(<span class="built_in">c</span>-&gt;bufsize == <span class="number">0</span>)&#123;</div><div class="line">		ar = chanarray(<span class="built_in">c</span>, otherop(a-&gt;op));</div><div class="line">		<span class="keyword">return</span> ar &amp;&amp; ar-&gt;n;</div><div class="line">	&#125;<span class="keyword">else</span>&#123;</div><div class="line">		...............</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在chanalt函数中，首先是判断这个alt是否可执行；在判断函数altcanexec内部，因为此时是无缓存版本，因此代码逻辑就在if语句内部；</p>
+<blockquote>
+<p>otherop(a-&gt;op)函数返回当前操作的相反队列；例如如果此时是一个发送操作，那么这个otherop函数返回的是接收队列</p>
+</blockquote>
+<blockquote>
+<p>chanarray函数返回通道c(channel)中，otherop(a-&gt;op)类型的队列，此时返回的是接收队列，因为ar-&gt;n为当前通道队列中元素的个数，此时接收队列为空，所以此时为ar-&gt;n为0</p>
+</blockquote>
+<p>因此这个判断函数altcanexec返回false，代码就直接来到了altqueue函数中，这个alt加入队列函数很简单，就是简单的将alt放入相应队列中，此时alt加入的是发送队列;</p>
+<p>最后执行taskswitch函数，执行任务调度，切换到调度器；要注意的是，此时taskmain是没有放入任务队列的(调用taskyield函数才是让出当前CPU，并把自身放入任务队列末尾)，因此后面需要有个函数将这个taskmain放入队列中，等待调度，那这个函数是谁了?后面再揭晓</p>
+<h3>从channel接收代码逻辑</h3>
+<p>taskmain任务切换到调度器之后，此时任务队列中只有counttask1任务，因此调度器切换counttask1任务执行，我们直接看函数chanrecvul(c)逻辑，这个函数也是调用_chanop函数，最后到达chanalt函数;在chanalt函数中，代码逻辑主要是下面这些:
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div></pre></td><td class="code"><pre><div class="line">int</div><div class="line">chanalt(<span class="type">Alt</span> *a)</div><div class="line">&#123;</div><div class="line">	<span class="comment">/* ...... */</span></div><div class="line">	ncan = <span class="number">0</span>;</div><div class="line">	<span class="keyword">for</span>(i=<span class="number">0</span>; i&lt;n; i++)&#123;</div><div class="line">		<span class="built_in">c</span> = a[i].<span class="built_in">c</span>;</div><div class="line">		<span class="keyword">if</span>(altcanexec(&amp;a[i]))&#123;</div><div class="line">				ncan++;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">if</span>(ncan)&#123;</div><div class="line">		j = rand()%ncan;</div><div class="line">		<span class="keyword">for</span>(i=<span class="number">0</span>; i&lt;n; i++)&#123;</div><div class="line">			<span class="keyword">if</span>(altcanexec(&amp;a[i]))&#123;</div><div class="line">				<span class="keyword">if</span>(j-- == <span class="number">0</span>)&#123;</div><div class="line">					altexec(&amp;a[i]);</div><div class="line">					<span class="keyword">return</span> i;</div><div class="line">				&#125;</div><div class="line">			&#125;</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="comment">/* ....... */</span></div><div class="line">&#125;</div><div class="line"><span class="comment">//------------------------------------------------</span></div><div class="line"><span class="keyword">static</span> int</div><div class="line">altcanexec(<span class="type">Alt</span> *a)</div><div class="line">&#123;</div><div class="line">        <span class="type">Altarray</span> *ar;</div><div class="line">        <span class="type">Channel</span> *<span class="built_in">c</span>;</div><div class="line"></div><div class="line">        <span class="keyword">if</span>(a-&gt;op == <span class="type">CHANNOP</span>)</div><div class="line">                <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">        <span class="built_in">c</span> = a-&gt;<span class="built_in">c</span>;</div><div class="line">        <span class="keyword">if</span>(<span class="built_in">c</span>-&gt;bufsize == <span class="number">0</span>)&#123;</div><div class="line">                ar = chanarray(<span class="built_in">c</span>, otherop(a-&gt;op));</div><div class="line">                <span class="keyword">return</span> ar &amp;&amp; ar-&gt;n;</div><div class="line">        &#125;<span class="keyword">else</span>&#123;</div><div class="line">                ...............</div><div class="line">        &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>在判断函数altcanexec函数内部，因为a-&gt;op为接收，所以ar为发送队列，因为之前已经存入一个元素，因此ar-&gt;n不为0，所以判断为真，此时ncan加1；转入执行下面if语句，最后执行altexec函数；
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">static void</div><div class="line">altexec(Alt *a)</div><div class="line">&#123;</div><div class="line">	int i;</div><div class="line">	Altarray *ar;</div><div class="line">	Alt *other;</div><div class="line">	Channel *c;</div><div class="line"></div><div class="line">	<span class="function"><span class="title">c</span> = a-&gt;</span>c;</div><div class="line">	<span class="function"><span class="title">ar</span> = chanarray(c, otherop(a-&gt;</span>op));<span class="comment">//取出channel中的发送队列</span></div><div class="line">	<span class="function"><span class="title">if</span>(ar &amp;&amp; ar-&gt;</span>n)&#123;</div><div class="line">		<span class="function"><span class="title">i</span> = rand()%ar-&gt;</span>n;<span class="comment">//i=0</span></div><div class="line">		<span class="function"><span class="title">other</span> = ar-&gt;</span>a[i];<span class="comment">//取出发送队列第一个alt</span></div><div class="line">		altcopy(a, other);<span class="comment">//将发送队列第一个alt中携带的数据拷贝到a</span></div><div class="line">		<span class="function"><span class="title">altalldequeue</span>(other-&gt;</span>xalt);<span class="comment">//删除发送队列第一个alt</span></div><div class="line">		<span class="function"><span class="title">other</span>-&gt;</span>xalt[<span class="number">0</span>].xalt = other;</div><div class="line">		<span class="function"><span class="title">taskready</span>(other-&gt;</span>task);<span class="comment">// 将other的宿主任务放入调度队列中</span></div><div class="line">	&#125;<span class="keyword">else</span></div><div class="line">		altcopy(a, <span class="literal">nil</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数很重要，可以说是理解channel接收逻辑的重点；解释如下</p>
+<ol>
+<li>一开始，取出发送队列第一个alt；</li>
+<li>将发送队列第一个alt的数据拷贝至接收alt中；</li>
+<li>删除发送队列中的第一个alt，因为已经被处理了;</li>
+<li>调用taskready将taskmain任务放入任务队列中，等待调度；</li>
+</ol>
+<p>最后在chanrecvul函数中，将val，即接收alt-&gt;v中存储的值，返回给用户；</p>
+<p>当counttask1任务结束时，调度器调度taskmain执行，taskmain输出一句&quot;test2----&quot;，也结束运行</p>
+<p>最后，调度任务队列为空，调度循环退出，整个进程也就退出了</p>
+<p>因此到目前为止，channel的发送接收逻辑已经很清楚了</p>
+<blockquote>
+<p>taskmain任务向channel发送数据时，将alt放入channel的发送队列；阻塞切换；然后counttask1任务从channel接收数据时，将发送队列第一个alt携带数据拷贝至接收队列的alt中，并将taskmain放入任务队列末尾，等待调度；在chanrecvul将数据返回给用户</p>
+</blockquote>
+<p>libtask无缓存的channel暂时分析到这；对于有缓存的的channel，代码逻辑和这下相似，只是用到了buf，我相信看懂无缓存channel的代码逻辑之后，再跟着gdb单步调试肯定也能看懂有缓存channel逻辑；</p>
+<p>有时间在分析有缓存channel逻辑吧．</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/libtask/" rel="tag">#libtask</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/06/21/libtask/" rel="next" title="聊聊golang的前身libtask">
+                <i class="fa fa-chevron-left"></i> 聊聊golang的前身libtask
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/07/02/helloworld/" rel="prev" title="不忘初心，重新认识hello world">
+                不忘初心，重新认识hello world <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/06/26/libtask01/"
+     data-title="libtask之channel实现机制"
+     data-content=""
+     data-url="http://luodw.cc/2016/06/26/libtask01/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/06/26/libtask01/"
+           data-title="libtask之channel实现机制" data-url="http://luodw.cc/2016/06/26/libtask01/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">无缓存channel实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">源码实现</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#undefined"><span class="nav-number">2.1.</span> <span class="nav-text">向channel发送数据代码逻辑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#undefined"><span class="nav-number">2.2.</span> <span class="nav-text">从channel接收代码逻辑</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

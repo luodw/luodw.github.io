@@ -1,0 +1,1124 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="STL,rb_tree,set,map," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="之前分析二叉搜索树和平衡二叉树时，真心感觉树的实现真是难，特别是平衡二叉树，不平衡之后需要调整，还要考虑各种情况，累感不爱．今天看到这个红黑树，发现比平衡二叉树还难，但是红黑树比平衡二叉树使用的场景更多，所以平常使用时，我们需要了解红黑树的实现原理，如果有能力，可以自己实现，但是如果实在做不出来，也没关系，因为STL和linux内核都有现成的红黑树实现，拿来用即可，前提是了解红黑树原理．
+红黑树原">
+<meta property="og:type" content="article">
+<meta property="og:title" content="STL分析之map和set">
+<meta property="og:url" content="http://luodw.cc/2015/11/19/STL-map/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="之前分析二叉搜索树和平衡二叉树时，真心感觉树的实现真是难，特别是平衡二叉树，不平衡之后需要调整，还要考虑各种情况，累感不爱．今天看到这个红黑树，发现比平衡二叉树还难，但是红黑树比平衡二叉树使用的场景更多，所以平常使用时，我们需要了解红黑树的实现原理，如果有能力，可以自己实现，但是如果实在做不出来，也没关系，因为STL和linux内核都有现成的红黑树实现，拿来用即可，前提是了解红黑树原理．
+红黑树原">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_038.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.121Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="STL分析之map和set">
+<meta name="twitter:description" content="之前分析二叉搜索树和平衡二叉树时，真心感觉树的实现真是难，特别是平衡二叉树，不平衡之后需要调整，还要考虑各种情况，累感不爱．今天看到这个红黑树，发现比平衡二叉树还难，但是红黑树比平衡二叉树使用的场景更多，所以平常使用时，我们需要了解红黑树的实现原理，如果有能力，可以自己实现，但是如果实在做不出来，也没关系，因为STL和linux内核都有现成的红黑树实现，拿来用即可，前提是了解红黑树原理．
+红黑树原">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_038.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/11/19/STL-map/"/>
+
+
+  <title> STL分析之map和set | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                STL分析之map和set
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-11-19T20:12:06+08:00" content="2015-11-19">
+              2015-11-19
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/STL/" itemprop="url" rel="index">
+                    <span itemprop="name">STL</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/11/19/STL-map/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/11/19/STL-map/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/11/19/STL-map/" class="leancloud_visitors" data-flag-title="STL分析之map和set">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>之前分析二叉搜索树和平衡二叉树时，真心感觉树的实现真是难，特别是平衡二叉树，不平衡之后需要调整，还要考虑各种情况，累感不爱．今天看到这个红黑树，发现比平衡二叉树还难，但是红黑树比平衡二叉树使用的场景更多，所以平常使用时，我们需要了解红黑树的实现原理，如果有能力，可以自己实现，但是如果实在做不出来，也没关系，因为STL和linux内核都有现成的红黑树实现，拿来用即可，前提是了解红黑树原理．</p>
+<h1>红黑树原理</h1>
+<hr>
+<p>红黑树和平衡二叉树一样，本质上都是二叉搜索树，但是二者的搜索效率都能实现平均效率logn，比二叉搜索树性能好．平衡二叉树实现原理是判断每个节点的左右子树的高度差是否等于2，如果等于2，则要通过旋转来实现树的左右子树高度差平衡．而红黑树实现原理是节点的颜色和旋转来实现的，实现较复杂，先看下红黑树的满足条件:</p>
+<ol>
+<li>每个结点要么是红的，要么是黑的。</li>
+<li>根结点是黑的。</li>
+<li>每个叶结点，即空结点（NIL）是黑的。</li>
+<li>如果一个结点是红的，那么它的俩个儿子都是黑的。</li>
+<li>对每个结点，从该结点到其子孙结点的所有路径上包含相同数目的黑结点。
+如果某棵二叉搜索树满足上述条件，则为红黑树．为什么满足上述条件可以实现平衡了？主要是第４条和第５条，由第５条可以得出，某个到所有叶子节点最长路径是最短路径的两倍.即一条路径为一黑一红和一条路径为全黑,大体上红黑树是平衡的,只是没有AVL树要求那么严格.</li>
+</ol>
+<p>我不推荐直接看STL源码剖析这本书中的红黑树,而是先到网上博客先看看大家是怎么写,因为这本书STL实现的红黑树比较复杂,不好看懂.我推荐博客<a href="http://blog.chinaunix.net/uid-26575352-id-3061918.html" target="_blank" rel="external">michael</a>,因为这篇博客一步一步讲解很好,图做的也很好理解.</p>
+<h1>红黑树节点和迭代器</h1>
+<hr>
+<p>红黑树节点和迭代器的设计和slist原理一样,将结构和数据分离.原理如下:
+<figure class="highlight thrift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">rb_tree_node_base</span></span></div><div class="line">&#123;</div><div class="line">  <span class="keyword">typedef</span> __rb_tree_color_type color_type;</div><div class="line">  <span class="keyword">typedef</span> __rb_tree_node_base* base_ptr;</div><div class="line"></div><div class="line">  color_type color; 	<span class="comment">// 红黑树的颜色</span></div><div class="line">  base_ptr parent;  	<span class="comment">// 父节点</span></div><div class="line">  base_ptr left;	  	<span class="comment">// 指左节点</span></div><div class="line">  base_ptr right;   	<span class="comment">// 指向右节点</span></div><div class="line">&#125;</div><div class="line">template &lt;class Value&gt;</div><div class="line"><span class="class"><span class="keyword">struct</span> __<span class="title">rb_tree_node</span> : public __rb_tree_node_base</span></div><div class="line">&#123;</div><div class="line">  <span class="keyword">typedef</span> __rb_tree_node&lt;Value&gt;* link_type;</div><div class="line">  Value value_field;	<span class="comment">// 存储数据</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>红黑树的基础迭代器为struct __rb_tree_base_iterator,主要成员就是一个__rb_tree_node_base节点,指向树中某个节点,作为迭代器与树的连接关系,还有两个方法,用于将当前迭代器指向前一个节点decrement()和下一个节点increment().下面看下正式迭代器的源码:<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> Value, <span class="keyword">class</span> Ref, <span class="keyword">class</span> Ptr&gt;</div><div class="line"><span class="keyword">struct</span> __rb_tree_iterator : <span class="keyword">public</span> __rb_tree_base_iterator</div><div class="line">&#123;</div><div class="line">  <span class="keyword">typedef</span> Value value_type;</div><div class="line">  <span class="keyword">typedef</span> Ref reference;</div><div class="line">  <span class="keyword">typedef</span> Ptr pointer;</div><div class="line">  <span class="keyword">typedef</span> __rb_tree_iterator&lt;Value, Value&amp;, Value*&gt;     iterator;</div><div class="line">  <span class="keyword">typedef</span> __rb_tree_iterator&lt;Value, <span class="keyword">const</span> Value&amp;, <span class="keyword">const</span> Value*&gt; const_iterator;</div><div class="line">  <span class="keyword">typedef</span> __rb_tree_iterator&lt;Value, Ref, Ptr&gt;   self;</div><div class="line">  <span class="keyword">typedef</span> __rb_tree_node&lt;Value&gt;* link_type;</div><div class="line"></div><div class="line">  __rb_tree_iterator() &#123;&#125;<span class="comment">//迭代器默认构造函数</span></div><div class="line">  __rb_tree_iterator(link_type x) &#123; node = x; &#125;<span class="comment">//由一个节点来初始化迭代器</span></div><div class="line">  __rb_tree_iterator(<span class="keyword">const</span> iterator&amp; it) &#123; node = it.node; &#125;<span class="comment">//迭代器复制构造函数</span></div><div class="line"></div><div class="line"></div><div class="line">  <span class="comment">//迭代器解引用,即返回这个节点存储的数值</span></div><div class="line">  reference <span class="keyword">operator</span>*() <span class="keyword">const</span> &#123; <span class="keyword">return</span> link_type(node)-&gt;value_field; &#125;</div><div class="line"><span class="meta">#<span class="meta-keyword">ifndef</span> __SGI_STL_NO_ARROW_OPERATOR</span></div><div class="line">  <span class="comment">//返回这个节点数值值域的指针</span></div><div class="line">  pointer <span class="keyword">operator</span>-&gt;() <span class="keyword">const</span> &#123; <span class="keyword">return</span> &amp;(<span class="keyword">operator</span>*()); &#125;</div><div class="line"><span class="meta">#<span class="meta-keyword">endif</span> <span class="comment">/* __SGI_STL_NO_ARROW_OPERATOR */</span></span></div><div class="line">  <span class="comment">//迭代器++运算</span></div><div class="line">  self&amp; <span class="keyword">operator</span>++() &#123; increment(); <span class="keyword">return</span> *<span class="keyword">this</span>; &#125;</div><div class="line">  self <span class="keyword">operator</span>++(<span class="keyword">int</span>) &#123;</div><div class="line">    self tmp = *<span class="keyword">this</span>;</div><div class="line">    increment();</div><div class="line">    <span class="keyword">return</span> tmp;</div><div class="line">  &#125;</div><div class="line">  <span class="comment">//迭代器--运算</span></div><div class="line">  self&amp; <span class="keyword">operator</span>--() &#123; decrement(); <span class="keyword">return</span> *<span class="keyword">this</span>; &#125;</div><div class="line">  self <span class="keyword">operator</span>--(<span class="keyword">int</span>) &#123;</div><div class="line">    self tmp = *<span class="keyword">this</span>;</div><div class="line">    decrement();</div><div class="line">    <span class="keyword">return</span> tmp;</div><div class="line">  &#125;</div><div class="line">&#125;;</div><div class="line"></div><div class="line"><span class="keyword">inline</span> <span class="keyword">bool</span> <span class="keyword">operator</span>==(<span class="keyword">const</span> __rb_tree_base_iterator&amp; x,</div><div class="line">                       <span class="keyword">const</span> __rb_tree_base_iterator&amp; y) &#123;</div><div class="line">  <span class="keyword">return</span> x.node == y.node;</div><div class="line">  <span class="comment">// 两个迭代器相等,指这两个迭代器指向的节点相等</span></div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="keyword">inline</span> <span class="keyword">bool</span> <span class="keyword">operator</span>!=(<span class="keyword">const</span> __rb_tree_base_iterator&amp; x,</div><div class="line">                       <span class="keyword">const</span> __rb_tree_base_iterator&amp; y) &#123;</div><div class="line">  <span class="keyword">return</span> x.node != y.node;</div><div class="line">  <span class="comment">// 两个节点不相等,指这两个迭代器指向的节点不等</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>迭代器的解引用运算,返回的是这个节点的值域.所以对于set来说,返回的就是set存储的值,对于map来说,返回的就是pair&lt;key,value&gt;键值对.</p>
+<h1>红黑树</h1>
+<hr>
+<p>为了实现红黑树的插入和删除平衡,STL树实现了几个旋转以及平衡函数:
+<figure class="highlight sqf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">inline void</div><div class="line"><span class="variable">__rb_tree_rotate_left</span>(<span class="variable">__rb_tree_node_base</span>* x, <span class="variable">__rb_tree_node_base</span>*&amp; root)</div><div class="line"></div><div class="line">inline void</div><div class="line"><span class="variable">__rb_tree_rotate_right</span>(<span class="variable">__rb_tree_node_base</span>* x, <span class="variable">__rb_tree_node_base</span>*&amp; root)</div><div class="line"></div><div class="line">inline void</div><div class="line"><span class="variable">__rb_tree_rebalance</span>(<span class="variable">__rb_tree_node_base</span>* x, <span class="variable">__rb_tree_node_base</span>*&amp; root)</div><div class="line"></div><div class="line">inline <span class="variable">__rb_tree_node_base</span>*</div><div class="line"><span class="variable">__rb_tree_rebalance_for_erase</span>(<span class="variable">__rb_tree_node_base</span>* z,</div><div class="line">                              <span class="variable">__rb_tree_node_base</span>*&amp; root,</div><div class="line">                              <span class="variable">__rb_tree_node_base</span>*&amp; leftmost,</div><div class="line">                              <span class="variable">__rb_tree_node_base</span>*&amp; rightmost)</div></pre></td></tr></table></figure></p>
+<p>这几个函数是实现红黑树平衡的重要操作,左旋转,右旋转,插入一个节点之后的平衡操作,删除一个节点的平衡操作.这几个函数较为复杂,我就不分析了,但是我觉得看网上的博客会比较好理解.</p>
+<p>下面看下rb_tree真正的定义.先是创建节点和销毁节点:
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//分配节点存储空间</span></div><div class="line">link_type get_node() &#123; return rb_tree_node_allocator::allocate(); &#125;</div><div class="line"> <span class="comment">//回收一个节点的空间</span></div><div class="line"> void put_node(link_type p) &#123; rb_tree_node_allocator::deallocate(p); &#125;</div><div class="line"></div><div class="line"> <span class="comment">//创建一个节点</span></div><div class="line"> link_type create_node(const value_type&amp; x) &#123;</div><div class="line">   link_type tmp = get_node();			<span class="comment">// 配置空间</span></div><div class="line">   __STL_TRY &#123;</div><div class="line">     <span class="function"><span class="title">construct</span>(&amp;tmp-&gt;</span>value_field, x);	<span class="comment">// 建造内容</span></div><div class="line">   &#125;</div><div class="line">   __STL_UNWIND(put_node(tmp));</div><div class="line">   return tmp;</div><div class="line"> &#125;</div><div class="line"></div><div class="line"> link_type clone_node(link_type x) &#123;	<span class="comment">// 复制一个节点(主要是是颜色)</span></div><div class="line">   <span class="function"><span class="title">link_type</span> tmp = create_node(x-&gt;</span>value_field);</div><div class="line">   <span class="function"><span class="title">tmp</span>-&gt;</span><span class="function"><span class="title">color</span> = x-&gt;</span><span class="built_in">color</span>;</div><div class="line">   <span class="function"><span class="title">tmp</span>-&gt;</span>left = <span class="number">0</span>;</div><div class="line">   <span class="function"><span class="title">tmp</span>-&gt;</span>right = <span class="number">0</span>;</div><div class="line">   return tmp;</div><div class="line"> &#125;</div><div class="line"></div><div class="line"> void destroy_node(link_type p) &#123;</div><div class="line">   <span class="function"><span class="title">destroy</span>(&amp;p-&gt;</span>value_field);		<span class="comment">// 解析内容</span></div><div class="line">   put_node(p);					<span class="comment">// 回收节点空间</span></div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>红黑树的成员主要有3个,
+<figure class="highlight mipsasm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">size_type node_count<span class="comment">; // 记录树的大小(节点的个数)</span></div><div class="line"> link_type header<span class="comment">;    </span></div><div class="line"> <span class="built_in">Compare</span> key_compare<span class="comment">;	 // 节点间的比较器,应该是个函数对象</span></div></pre></td></tr></table></figure></p>
+<p>对于header,其实相当与链表中的头节点,不存储数据,可用于红黑树的入口.header的设计可以说的STL红黑树设计的一个亮点,header和root互为父节点,header的左节点指向最小的值,header的右节点指向最大的值,所以header也可以作为end()迭代器指向的值.图示如下:<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_038.png" alt="header图示">;</p>
+<p>接下来就是一些小函数,都是实现获取节点成员变量的函数,有一个需要提下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">const</span> Key&amp; <span class="title">key</span><span class="params">(link_type x)</span> </span>&#123; <span class="keyword">return</span> KeyOfValue()(value(x)); &#125;</div></pre></td></tr></table></figure></p>
+<p>KeyOfValue这是个函数对象,对于set和map的实现是不一样的,主要功能就是从一个节点中获取这个节点存储的键值,对于set而言,这个函数对象为 identity&lt;value_type&gt;,这个函数对象返回的就是这个set存储的值,而对于map而言,这个函数对象为  select1st&lt;value_type&gt;,map的值域为pair对象,所以select1st就是获取这个pair的第一个成员.</p>
+<p>接下就对重要函数做个简单的介绍,因为太复杂了,而且这篇文章主要是讲解set和map.</p>
+<ol>
+<li>
+<p>对于set和multiset,map和multimap而言,最大的区别就是是否允许键值重复,而反应在红黑树上,则为插入函数的不同.set和map用的是insert_unique,而multiset和multimap用的是insert_equal函数.具体源码,我也是一知半解,所以就不分析了,误人子弟就不好了.</p>
+</li>
+<li>
+<p>有插入就有删除函数,红黑树提供的是erase函数,但是使用这个函数之后,可能导致红黑树不满足那5个条件,所以要调用 __rb_tree_rebalance_for_erase来维持树的平衡.</p>
+</li>
+<li>
+<p>对于multiset和multimap而言,红黑树还提供了查询与某个键值相等的节点迭代器范围,
+<figure class="highlight nimrod"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">pair&lt;<span class="keyword">iterator</span>,<span class="keyword">iterator</span>&gt; equal_range(<span class="keyword">const</span> key_type&amp; x);</div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>这个函数返回二叉树中和键值x相等的迭代器范围.而set和map都是不允许键值重复的,所以就不要用这个函数,直接用find函数即可.</p>
+<ol start="4">
+<li>红黑树还提供了查询不小于和大于某个键值的函数:
+<figure class="highlight gauss"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//返回不小于k的第一个节点迭代器</span></div><div class="line">typename rb_tree&lt;<span class="built_in">Key</span>, Value, KeyOfValue, Compare, Alloc&gt;::iterator</div><div class="line">rb_tree&lt;<span class="built_in">Key</span>, Value, KeyOfValue, Compare, Alloc&gt;::lower_bound(const <span class="built_in">Key</span>&amp; k)</div><div class="line"><span class="comment">//返回大于k的第一个节点迭代器</span></div><div class="line">typename rb_tree&lt;<span class="built_in">Key</span>, Value, KeyOfValue, Compare, Alloc&gt;::iterator</div><div class="line">rb_tree&lt;<span class="built_in">Key</span>, Value, KeyOfValue, Compare, Alloc&gt;::upper_bound(const <span class="built_in">Key</span>&amp; k)</div></pre></td></tr></table></figure></li>
+</ol>
+<h1>map实现</h1>
+<hr>
+<p>map底层用的是红黑树,所以map只是在红黑树上加了一层封装,map中用的用的红黑树定义如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> Key key_type;	<span class="comment">//键值类型 </span></div><div class="line"><span class="keyword">typedef</span> T data_type;		<span class="comment">// 值类型</span></div><div class="line"><span class="keyword">typedef</span> T mapped_type;	<span class="comment">//值类型</span></div><div class="line"><span class="keyword">typedef</span> pair&lt;<span class="keyword">const</span> Key, T&gt; value_type;	<span class="comment">// 值类型,map存储pair键值对</span></div><div class="line"><span class="keyword">typedef</span> Compare key_compare;	<span class="comment">// 键值函数对象</span></div><div class="line"></div><div class="line"> <span class="keyword">class</span> value_compare<span class="comment">//值域比较器,其实也是比较键值</span></div><div class="line">   : <span class="keyword">public</span> binary_function&lt;value_type, value_type, <span class="keyword">bool</span>&gt; &#123;</div><div class="line"> <span class="keyword">friend</span> <span class="keyword">class</span> <span class="built_in">map</span>&lt;Key, T, Compare, Alloc&gt;;</div><div class="line"> <span class="keyword">protected</span> :</div><div class="line">   Compare comp;</div><div class="line">   value_compare(Compare c) : comp(c) &#123;&#125;</div><div class="line"> <span class="keyword">public</span>:</div><div class="line">   <span class="function"><span class="keyword">bool</span> <span class="title">operator</span><span class="params">()</span><span class="params">(<span class="keyword">const</span> value_type&amp; x, <span class="keyword">const</span> value_type&amp; y)</span> <span class="keyword">const</span> </span>&#123;</div><div class="line">     <span class="keyword">return</span> comp(x.first, y.first);</div><div class="line">   &#125;</div><div class="line"> &#125;;</div><div class="line"> <span class="comment">//map中红黑树的定义</span></div><div class="line"> <span class="keyword">typedef</span> rb_tree&lt;key_type, value_type, </div><div class="line">                 select1st&lt;value_type&gt;, key_compare, Alloc&gt; rep_type;</div><div class="line">  rep_type t;</div></pre></td></tr></table></figure></p>
+<p>可以看到在map中,传入红黑树的KeyOfValue函数对象是select1st&lt;value_type&gt;,而value_type为pair类型,这个函数对象就是获取pair第一个键值,为了键值比较排序.</p>
+<h2>map构造函数</h2>
+<p>map构造函数有分为默认构造函数和带比较函数对象的构造的构造函数,一个是用默认的比较对象less&lt;key&gt;,另一个是可以自己定义比较对象的构造函数
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">map</span>() : t(Compare()) &#123;&#125;</div><div class="line"><span class="keyword">explicit</span> <span class="built_in">map</span>(<span class="keyword">const</span> Compare&amp; comp) : t(comp) &#123;&#125;</div></pre></td></tr></table></figure></p>
+<p>map还支持用一对输入迭代器来初始化,迭代器之间即为要插入map的数据,所以可以将vector首尾迭代器作为参数传入map构造函数来初始化
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">template &lt;<span class="built_in">class</span> InputIterator&gt;</div><div class="line"> map(InputIterator <span class="keyword">first</span>, InputIterator <span class="keyword">last</span>)</div><div class="line">   : t(Compare()) &#123; t.insert_unique(<span class="keyword">first</span>, <span class="keyword">last</span>); &#125;</div><div class="line"></div><div class="line"> template &lt;<span class="built_in">class</span> InputIterator&gt;</div><div class="line"> map(InputIterator <span class="keyword">first</span>, InputIterator <span class="keyword">last</span>, const Compare&amp; comp)</div><div class="line">   : t(comp) &#123; t.insert_unique(<span class="keyword">first</span>, <span class="keyword">last</span>); &#125;</div></pre></td></tr></table></figure></p>
+<p>map还支持值类型的数组指针范围来初始化map,例如pair&lt;string,int&gt; parr[10],然后用这个数组的首尾指针来初始化map.
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">map</span>(const value_type* <span class="built_in">first</span>, const value_type* <span class="built_in">last</span>)</div><div class="line">  : t(Compare()) &#123; t.insert_unique(<span class="built_in">first</span>, <span class="built_in">last</span>); &#125;</div><div class="line"><span class="built_in">map</span>(const value_type* <span class="built_in">first</span>, const value_type* <span class="built_in">last</span>, const Compare&amp; comp)</div><div class="line">  : t(comp) &#123; t.insert_unique(<span class="built_in">first</span>, <span class="built_in">last</span>); &#125;</div></pre></td></tr></table></figure></p>
+<h2>map插入操作</h2>
+<p>map插入分为单个值插入,在某个节点插入以及插入一对迭代器范围内的元素.
+<figure class="highlight n1ql"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">pair&lt;iterator,bool&gt; <span class="keyword">insert</span>(const value_type&amp; x) &#123; <span class="keyword">return</span> t.insert_unique(x); &#125;</div><div class="line">iterator <span class="keyword">insert</span>(iterator <span class="built_in">position</span>, const value_type&amp; x) &#123;</div><div class="line">  <span class="keyword">return</span> t.insert_unique(<span class="built_in">position</span>, x);</div><div class="line">&#125;</div><div class="line">void <span class="keyword">insert</span>(const value_type* <span class="keyword">first</span>, const value_type* <span class="keyword">last</span>) &#123;</div><div class="line">  t.insert_unique(<span class="keyword">first</span>, <span class="keyword">last</span>);</div><div class="line">&#125;</div><div class="line">void <span class="keyword">insert</span>(const_iterator <span class="keyword">first</span>, const_iterator <span class="keyword">last</span>) &#123;</div><div class="line">  t.insert_unique(<span class="keyword">first</span>, <span class="keyword">last</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>对于第一个迭代器,返回的是一个pair&lt;iterator,bool&gt;,迭代器指向插入节点的位置,布尔值为插入是否成功.其他都是简单的调用红黑树的方法.</p>
+<h2>map删除操作</h2>
+<p>map删除操作提供删除某个迭代器指向的节点,某个键指向的节点,以及一对迭代器指向的元素:
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">erase</span><span class="params">(iterator position)</span> </span>&#123; t.erase(position); &#125;</div><div class="line"><span class="function">size_type <span class="title">erase</span><span class="params">(<span class="keyword">const</span> key_type&amp; x)</span> </span>&#123; <span class="function"><span class="keyword">return</span> t.<span class="title">erase</span><span class="params">(x)</span></span>; &#125;</div><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">erase</span><span class="params">(iterator first, iterator last)</span> </span>&#123; t.erase(first, last); &#125;</div></pre></td></tr></table></figure></p>
+<h2>map查找函数</h2>
+<p>map查找函数有查找某个键值的find函数,查找某个键值个数的count函数,两个限界函数,最后查找范围的函数
+<figure class="highlight aspectj"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//查找某个键值对应的节点迭代器</span></div><div class="line"><span class="function">iterator <span class="title">find</span><span class="params">(<span class="keyword">const</span> key_type&amp; x)</span> </span>&#123; <span class="function"><span class="keyword">return</span> t.<span class="title">find</span><span class="params">(x)</span></span>; &#125;</div><div class="line"><span class="comment">//查找某个键值的个数</span></div><div class="line">size_type count(<span class="keyword">const</span> key_type&amp; x) <span class="keyword">const</span> &#123; <span class="function"><span class="keyword">return</span> t.<span class="title">count</span><span class="params">(x)</span></span>; &#125;</div><div class="line"><span class="comment">//查找不小于,即大于等于键值x的节点迭代器,</span></div><div class="line"><span class="function">iterator <span class="title">lower_bound</span><span class="params">(<span class="keyword">const</span> key_type&amp; x)</span> </span>&#123;<span class="function"><span class="keyword">return</span> t.<span class="title">lower_bound</span><span class="params">(x)</span></span>; &#125;</div><div class="line"><span class="comment">//查找大于键值x的节点迭代器</span></div><div class="line"><span class="function">iterator <span class="title">upper_bound</span><span class="params">(<span class="keyword">const</span> key_type&amp; x)</span> </span>&#123;<span class="function"><span class="keyword">return</span> t.<span class="title">upper_bound</span><span class="params">(x)</span></span>; &#125;</div><div class="line"><span class="comment">//返回lower_bound和upper_bound迭代器对.</span></div><div class="line">pair&lt;iterator,iterator&gt; equal_range(<span class="keyword">const</span> key_type&amp; x) &#123;</div><div class="line">   <span class="function"><span class="keyword">return</span> t.<span class="title">equal_range</span><span class="params">(x)</span></span>;</div></pre></td></tr></table></figure></p>
+<p>map一定要提到的函数是重载下标注运算符,这个函数也算是查找某个键所对应的值,但是如果某个键不存在的话,则会插入pair对,键值为k,值为data_type类型的默认值.
+<figure class="highlight elm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="type">T</span>&amp; operator[](const key_<span class="keyword">type</span>&amp; k) &#123;</div><div class="line">   return (*((insert(value_type(k, <span class="type">T</span>()))).first)).second;</div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数有点复杂,insert(value_type(k, T()))先返回pair&lt;iterator,bool&gt;第一个iterator,即这个键所对应节点的迭代器,然后取这个键所对应的值pair&lt;key_type,value_type&gt;,最后取出第二个元素即可.</p>
+<p>所以要查找某个元素不能用这个下标表示法,应该用find函数,因为前者会将不存在的键插入到map中.</p>
+<h1>set的实现</h1>
+<hr>
+<p>先来看下set中红黑树的定义:
+<figure class="highlight elm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">typedef <span class="type">Key</span> key_type;</div><div class="line">typedef <span class="type">Key</span> value_type;</div><div class="line">// 键值和值域比较器是一样的,因为set存储的就是一个值,而不是键值对</div><div class="line">typedef <span class="type">Compare</span> key_compare;</div><div class="line">typedef <span class="type">Compare</span> value_compare;</div><div class="line">typedef rb_tree&lt;key_type, value_type, </div><div class="line">                   identity&lt;value_<span class="keyword">type</span>&gt;, key_compare, <span class="type">Alloc</span>&gt; rep_type;</div><div class="line"> rep_<span class="keyword">type</span> t;</div></pre></td></tr></table></figure></p>
+<p>这里面最重要的就是identity&lt;value_type&gt;函数对象了.这个就是获取set存储的value的键值部分.也是标准模板库的一部分.</p>
+<p>看到这我才发现,set的接口和map的接口几乎一模一样...</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/STL/" rel="tag">#STL</a>
+          
+            <a href="/tags/rb-tree/" rel="tag">#rb_tree</a>
+          
+            <a href="/tags/set/" rel="tag">#set</a>
+          
+            <a href="/tags/map/" rel="tag">#map</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/11/14/avl/" rel="next" title="平衡二叉树(avl)分析与实现">
+                <i class="fa fa-chevron-left"></i> 平衡二叉树(avl)分析与实现
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/11/28/socket01/" rel="prev" title="linux网络学习前五章读书笔记">
+                linux网络学习前五章读书笔记 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/11/19/STL-map/"
+     data-title="STL分析之map和set"
+     data-content=""
+     data-url="http://luodw.cc/2015/11/19/STL-map/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/11/19/STL-map/"
+           data-title="STL分析之map和set" data-url="http://luodw.cc/2015/11/19/STL-map/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">红黑树原理</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">红黑树节点和迭代器</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">红黑树</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">map实现</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.1.</span> <span class="nav-text">map构造函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.2.</span> <span class="nav-text">map插入操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.3.</span> <span class="nav-text">map删除操作</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.4.</span> <span class="nav-text">map查找函数</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">set的实现</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

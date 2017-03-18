@@ -1,0 +1,1108 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="memcache,socket," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="memcache网络这一块内容，其实就是调用linux下的网络接口，看过apue和unp，这些接口都听熟悉的，今天主要是分析下，在一个完整的服务器端软件，需要对socket设置些什么．
+SO_KEEPALIVE选项
+
+对于高并发的服务器，服务器会有很多客户端连接，如果有些客户端突然断电，因为没有给服务器发送数据，所以服务器也不知道这个客户端已＂死＂，这样会占着服务器一个文件描述符，如果有很多这样的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="memcache源码中一些网络设置">
+<meta property="og:url" content="http://luodw.cc/2016/01/21/memcache-socket/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="memcache网络这一块内容，其实就是调用linux下的网络接口，看过apue和unp，这些接口都听熟悉的，今天主要是分析下，在一个完整的服务器端软件，需要对socket设置些什么．
+SO_KEEPALIVE选项
+
+对于高并发的服务器，服务器会有很多客户端连接，如果有些客户端突然断电，因为没有给服务器发送数据，所以服务器也不知道这个客户端已＂死＂，这样会占着服务器一个文件描述符，如果有很多这样的">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_055.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="memcache源码中一些网络设置">
+<meta name="twitter:description" content="memcache网络这一块内容，其实就是调用linux下的网络接口，看过apue和unp，这些接口都听熟悉的，今天主要是分析下，在一个完整的服务器端软件，需要对socket设置些什么．
+SO_KEEPALIVE选项
+
+对于高并发的服务器，服务器会有很多客户端连接，如果有些客户端突然断电，因为没有给服务器发送数据，所以服务器也不知道这个客户端已＂死＂，这样会占着服务器一个文件描述符，如果有很多这样的">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_055.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/01/21/memcache-socket/"/>
+
+
+  <title> memcache源码中一些网络设置 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                memcache源码中一些网络设置
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-01-21T20:29:29+08:00" content="2016-01-21">
+              2016-01-21
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/memcache/" itemprop="url" rel="index">
+                    <span itemprop="name">memcache</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/01/21/memcache-socket/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/01/21/memcache-socket/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/01/21/memcache-socket/" class="leancloud_visitors" data-flag-title="memcache源码中一些网络设置">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>memcache网络这一块内容，其实就是调用linux下的网络接口，看过apue和unp，这些接口都听熟悉的，今天主要是分析下，在一个完整的服务器端软件，需要对socket设置些什么．</p>
+<h1>SO_KEEPALIVE选项</h1>
+<hr>
+<p>对于高并发的服务器，服务器会有很多客户端连接，如果有些客户端突然断电，因为没有给服务器发送数据，所以服务器也不知道这个客户端已＂死＂，这样会占着服务器一个文件描述符，如果有很多这样的客户端，这样必然会降低服务器端的并发性．还好tcp套接字有一个保持存活的选项．即如果在２小时(/proc/sys/net/ipv4/tcp_keepalive_time 7200 即2小时)内该套接字的任何一方向上都没有数据交换，TCP就自动给对方发送一个保持存活探测分节(keep-alive probe)，这是对端必须响应的一个TCP分节．网络编程那本书上会说，保活分节会导致以下三种情况发生</p>
+<ol>
+<li>client端连接正常,返回一个ACK.server端收到ACK后重置计时器,在2小时后在发送探测.如果2小时内连接上有数据传输,那么在该时间的基础上向后推延2小时发送探测包;</li>
+<li>客户端异常关闭,或网络断开。client无响应,server收不到ACK,在一定时间(/proc/sys/net/ipv4/tcp_keepalive_intvl 75 即75秒)后重发keepalive packet, 并且重发一定次数(/proc/sys/net/ipv4/tcp_keepalive_probes 9 即9次);，如果还是没有回应，则放弃，套接字关闭；</li>
+<li>客户端曾经崩溃,但已经重启.server收到的探测响应是一个复位,该套接字被置为ECONNREST，套接字本身则被关闭．
+我们可以在编程实现中通过调用setsockopt函数来修改这三个变量;
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">int</span>                 keepIdle =<span class="number">1800</span> ;<span class="comment">//半小时</span></div><div class="line"><span class="keyword">int</span>                 keepInterval = <span class="number">60</span>;<span class="comment">//第二次开始，每个一分钟发送一次</span></div><div class="line"><span class="keyword">int</span>                 keepCount = <span class="number">10</span>;<span class="comment">//总共发送10个保活探测分节</span></div><div class="line">Setsockopt(listenfd, SOL_TCP, TCP_KEEPIDLE, (<span class="keyword">void</span> *)&amp;keepIdle, <span class="keyword">sizeof</span>(keepIdle));</div><div class="line">Setsockopt(listenfd, SOL_TCP,TCP_KEEPINTVL, (<span class="keyword">void</span> *)&amp;keepInterval, <span class="keyword">sizeof</span>(keepInterval));</div><div class="line">Setsockopt(listenfd,SOL_TCP, TCP_KEEPCNT, (<span class="keyword">void</span> *)&amp;keepCount, <span class="keyword">sizeof</span>(keepCount));</div></pre></td></tr></table></figure></li>
+</ol>
+<h1>SO_REUSEADDR选项</h1>
+<hr>
+<p>经常在开启一个服务器之后，处于某些原因需要重启，我们经常做的是关闭服务器，然后马上开启，这时经常会出现＂Port is already in use＂的错误，这是因为，计算机上不允许两个进程绑定到同一个端口．上述出现错误的原因是服务器刚关闭时，还处于time_wait状态，还没有完全释放端口，所以重用会报错．但是tcp提供一个选项SO_REUSEADDR来设置处于time_wait的端口重用．</p>
+<p>网络编程那本书解释了这个选项有四个用途，但是我觉得实际应用中，记者这个上述说的功能即可．</p>
+<h1>SO_LINGER选项</h1>
+<hr>
+<p>在讲这个选项之前，可以先了解下shutdown和close这两个函数的区别．</p>
+<ol>
+<li>close函数主要是把描述符的引用计数减一，仅在该计数变为０时，才关闭这个套接字．当调用close(fd)时，这时就不能往这个fd读写数据了，然而tcp会尝试发送已排队等待发送到对端的任何数据，最后再发送FIN．</li>
+<li>shutdown函数依赖与参数howto，但是它不会将描述符引用计数减一而是直接切断连接．</li>
+</ol>
+<p>shutdown函数可以关闭一半，也可以全关闭，取决为howto</p>
+<ol>
+<li>SHUT_RD　关闭连接的读这一半－－套接字不再有数据可以接收，而且该套接字中现有的数据都被丢弃．进程不能对该套接字调用任何读函数．</li>
+<li>SHUT_WR　关闭连接的写一半－－对于TCP套接字，这称为半关闭．当前留在套接字发送缓冲区中的数据将被发送掉，后跟TCP正常终止序列．不管套接字引用计数是否为0，写半部照样关闭．进程不能对套接字调用任何写函数．</li>
+<li>SHUT_RDWR　连接的读半部和写半部都关闭．这等于调用两次shutdown，一次关闭读，一次关闭写．</li>
+</ol>
+<p>对于close减少引用计数，主要是用在多进程环境中，子进程继承父进程的fd，我在一篇博客上看到一个例子，
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* First  Sample client fragment, </span></div><div class="line"> * 多余的代码及变量的声明已略       */  </div><div class="line">   s=<span class="built_in">connect</span>(...);  </div><div class="line">   <span class="built_in">if</span>( fork() )&#123;   <span class="comment">/*      The child, it copies its stdin to the socket              */</span>  </div><div class="line">       <span class="built_in">while</span>( gets(<span class="built_in">buffer</span>) &gt;<span class="number">0</span>)  </div><div class="line">           <span class="built_in">write</span>(s,buf,strlen(<span class="built_in">buffer</span>));  </div><div class="line">           <span class="built_in">close</span>(s);  </div><div class="line">           exit(<span class="number">0</span>);  </div><div class="line">   &#125;  </div><div class="line">   <span class="built_in">else</span> &#123;          <span class="comment">/* The parent, it receives answers  */</span>  </div><div class="line">        <span class="built_in">while</span>( (n=<span class="built_in">read</span>(s,<span class="built_in">buffer</span>,<span class="keyword">sizeof</span>(<span class="built_in">buffer</span>))&#123;  </div><div class="line">            do_something(n,<span class="built_in">buffer</span>);  </div><div class="line">            <span class="comment">/* Connection break from the server is assumed  */</span>  </div><div class="line">            <span class="comment">/* ATTENTION: deadlock here                     */</span>  </div><div class="line">         wait(<span class="number">0</span>); <span class="comment">/* Wait for the child to exit          */</span>  </div><div class="line">         exit(<span class="number">0</span>);  </div><div class="line">    &#125;</div></pre></td></tr></table></figure></p>
+<p>其实就是子进程从stdio输入数据，然后发给服务器，父进程从服务器接收数据．当子进程收到EOF时，则close(fd)，但是这个只是将引用计数减一，父进程的fd还存活着，且一直阻塞在read调用上．如果子进程中的fd调用shutdown，则会关闭这个套接字．</p>
+<p>好，来看下SO_LINGER这个选项．首先要知道的是close函数调用之后，会立即返回到用户态，然后发送缓冲区的数据将继续发送，最后接FIN．但是可以通过SO_LINGER这个选项改变．</p>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">struct</span> linger &#123;</div><div class="line">     <span class="keyword">int</span> l_onoff; <span class="comment">/* 0 = off, nozero = on */</span></div><div class="line">     <span class="keyword">int</span> l_linger; <span class="comment">/* linger time */</span></div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p>第一个参数为这个选项的开关，第二个参数为延迟时间
+有三种情况:</p>
+<ol>
+<li>置 l_onoff为0，则该选项关闭，l_linger的值被忽略，等于内核缺省情况，close调用会立即返回给调用者，如果可能将会传输任何未发送的数据；</li>
+<li>设置 l_onoff为非0，l_linger为0，则套接口关闭时TCP夭折连接，TCP将丢弃保留在套接口发送缓冲区中的任何数据并发送一个RST给对方，而不是通常的四分组终止序列，这避免了TIME_WAIT状态；</li>
+<li>设置 l_onoff 为非0，l_linger为非0，当套接口关闭时内核将拖延一段时间（由l_linger决定）。如果套接口缓冲区中仍残留数据，进程将处于睡眠状态，直 到（a）所有数据发送完且被对方确认，之后进行正常的终止序列（描述字访问计数为0）或（b）延迟时间到。此种情况下，应用程序检查close的返回值是非常重要的，如果在数据发送完并被确认前时间到，close将返回EWOULDBLOCK错误且套接口发送缓冲区中的任何数据都丢失。close的成功返回仅告诉我们发送的数据（和FIN）已由对方TCP确认，它并不能告诉我们对方应用进程是否已读了数据。如果套接口设为非阻塞的，它将不等待close完成。</li>
+</ol>
+<h1>TCP_NODELAY</h1>
+<hr>
+<p>TCP_NODELAY选项在redis源码中也有看到，当初不理解这个的用法，现在看了网络编程之后，对这个选项还是有点理解．TCP_NODELAY是为了关闭Nagle's Algorithm．</p>
+<p>Nagles Algorithm是为了提高带宽利用率设计的算法，其做法是合并小的TCP包为一个，避免了过多的小报文的TCP头头所浪费的宽带．如果开启了这个算法(默认),则协议栈会积累数据直到以下两个条件之一满足的时候才真正发送出去:</p>
+<ol>
+<li>积累的数据量达到最大的TCP Segment Size</li>
+<li>收到了一个Ack</li>
+</ol>
+<p>还有一个算法经常和Nagles Algorithm算法配合使用，称为TCP Delayed Acknoledgement，这个算法也是为了类似的目的被设计出来的，它的作用就是延迟Ack包的发送，使得协议栈有机会合并多个Ack，提高网络性能．</p>
+<p>下面给出网络编程上的一张图片，说明Nagles算法运行机制
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_055.png" alt="Nagles算法">
+假设每个字符间隔正好是250ms，到服务器的RTT为600ms．当禁用Nagles算法时，每隔250ms准时发送一个字符．而禁用Nagles算法之后，第一次发送不需要等待，但是第二发送必须等待接收到第一次发送的ack才能发送，这样第二和第三个字符就可以一起发送．</p>
+<p>可以这样设想，2个(1字节的数据+20字节的tcp头)和2个2字节的数据+20字节的tcp头，首先提高了网络利用率，其次减少了网络上tcp包数量，降低网络拥堵．</p>
+<p>如果对端开启ack延滞算法，那么发送端就可以积累更多的包为一个tcp包．对端的ack会在以下两种情况下发回发送端</p>
+<ol>
+<li>超时时间到，默认为40ms</li>
+<li>对端有数据回显，则可以捎带上这个ack</li>
+</ol>
+<p>有以下两种情况不适合使用Nagles算法，</p>
+<ol>
+<li>对于其服务器不在相反方向产生数据以便携带ACK的客户来说，ACK延滞算法出现问题．客户会明显感到延迟，因为客户TCP需要等待服务器的ACK延滞定时器超时才能才继续给服务器发送数据．这些客户需要禁用Nagles算法，TCP_NODELAY算法就起到这个作用．</li>
+<li>另一类不适用使用Nagles算法和TCP延滞算法的客户是以若干小片数据向服务器发送单个逻辑请求的客户．例如像memcache的set命令分为两次发送，而且每次都是小片数据，因为第一次发送set键值部分，服务器是不会回复数据，所以必须等待ack延滞超时才能发送set命令值部分，这就出现延迟了．所以memcache必须关闭Nagles算法．redis有些命令也是类似</li>
+</ol>
+<p>以上就是一个服务器端软件经常碰到的socket选项设置．还有一个需要提到的就是需要捕获SIGPIPE信号，因为如果一个客户端突然断线，服务器向他写一个数据包客户端会发送RST给服务器，如果服务器再向客户发送数据，则系统给服务器发送SIGPIPE信号，默认是退出，所以必须捕获SIGPIPE信号．</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/memcache/" rel="tag">#memcache</a>
+          
+            <a href="/tags/socket/" rel="tag">#socket</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/01/19/memcache-lru-maintenance/" rel="next" title="memcache源码分析之lru维护线程">
+                <i class="fa fa-chevron-left"></i> memcache源码分析之lru维护线程
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/01/23/redis-mainae/" rel="prev" title="redis源码之Mainae模块">
+                redis源码之Mainae模块 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/01/21/memcache-socket/"
+     data-title="memcache源码中一些网络设置"
+     data-content=""
+     data-url="http://luodw.cc/2016/01/21/memcache-socket/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/01/21/memcache-socket/"
+           data-title="memcache源码中一些网络设置" data-url="http://luodw.cc/2016/01/21/memcache-socket/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">SO_KEEPALIVE选项</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">SO_REUSEADDR选项</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">SO_LINGER选项</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">TCP_NODELAY</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

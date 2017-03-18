@@ -1,0 +1,1158 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="STL,deque," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="在C++标准模板库序列式容器中,使用最少的估计就是deque,因为平常使用最多的就是用一个可增长的空间来保存数据,而vector,list几乎都可以实现这些功能,所以就很少使用deque如何使用.但是deque这种双端队列,特别是了解这种数据结构的底层实现是很有帮助的.stack和queue这两种容器,不对,正确叫法应该是容器适配器,因为这两种容器底层是调用其他容器,他俩只是提供先进后出和先进先出">
+<meta property="og:type" content="article">
+<meta property="og:title" content="STL源码分析之deque">
+<meta property="og:url" content="http://luodw.cc/2015/11/04/STL-deque/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="在C++标准模板库序列式容器中,使用最少的估计就是deque,因为平常使用最多的就是用一个可增长的空间来保存数据,而vector,list几乎都可以实现这些功能,所以就很少使用deque如何使用.但是deque这种双端队列,特别是了解这种数据结构的底层实现是很有帮助的.stack和queue这两种容器,不对,正确叫法应该是容器适配器,因为这两种容器底层是调用其他容器,他俩只是提供先进后出和先进先出">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_034.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.121Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="STL源码分析之deque">
+<meta name="twitter:description" content="在C++标准模板库序列式容器中,使用最少的估计就是deque,因为平常使用最多的就是用一个可增长的空间来保存数据,而vector,list几乎都可以实现这些功能,所以就很少使用deque如何使用.但是deque这种双端队列,特别是了解这种数据结构的底层实现是很有帮助的.stack和queue这两种容器,不对,正确叫法应该是容器适配器,因为这两种容器底层是调用其他容器,他俩只是提供先进后出和先进先出">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_034.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/11/04/STL-deque/"/>
+
+
+  <title> STL源码分析之deque | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                STL源码分析之deque
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-11-04T22:25:01+08:00" content="2015-11-04">
+              2015-11-04
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/STL/" itemprop="url" rel="index">
+                    <span itemprop="name">STL</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/11/04/STL-deque/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/11/04/STL-deque/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/11/04/STL-deque/" class="leancloud_visitors" data-flag-title="STL源码分析之deque">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>在C++标准模板库序列式容器中,使用最少的估计就是deque,因为平常使用最多的就是用一个可增长的空间来保存数据,而vector,list几乎都可以实现这些功能,所以就很少使用deque如何使用.但是deque这种双端队列,特别是了解这种数据结构的底层实现是很有帮助的.stack和queue这两种容器,不对,正确叫法应该是容器适配器,因为这两种容器底层是调用其他容器,他俩只是提供先进后出和先进先出的接口而已.这两种容器底层实现默认就是用deque.</p>
+<p>deque底层实现相对vector和list更难.deque底层实现一个中控器,即一个指针数组,用于存储所有缓冲区的首地址.迭代器由四个部分组成cur|first|last|node:</p>
+<ol>
+<li>cur指向缓冲区当前元素.</li>
+<li>first指向缓冲区的第一个位置.</li>
+<li>last指向末节点,即最后一个元素的下一个位置</li>
+<li>node指向主控器相应的索引位置.</li>
+</ol>
+<p>可以看下deque示意图,取自<strong>STL源码剖析</strong>
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_034.png" alt="deque示意图"></p>
+<h1>deque 迭代器</h1>
+<hr>
+<p>deque迭代器也是一种Ramdon Access Iterator,但是它并不是普通指针,而是实现了迭代器+n式的移动.因为迭代器自增运算时,可能夸缓冲区,所以迭代器实现++运算时,还需判断是否跨缓冲区.</p>
+<p>来看下迭代器:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Ref, <span class="keyword">class</span> Ptr, <span class="keyword">size_t</span> BufSiz&gt;</div><div class="line"><span class="keyword">struct</span> __deque_iterator &#123; 	<span class="comment">// 未继承 std::iterator</span></div><div class="line">  <span class="keyword">typedef</span> __deque_iterator&lt;T, T&amp;, T*, BufSiz&gt;      iterator;</div><div class="line">  <span class="keyword">typedef</span> __deque_iterator&lt;T, <span class="keyword">const</span> T&amp;, <span class="keyword">const</span> T*, BufSiz&gt; const_iterator;</div><div class="line">  <span class="function"><span class="keyword">static</span> size_t <span class="title">buffer_size</span><span class="params">()</span> </span>&#123;<span class="keyword">return</span> __deque_buf_size(BufSiz, <span class="keyword">sizeof</span>(T)); &#125;</div><div class="line">  <span class="keyword">typedef</span> random_access_iterator_tag iterator_category; <span class="comment">// (1)</span></div><div class="line">  <span class="comment">//因为为random_access_iterator,所以必须实现+n运算</span></div><div class="line">  <span class="keyword">typedef</span> T value_type; 				<span class="comment">// (2)</span></div><div class="line">  <span class="keyword">typedef</span> Ptr pointer; 				<span class="comment">// (3)</span></div><div class="line">  <span class="keyword">typedef</span> Ref reference; 				<span class="comment">// (4)</span></div><div class="line">  <span class="keyword">typedef</span> <span class="keyword">size_t</span> size_type;</div><div class="line">  <span class="keyword">typedef</span> <span class="keyword">ptrdiff_t</span> difference_type; 	<span class="comment">// (5)</span></div><div class="line">  <span class="keyword">typedef</span> T** map_pointer;<span class="comment">//指向主控器的指针</span></div><div class="line"></div><div class="line">  <span class="keyword">typedef</span> __deque_iterator self;<span class="comment">//泛型编程时,内部无需添加泛型参数</span></div><div class="line"></div><div class="line">  <span class="comment">// 以下四个就是一个迭代器对象的成员</span></div><div class="line">  T* cur;	<span class="comment">// 此迭代器所指之缓冲区的现行（current）元素</span></div><div class="line">  T* first;	<span class="comment">// 此迭代器所指之缓冲区的头</span></div><div class="line">  T* last;	<span class="comment">// 此迭代器所指之缓冲区的尾（含备用空间）</span></div><div class="line">  map_pointer node;</div></pre></td></tr></table></figure></p>
+<p>以上就是跌迭代器内嵌型别和成员声明.关键是迭代器的类型random_access_iterator,以及四个成员变量.来看下迭代器的构造函数:</p>
+<p><figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//用一个T类型数据和指向主控器的指针来初始化一个迭代器</span></div><div class="line"><span class="selector-tag">__deque_iterator</span>(T* x, map_pointer y) </div><div class="line">  : <span class="selector-tag">cur</span>(x), <span class="selector-tag">first</span>(*y), <span class="selector-tag">last</span>(*y + buffer_size()), <span class="selector-tag">node</span>(y) &#123;&#125;</div><div class="line"><span class="comment">//创建一个空的迭代器</span></div><div class="line"><span class="selector-tag">__deque_iterator</span>() : <span class="selector-tag">cur</span>(<span class="number">0</span>), <span class="selector-tag">first</span>(<span class="number">0</span>), <span class="selector-tag">last</span>(<span class="number">0</span>), <span class="selector-tag">node</span>(<span class="number">0</span>) &#123;&#125;</div><div class="line"><span class="comment">//迭代器的复制构造函数</span></div><div class="line"><span class="selector-tag">__deque_iterator</span>(const iterator&amp; x)</div><div class="line">  : <span class="selector-tag">cur</span>(x.cur), <span class="selector-tag">first</span>(x.first), <span class="selector-tag">last</span>(x.last), <span class="selector-tag">node</span>(x.node) &#123;&#125;</div></pre></td></tr></table></figure></p>
+<p>接下来看下迭代器各个重载运算算子:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//迭代器解引用运算,返回迭代器目前指向的元素</span></div><div class="line">reference <span class="keyword">operator</span>*() <span class="keyword">const</span> &#123; <span class="keyword">return</span> *cur; &#125;</div><div class="line"><span class="comment">//重载指针运算符,返回当前元素的地址指针</span></div><div class="line">pointer <span class="keyword">operator</span>-&gt;() <span class="keyword">const</span> &#123; <span class="keyword">return</span> &amp;(<span class="keyword">operator</span>*()); &#125;</div><div class="line"><span class="comment">//返回两个迭代器的距离</span></div><div class="line">difference_type <span class="keyword">operator</span>-(<span class="keyword">const</span> self&amp; x) <span class="keyword">const</span> &#123;</div><div class="line">  <span class="keyword">return</span> difference_type(buffer_size()) * (node - x.node - <span class="number">1</span>) +</div><div class="line">    (cur - first) + (x.last - x.cur);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>第三个计算迭代器间的距离时,一定要注意不是简单的迭代器相减,因为迭代器间的距离是指两个迭代器间所有元素的个数,所以计算要把两个迭代器间所有数据都计算出来.</p>
+<p>接下来是迭代器的一些++,--,+n,-n,==,!=重载运算,举几个例子:
+<figure class="highlight kotlin"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">self&amp; <span class="keyword">operator</span>++() &#123;</div><div class="line">    ++cur;				</div><div class="line">    <span class="keyword">if</span> (cur == last) &#123;		</div><div class="line">      set_node(node + <span class="number">1</span>);	</div><div class="line">      cur = first;</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> *<span class="keyword">this</span>; </div><div class="line">  &#125;</div><div class="line">  self <span class="keyword">operator</span>++(int)  &#123;</div><div class="line">    self tmp = *<span class="keyword">this</span>;</div><div class="line">    ++*<span class="keyword">this</span>;</div><div class="line">    <span class="keyword">return</span> tmp;</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>如果当前迭代器cur!=last,则直接++cur即可.如果++cur之后,cur==last,说明这是这个缓存区的最后一个元素,则这个迭代器要跳到下一个缓存区的第一个元素.第二个函数是后++式标准写法,返回++之前的元素.</p>
+<p><figure class="highlight glsl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">self&amp; operator+=(difference_type n) &#123;</div><div class="line">   difference_type <span class="keyword">offset</span> = n + (cur - first);</div><div class="line">   <span class="keyword">if</span> (<span class="keyword">offset</span> &gt;= <span class="number">0</span> &amp;&amp; <span class="keyword">offset</span> &lt; difference_type(buffer_size()))</div><div class="line">     <span class="comment">// 目标在同一个缓存区内,直接cur指针+n即可</span></div><div class="line">     cur += n;</div><div class="line">   <span class="keyword">else</span> &#123;</div><div class="line">     <span class="comment">// 目标位置不在同一个缓存区内</span></div><div class="line">     difference_type node_offset =</div><div class="line">       <span class="keyword">offset</span> &gt; <span class="number">0</span> ? <span class="keyword">offset</span> / difference_type(buffer_size())</div><div class="line">                  : -difference_type((-<span class="keyword">offset</span> - <span class="number">1</span>) / buffer_size()) - <span class="number">1</span>;</div><div class="line">     <span class="comment">// 切换至正确的节点）</span></div><div class="line">     set_node(node + node_offset);</div><div class="line">     <span class="comment">// 切换到正确的元素</span></div><div class="line">     cur = first + (<span class="keyword">offset</span> - node_offset * difference_type(buffer_size()));</div><div class="line">   &#125;</div><div class="line">   <span class="keyword">return</span> *this;</div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>+=n运算关键是要判断+n之后的索引是否还在当前缓冲区内,如果在,cur简单+n即可.如果不在,则要计算正确的缓存节点和正确的元素位置.其他+n,-=n,-运算都可以通过+=运算得出.</p>
+<p>还有三个迭代器等式运算:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">reference <span class="keyword">operator</span>[](difference_type n) <span class="keyword">const</span> &#123; <span class="keyword">return</span> *(*<span class="keyword">this</span> + n); &#125;</div><div class="line"></div><div class="line">  <span class="keyword">bool</span> <span class="keyword">operator</span>==(<span class="keyword">const</span> self&amp; x) <span class="keyword">const</span> &#123; <span class="keyword">return</span> cur == x.cur; &#125;</div><div class="line">  <span class="keyword">bool</span> <span class="keyword">operator</span>!=(<span class="keyword">const</span> self&amp; x) <span class="keyword">const</span> &#123; <span class="keyword">return</span> !(*<span class="keyword">this</span> == x); &#125;</div><div class="line">  <span class="keyword">bool</span> <span class="keyword">operator</span>&lt;(<span class="keyword">const</span> self&amp; x) <span class="keyword">const</span> &#123;</div><div class="line">    <span class="keyword">return</span> (node == x.node) ? (cur &lt; x.cur) : (node &lt; x.node);</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>从[]号运算符的函数定义可以看出,[n]是相对于当前迭代器的位置.</p>
+<h1>deque类</h1>
+<hr>
+<p>deque标准模板库有成员有一个主控器和两个迭代器,一个指向第一个缓冲区,一个指向最后一个缓冲区.定义如下:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div></pre></td><td class="code"><pre><div class="line"> <span class="keyword">typedef</span> pointer* map_pointer;	</div><div class="line">  <span class="comment">// 专属配置器,一次分配一个元素</span></div><div class="line">  <span class="keyword">typedef</span> simple_alloc&lt;value_type, Alloc&gt; data_allocator;</div><div class="line">  <span class="comment">// 专属配置器,一次分配一个指标大小</span></div><div class="line">  <span class="keyword">typedef</span> simple_alloc&lt;pointer, Alloc&gt; map_allocator;</div><div class="line">  <span class="comment">//获得缓存区的大小</span></div><div class="line">  <span class="function"><span class="keyword">static</span> size_type <span class="title">buffer_size</span><span class="params">()</span> </span>&#123;</div><div class="line">    <span class="keyword">return</span> __deque_buf_size(BufSiz, <span class="keyword">sizeof</span>(value_type));</div><div class="line">  &#125;</div><div class="line">  <span class="function"><span class="keyword">static</span> size_type <span class="title">initial_map_size</span><span class="params">()</span> </span>&#123; <span class="keyword">return</span> <span class="number">8</span>; &#125;<span class="comment">//默认map的大小,即指针个数</span></div><div class="line"></div><div class="line"><span class="keyword">protected</span>:                      </div><div class="line">  iterator start;		<span class="comment">// 表示第一个迭代器</span></div><div class="line">  iterator finish;	<span class="comment">// 表示最后一个迭代器</span></div><div class="line"></div><div class="line">  map_pointer <span class="built_in">map</span>;	<span class="comment">// 指向主控器,即缓冲区的首地址指针数组</span></div><div class="line">                          </div><div class="line">  size_type map_size;	<span class="comment">// map容纳指针的个数</span></div></pre></td></tr></table></figure></p>
+<h2>默认构造函数</h2>
+<p>分析一个类,首先从构造函数开始,因为这是用户使用这个类的最开始的步骤.
+<figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">deque</span>()</div><div class="line">  : <span class="selector-tag">start</span>(), <span class="selector-tag">finish</span>(), <span class="selector-tag">map</span>(<span class="number">0</span>), <span class="selector-tag">map_size</span>(<span class="number">0</span>)</div><div class="line">&#123;</div><div class="line">  <span class="selector-tag">create_map_and_nodes</span>(<span class="number">0</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>默认构造函数先初始化两个迭代器为空迭代器,然后map和map_size为0,接着调用 create_map_and_nodes(size_type num_elements)来初始化一块内存.如下:</p>
+<ol>
+<li>先根据num_elements来确定主控器节点的个数num_nodes,节点的个数是(初始化的8和num_nodes的最大值.</li>
+<li>调用map_allocator分配节点个数(初始化为8),并将指针赋值给map.</li>
+<li>然后设置nstart,nfinish为主控器中间节点(即第4个节点).</li>
+<li>然后为[nstart,nfinish]之间的节点分配缓冲区,即调用allocate_node.</li>
+<li>将first和finish设置为nstart和nfinish.</li>
+<li>设置start.cur和finish.cur</li>
+</ol>
+<p>调用默认构造函数时,生成长度为8的缓冲区地址数组,然后start和finish指向第4个节点,并为第4个节点分配缓冲区.接下来就可以插入数据了.</p>
+<h2>由n个value初始化的构造函数</h2>
+<p><figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">deque</span>(size_type n, const value_type&amp; value)</div><div class="line">   : <span class="selector-tag">start</span>(), <span class="selector-tag">finish</span>(), <span class="selector-tag">map</span>(<span class="number">0</span>), <span class="selector-tag">map_size</span>(<span class="number">0</span>)</div><div class="line"> &#123;</div><div class="line">   <span class="selector-tag">fill_initialize</span>(n, value);</div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>这个构造函数调用fill_initialize函数来初始化deque,在fill_initialize(size_type n,
+const value_type&amp; value)函数中,</p>
+<ol>
+<li>先调用函数create_map_and_nodes(n)分配好需要的缓冲区</li>
+<li>然后调用unitialized_fii来初始后缓冲区.</li>
+</ol>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc, <span class="keyword">size_t</span> BufSize&gt;</div><div class="line"><span class="keyword">void</span> <span class="built_in">deque</span>&lt;T, Alloc, BufSize&gt;::fill_initialize(size_type n,</div><div class="line">                                               <span class="keyword">const</span> value_type&amp; value) &#123;</div><div class="line">  create_map_and_nodes(n);	 <span class="comment">// 先分配好缓冲区</span></div><div class="line">  map_pointer cur;</div><div class="line">  __STL_TRY &#123;</div><div class="line">    <span class="comment">// 为每个节点的缓冲区设定初值</span></div><div class="line">    <span class="keyword">for</span> (cur = start.node; cur &lt; finish.node; ++cur)</div><div class="line">      uninitialized_fill(*cur, *cur + buffer_size(), value);</div><div class="line">    <span class="comment">// 最后一个节点区别对待,因为最后一个节点不一定满元素</span></div><div class="line">    uninitialized_fill(finish.first, finish.cur, value);</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<h2>两队迭代器初始化的构造函数</h2>
+<p>较为典型,还有一种是用一对迭代器来初始化deque:
+<figure class="highlight applescript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">template &lt;<span class="built_in">class</span> InputIterator&gt;</div><div class="line">deque(InputIterator <span class="keyword">first</span>, InputIterator <span class="keyword">last</span>)</div><div class="line">  : start(), finish(), map(<span class="number">0</span>), map_size(<span class="number">0</span>)</div><div class="line">&#123;</div><div class="line">  range_initialize(<span class="keyword">first</span>, <span class="keyword">last</span>, iterator_category(<span class="keyword">first</span>));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个构造函数调用range_initialize来用迭代器范围内的元素初始化deque.range_initialize,根据迭代器类型,调用相应的版本,random_access_iterator调用的是如下版本:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc, <span class="keyword">size_t</span> BufSize&gt;</div><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> ForwardIterator&gt;</div><div class="line"><span class="keyword">void</span> <span class="built_in">deque</span>&lt;T, Alloc, BufSize&gt;::range_initialize(ForwardIterator first,</div><div class="line">                                                ForwardIterator last,</div><div class="line">                                                forward_iterator_tag) &#123;</div><div class="line">  size_type n = <span class="number">0</span>;</div><div class="line">  distance(first, last, n);<span class="comment">//n个元素</span></div><div class="line">  create_map_and_nodes(n);<span class="comment">//创建缓冲区空间</span></div><div class="line">  __STL_TRY &#123;</div><div class="line">    uninitialized_copy(first, last, start);<span class="comment">//初始化缓冲区</span></div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<h1>析构函数</h1>
+<p>析构函数先是调用destroy函数析构缓冲区的数据,然后调用destroy_map_and_nodes函数析构缓冲区和主控器内存
+<figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">~<span class="selector-tag">deque</span>() &#123;</div><div class="line">  <span class="selector-tag">destroy</span>(start, finish);</div><div class="line">  <span class="selector-tag">destroy_map_and_nodes</span>();</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<h1>push_back和pop_back函数</h1>
+<p>以下是一些常用的函数,push_back,pop_back等等...
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">push_back</span><span class="params">(<span class="keyword">const</span> value_type&amp; t)</span> </span>&#123;</div><div class="line">   <span class="keyword">if</span> (finish.cur != finish.last - <span class="number">1</span>) &#123; </div><div class="line">     <span class="comment">// 最后缓冲区还有大于等于1个元素空间</span></div><div class="line">     construct(finish.cur, t);	<span class="comment">// 直接在备用空间上赋值</span></div><div class="line">     ++finish.cur;	<span class="comment">// 调整最后一个缓存区的cur</span></div><div class="line">   &#125;</div><div class="line">   <span class="keyword">else</span>  <span class="comment">// 最后缓冲区只有一个元素空间了</span></div><div class="line">     push_back_aux(t);</div><div class="line"> &#125;</div></pre></td></tr></table></figure></p>
+<p>该当插入数据时,</p>
+<ol>
+<li>要先判断是否为最后一个缓冲区的最后一个空间,如果是,需要调用push_back_aux来插入数据.</li>
+<li>在push_back_aux函数中先要判断主控器是否还有空间,如果没有,则需要调用reserve_map_at_back()来重新开一块内存.</li>
+<li>在reserver_map_at_back函数内,将就map数据拷贝到新map,接着还需要把旧map回收了.</li>
+<li>为finish.node下一个节点分配缓冲区</li>
+<li>赋值,更新finish,指向下一个节点</li>
+</ol>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc, <span class="keyword">size_t</span> BufSize&gt;</div><div class="line"><span class="keyword">void</span> <span class="built_in">deque</span>&lt;T, Alloc, BufSize&gt;::push_back_aux(<span class="keyword">const</span> value_type&amp; t) &#123;</div><div class="line">  value_type t_copy = t;</div><div class="line">  reserve_map_at_back();		<span class="comment">//符合某种条件必须换个map</span></div><div class="line">  *(finish.node + <span class="number">1</span>) = allocate_node();	<span class="comment">// 配置一个新节点</span></div><div class="line">  __STL_TRY &#123;</div><div class="line">    construct(finish.cur, t_copy);		<span class="comment">// 元素赋值</span></div><div class="line">    finish.set_node(finish.node + <span class="number">1</span>);	<span class="comment">// 改变finish,令其指向下一个节点</span></div><div class="line">    finish.cur = finish.first;			<span class="comment">// 设定finish状态</span></div><div class="line">  &#125;</div><div class="line">  __STL_UNWIND(deallocate_node(*(finish.node + <span class="number">1</span>)));</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>接下来看下pop_back函数,即从尾部弹出一个元素;
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">void</span> <span class="title">pop_back</span><span class="params">()</span> </span>&#123;</div><div class="line">  <span class="keyword">if</span> (finish.cur != finish.first) &#123;</div><div class="line">    <span class="comment">// 最后一个缓冲区还有一个或更多的元素</span></div><div class="line"></div><div class="line">    --finish.cur;		<span class="comment">// 调整指标,相当于删除最后一个元素</span></div><div class="line">    destroy(finish.cur);	<span class="comment">// 将最后一个元素析构</span></div><div class="line">  &#125;</div><div class="line">  <span class="keyword">else</span></div><div class="line">    <span class="comment">// 最后缓冲区没有元素</span></div><div class="line">    pop_back_aux();		<span class="comment">// 这里将进行释放缓冲区操作</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>pop_back_aux函数中</p>
+<ol>
+<li>先是释放最后一个缓冲区的内存</li>
+<li>更新finish指标,指向前一个节点</li>
+<li>析构当前缓冲区最后一个元素</li>
+</ol>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc, <span class="keyword">size_t</span> BufSize&gt;</div><div class="line"><span class="keyword">void</span> <span class="built_in">deque</span>&lt;T, Alloc, BufSize&gt;::pop_back_aux() &#123;</div><div class="line">  deallocate_node(finish.first);	<span class="comment">// 释放最后一个缓冲区</span></div><div class="line">  finish.set_node(finish.node - <span class="number">1</span>);	<span class="comment">// 调整finish指标,使其指向</span></div><div class="line">  finish.cur = finish.last - <span class="number">1</span>;		<span class="comment">//  上一个缓冲区的最后一个元素</span></div><div class="line">  destroy(finish.cur);				<span class="comment">// 析构最后那个元素</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>还有push_front和pop_front函数,思想和push_back和pop_back思想一样,都要判断是否要跨越缓冲区,这里不做介绍.</p>
+<h1>earse函数</h1>
+<p><figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">iterator erase(iterator pos) &#123;</div><div class="line">    iterator <span class="keyword">next</span> = pos;</div><div class="line">    ++<span class="keyword">next</span>;</div><div class="line">    difference_type index = pos - start;	<span class="regexp">//</span> 清除点之前的元素个数</div><div class="line">    <span class="keyword">if</span> (index &lt; (size() <span class="meta">&gt;&gt; </span><span class="number">1</span>)) &#123;			<span class="regexp">//</span> 如果清楚点之前的元素比较少，</div><div class="line">      copy_backward(start, pos, <span class="keyword">next</span>);	<span class="regexp">//</span> 就搬移清除点之前的元素</div><div class="line">      pop_front();				<span class="regexp">//</span> 搬移完毕,删除最后一个元素</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">else</span> &#123;					<span class="regexp">//</span> 清除点之后元素比较少</div><div class="line">      copy(<span class="keyword">next</span>, finish, pos);	<span class="regexp">//</span> 就搬移清除点之后的元素</div><div class="line">      pop_back();				<span class="regexp">//</span> 搬移完毕,删除最后一个元素</div><div class="line">    &#125;</div><div class="line">    <span class="keyword">return</span> start + index;</div><div class="line">  &#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数可能难看懂,主要是因为迭代器不是普通指针,所以看的时候,要考虑到迭代器的运算.还有个  iterator erase(iterator first, iterator last);函数思想类似...</p>
+<h1>insert函数</h1>
+<p>最后再说下insert函数,insert函数有好几个版本,这里只介绍最简单的版本:
+<figure class="highlight arduino"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">iterator insert(iterator <span class="built_in">position</span>, <span class="keyword">const</span> value_type&amp; x) &#123;</div><div class="line">  <span class="built_in">if</span> (<span class="built_in">position</span>.cur == start.cur) &#123;	<span class="comment">// 如果是安插在队列最前段</span></div><div class="line">    push_front(x);				<span class="comment">// 交给push_front 去做</span></div><div class="line">    <span class="built_in">return</span> start;</div><div class="line">  &#125;</div><div class="line">  <span class="built_in">else</span> <span class="built_in">if</span> (<span class="built_in">position</span>.cur == finish.cur) &#123; <span class="comment">// 如果安插点是deque 最尾端</span></div><div class="line">    push_back(x);					  <span class="comment">// 交给push_back 去做</span></div><div class="line">    iterator tmp = finish;</div><div class="line">    --tmp;</div><div class="line">    <span class="built_in">return</span> tmp;</div><div class="line">  &#125;</div><div class="line">  <span class="built_in">else</span> &#123;</div><div class="line">    <span class="built_in">return</span> insert_aux(<span class="built_in">position</span>, x);	 	<span class="comment">// 交给 insert_aux 去做</span></div><div class="line">  &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>接下来看下insert_aux,也是根据插入点前后元素个数比较来决定向前或向后移动.</p>
+<p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, <span class="keyword">class</span> Alloc, <span class="keyword">size_t</span> BufSize&gt;</div><div class="line"><span class="keyword">typename</span> <span class="built_in">deque</span>&lt;T, Alloc, BufSize&gt;::iterator</div><div class="line"><span class="built_in">deque</span>&lt;T, Alloc, BufSize&gt;::insert_aux(iterator pos, <span class="keyword">const</span> value_type&amp; x) &#123;</div><div class="line">  difference_type index = pos - start;	<span class="comment">// 安插点之前的元素个数</span></div><div class="line">  value_type x_copy = x;</div><div class="line">  <span class="keyword">if</span> (index &lt; size() / <span class="number">2</span>) &#123;			<span class="comment">// 如果安插点之前元素个数较少</span></div><div class="line">    push_front(front());			<span class="comment">// 在最前端加入与第一元素同值的元素。</span></div><div class="line">    iterator front1 = start;		<span class="comment">// 以下标识记号,然后搬移元素</span></div><div class="line">    ++front1;</div><div class="line">    iterator front2 = front1;</div><div class="line">    ++front2;</div><div class="line">    pos = start + index;</div><div class="line">    iterator pos1 = pos;</div><div class="line">    ++pos1;</div><div class="line">    copy(front2, pos1, front1);		<span class="comment">// 元素搬移</span></div><div class="line">  &#125;</div><div class="line">  <span class="keyword">else</span> &#123;						<span class="comment">// 安插点之后的元素个数比较少</span></div><div class="line">    push_back(back());			<span class="comment">// 在最尾端加入与最後元素同值的元素。</span></div><div class="line">    iterator back1 = finish;	<span class="comment">// 以下标识记号然后搬移元素...</span></div><div class="line">    --back1;</div><div class="line">    iterator back2 = back1;</div><div class="line">    --back2;</div><div class="line">    pos = start + index;</div><div class="line">    copy_backward(pos, back2, back1);	<span class="comment">// 元素搬移</span></div><div class="line">  &#125;</div><div class="line">  *pos = x_copy;	<span class="comment">// 在安插点设定新值</span></div><div class="line">  <span class="keyword">return</span> pos;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>insert函数还有好几个版本</p>
+<ol>
+<li>
+<p>iterator insert(iterator position) { return insert(position, value_type()); }</p>
+</li>
+<li>
+<p>void insert(iterator pos, size_type n, const value_type&amp; x);</p>
+</li>
+<li>
+<p>void insert(iterator pos, int n, const value_type&amp; x) {
+insert(pos, (size_type) n, x);
+}</p>
+</li>
+<li>
+<p>void insert(iterator pos, long n, const value_type&amp; x) {
+insert(pos, (size_type) n, x);
+}</p>
+</li>
+<li>
+<p>void insert(iterator pos, InputIterator first, InputIterator last) {
+insert(pos, first, last, iterator_category(first));
+}</p>
+</li>
+<li>
+<p>void insert(iterator pos, const value_type* first, const value_type* last);</p>
+</li>
+<li>
+<p>void insert(iterator pos, const_iterator first, const_iterator last);</p>
+</li>
+</ol>
+<p>deque暂时说到这,基本用法大概都有说到了...</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/STL/" rel="tag">#STL</a>
+          
+            <a href="/tags/deque/" rel="tag">#deque</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/11/04/leveldb-20/" rel="next" title="leveldb源码分析补充之Compaction">
+                <i class="fa fa-chevron-left"></i> leveldb源码分析补充之Compaction
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2015/11/12/bst/" rel="prev" title="二叉搜索树分析与实现">
+                二叉搜索树分析与实现 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/11/04/STL-deque/"
+     data-title="STL源码分析之deque"
+     data-content=""
+     data-url="http://luodw.cc/2015/11/04/STL-deque/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/11/04/STL-deque/"
+           data-title="STL源码分析之deque" data-url="http://luodw.cc/2015/11/04/STL-deque/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">deque 迭代器</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">deque类</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.1.</span> <span class="nav-text">默认构造函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.2.</span> <span class="nav-text">由n个value初始化的构造函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.3.</span> <span class="nav-text">两队迭代器初始化的构造函数</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">析构函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">push_back和pop_back函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">earse函数</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">6.</span> <span class="nav-text">insert函数</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

@@ -1,0 +1,1139 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="python,http," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="挺久没写博客了，因为博主开始了今年另一段美好的实习经历，学习加做项目，时间已排满；很感谢今年这两段经历，让我接触了golang和python，学习不同语言，可以跳出之前学习c/c++思维的限制，学习golang和python的优秀特性以及了解在不同的场景，适用不同的语言；而之前学习linux和c/c++，也使我很快就上手golang和python;
+
+我学习的习惯，除了学习如何使用，还喜欢研究源码">
+<meta property="og:type" content="article">
+<meta property="og:title" content="python之HTTP模块">
+<meta property="og:url" content="http://luodw.cc/2016/11/05/python-http/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="挺久没写博客了，因为博主开始了今年另一段美好的实习经历，学习加做项目，时间已排满；很感谢今年这两段经历，让我接触了golang和python，学习不同语言，可以跳出之前学习c/c++思维的限制，学习golang和python的优秀特性以及了解在不同的场景，适用不同的语言；而之前学习linux和c/c++，也使我很快就上手golang和python;
+
+我学习的习惯，除了学习如何使用，还喜欢研究源码">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/IMG_0361.JPG">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="python之HTTP模块">
+<meta name="twitter:description" content="挺久没写博客了，因为博主开始了今年另一段美好的实习经历，学习加做项目，时间已排满；很感谢今年这两段经历，让我接触了golang和python，学习不同语言，可以跳出之前学习c/c++思维的限制，学习golang和python的优秀特性以及了解在不同的场景，适用不同的语言；而之前学习linux和c/c++，也使我很快就上手golang和python;
+
+我学习的习惯，除了学习如何使用，还喜欢研究源码">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/IMG_0361.JPG">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/11/05/python-http/"/>
+
+
+  <title> python之HTTP模块 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                python之HTTP模块
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-11-05T21:56:48+08:00" content="2016-11-05">
+              2016-11-05
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/python/" itemprop="url" rel="index">
+                    <span itemprop="name">python</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/11/05/python-http/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/11/05/python-http/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/11/05/python-http/" class="leancloud_visitors" data-flag-title="python之HTTP模块">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>挺久没写博客了，因为博主开始了今年另一段美好的实习经历，学习加做项目，时间已排满；很感谢今年这两段经历，让我接触了golang和python，学习不同语言，可以跳出之前学习c/c++思维的限制，学习golang和python的优秀特性以及了解在不同的场景，适用不同的语言；而之前学习linux和c/c++，也使我很快就上手golang和python;</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/IMG_0361.JPG" alt="杭州清河坊"></p>
+<p>我学习的习惯，除了学习如何使用，还喜欢研究源码，学习运行机制，这样用起来才会得心应手或者说，使用这些语言或框架，就和平时吃饭睡觉一样，非常自然；因为最近有接触到bottle和flask  web框架，所以想看下这两个的源码，但是这两个框架是基于python自带的http，因此就有了这篇文章；</p>
+<p>这篇主要从以下几个方面来解析python之http模块:</p>
+<ol>
+<li>一个python http简单的例子</li>
+<li>http之server;</li>
+<li>http之handler;</li>
+</ol>
+<h1>python http简单例子</h1>
+<hr>
+<p>python http框架主要有server和handler组成，server主要是用于建立网络模型，例如利用epoll监听socket；handler用于处理各个就绪的socket；先来看下python http简单的使用：
+<figure class="highlight vim"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">import sys</div><div class="line">from http.server import HTTPServer,SimpleHTTPRequestHandler</div><div class="line"></div><div class="line">ServerClass = HTTPServer</div><div class="line">HandlerClass = SimpleHTTPRequestHandler</div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    port = <span class="keyword">int</span>(sys.<span class="built_in">argv</span>[<span class="number">2</span>])</div><div class="line">    server_address = (sys.<span class="built_in">argv</span>[<span class="number">1</span>],port)</div><div class="line">    httpd = ServerClass(server_address,HandlerClass)</div><div class="line"></div><div class="line">    <span class="keyword">sa</span>=httpd.socket.getsockname()</div><div class="line">    <span class="keyword">print</span>(<span class="string">"Serving HTTP on"</span>, <span class="keyword">sa</span>[<span class="number">0</span>], <span class="string">"port"</span>, <span class="keyword">sa</span>[<span class="number">1</span>], <span class="string">"..."</span>)</div><div class="line"></div><div class="line">    <span class="keyword">try</span>:</div><div class="line">        httpd.serve_forever()</div><div class="line">    except KeyboardInterrup<span class="variable">t:</span></div><div class="line">        <span class="keyword">print</span>(<span class="string">"\nKeyboard interrupt received, exiting."</span>)</div><div class="line">        httpd.server_close()</div><div class="line">        sys.<span class="keyword">exit</span>(<span class="number">0</span>)</div></pre></td></tr></table></figure></p>
+<p>运行上述例子，可以得到如下：</p>
+<blockquote>
+<p>python3 myhttp.py 127.0.0.1 9999</p>
+</blockquote>
+<p>此时如果在当前文件夹新建一个index.html文件，就可以通过<a href="http://127.0.0.1:9999/index.html" target="_blank" rel="external">http://127.0.0.1:9999/index.html</a>访问了index.html页面了。</p>
+<p>这个例子的server类用的是HTTPServer，handler类是SimpleHTTPRequestHandler，因此当HTTPServer监听到有request到来时，就把这个request丢给SimpleHTTPRequestHandler类求处理；ok，了解这些之后，我们开始分别分析下server和handler.</p>
+<h1>http之server</h1>
+<hr>
+<p>http模块的设计充分利用了面向对象的继承多态，因为之前有看了会tfs文件系统的代码，所以再看python http时，没那么大的压力；先给出server的继承关系
+<figure class="highlight asciidoc"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"></div><div class="line"><span class="code">                       +------------------+</span></div><div class="line"><span class="code">+------------+</span>         | tcpserver基类    |</div><div class="line">| BaseServer +--------&gt;| 开启事件循环监听 |</div><div class="line"><span class="code">+-----+</span>------+         | 处理客户端请求   |</div><div class="line"><span class="code">      |                +------------------+</span></div><div class="line"><span class="code">      v                +-----------------+</span></div><div class="line"><span class="code">+------------+</span>         | httpserver基类  |</div><div class="line">| TCPServer  <span class="code">+--------&gt;+</span>  设置监听socket |</div><div class="line"><span class="code">+-----+</span>------+         | 开启监听        |</div><div class="line"><span class="code">      |                +-----------------+</span></div><div class="line"><span class="section">      v</span></div><div class="line">+------------+</div><div class="line"><span class="section">| HTTPServer |           </span></div><div class="line">+------------+</div></pre></td></tr></table></figure></p>
+<p>继承关系如上图所示，其中BaseServer和TCPServer在文件socketserver.py，HTTPServer在http/server.py；我们先看下来BaseServer；</p>
+<h2>BaseServer</h2>
+<hr>
+<p>因为BaseServer是所有server的基类，因此BaseServer尽可能抽象出所有server的共性，例如开启事件监听循环，这就是每个server的共性，因此这也是BaseServer主要做的使;我们来看下BaseServer主要代码部分
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">def serve_forever(<span class="keyword">self</span>, poll_interval=<span class="number">0.5</span>):</div><div class="line">        <span class="keyword">self</span>.__is_shut_down.clear()</div><div class="line">        <span class="keyword">try</span>:</div><div class="line">            <span class="keyword">with</span> _ServerSelector() <span class="keyword">as</span> <span class="keyword">selector</span>:</div><div class="line">                <span class="keyword">selector</span>.register(<span class="keyword">self</span>, selectors.EVENT_READ)</div><div class="line"></div><div class="line">                <span class="keyword">while</span> <span class="keyword">not</span> <span class="keyword">self</span>.__shutdown_request:</div><div class="line">                    ready = <span class="keyword">selector</span>.select(poll_interval)</div><div class="line">                    <span class="keyword">if</span> ready:</div><div class="line">                        <span class="keyword">self</span>._handle_request_noblock()</div><div class="line"></div><div class="line">                    <span class="keyword">self</span>.service_actions()</div><div class="line">        <span class="keyword">finally</span>:</div><div class="line">            <span class="keyword">self</span>.__shutdown_request = <span class="keyword">False</span></div><div class="line">            <span class="keyword">self</span>.__is_shut_down.set()</div></pre></td></tr></table></figure></p>
+<p>代码中的selector其实就是封装了select,poll,epoll等的io多路复用，然后将服务自身监听的socket注册到io多路复用，开启事件监听，当有客户端连接时，此时会调用self._handle_request_noblock()来处理请求；接下来看下这个处理函数做了啥；
+<figure class="highlight oxygene"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">def _handle_request_noblock(<span class="keyword">self</span>):</div><div class="line">        <span class="keyword">try</span>:</div><div class="line">            request, client_address = <span class="keyword">self</span>.get_request()</div><div class="line">        <span class="keyword">except</span> OSError:</div><div class="line">            return</div><div class="line">        <span class="keyword">if</span> <span class="keyword">self</span>.verify_request(request, client_address):</div><div class="line">            <span class="keyword">try</span>:</div><div class="line">                <span class="keyword">self</span>.process_request(request, client_address)</div><div class="line">            <span class="keyword">except</span>:</div><div class="line">                <span class="keyword">self</span>.handle_error(request, client_address)</div><div class="line">                <span class="keyword">self</span>.shutdown_request(request)</div><div class="line">        <span class="keyword">else</span>:</div><div class="line">            <span class="keyword">self</span>.shutdown_request(request)</div></pre></td></tr></table></figure></p>
+<p>_handle_request_noblock函数是一个内部函数，首先是接收客户端连接请求，底层其实是封装了系统调用accept函数，然后验证请求，最后调用process_request来处理请求；其中get_request是属于子类的方法，因为tcp和udp接收客户端请求是不一样的(tcp有连接，udp无连接)</p>
+<p>我们接下来再看下process_request具体做了什么；
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">process_request</span><span class="params">(<span class="keyword">self</span>, request, client_address)</span></span>:</div><div class="line">       <span class="keyword">self</span>.finish_request(request, client_address)</div><div class="line">       <span class="keyword">self</span>.shutdown_request(request)</div><div class="line"><span class="comment"># -------------------------------------------------</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">finish_request</span><span class="params">(<span class="keyword">self</span>, request, client_address)</span></span>:</div><div class="line">        <span class="keyword">self</span>.RequestHandlerClass(request, client_address, <span class="keyword">self</span>)</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">shutdown_request</span><span class="params">(<span class="keyword">self</span>, request)</span></span>:</div><div class="line">    <span class="keyword">self</span>.close_request(request)</div></pre></td></tr></table></figure></p>
+<p>process_request函数先是调用了finish_request来处理一个连接，处理结束之后，调用shutdown_request函数来关闭这个连接；而finish_request函数内部实例化了一个handler类，并把客户端的socket和地址传了进去，说明，handler类在初始化结束的时候，就完成了请求处理，这个等后续分析handler时再细看；</p>
+<p>以上就是BaseServer所做的事，这个BaseServer不能直接使用，因为有些函数还没实现，只是作为tcp/udp的抽象层；总结下：</p>
+<ol>
+<li>先是调用serve_forever开启事件监听；</li>
+<li>然后当有客户端请求到来时，将请求交给handler处理；</li>
+</ol>
+<h2>TCPServer</h2>
+<hr>
+<p>由上述BaseServer抽象出的功能，我们可以知道TCPServer或UDPServer应该完成的功能有，初始化监听套接字，并绑定监听，最后当有客户端请求时，接收这个客户端；我们来看下代码
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line">BaseServer==&gt;</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(<span class="keyword">self</span>, server_address, RequestHandlerClass)</span></span>:</div><div class="line">        <span class="string">""</span><span class="string">"Constructor.  May be extended, do not override."</span><span class="string">""</span></div><div class="line">        <span class="keyword">self</span>.server_address = server_address</div><div class="line">        <span class="keyword">self</span>.RequestHandlerClass = RequestHandlerClass</div><div class="line">        <span class="keyword">self</span>.__is_shut_down = threading.Event()</div><div class="line">        <span class="keyword">self</span>.__shutdown_request = False</div><div class="line"><span class="comment">#--------------------------------------------------------------------------------</span></div><div class="line">TCPServer==&gt;</div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(<span class="keyword">self</span>, server_address, RequestHandlerClass, bind_and_activate=True)</span></span>:</div><div class="line">       BaseServer.__init_<span class="number">_</span>(<span class="keyword">self</span>, server_address, RequestHandlerClass)</div><div class="line">       <span class="keyword">self</span>.socket = socket.socket(<span class="keyword">self</span>.address_family,</div><div class="line">                                   <span class="keyword">self</span>.socket_type)</div><div class="line">       <span class="keyword">if</span> <span class="symbol">bind_and_activate:</span></div><div class="line">           <span class="symbol">try:</span></div><div class="line">               <span class="keyword">self</span>.server_bind()</div><div class="line">               <span class="keyword">self</span>.server_activate()</div><div class="line">           <span class="symbol">except:</span></div><div class="line">               <span class="keyword">self</span>.server_close()</div><div class="line">               raise</div></pre></td></tr></table></figure></p>
+<p>TCPServer初始化时先是调用基类BaseServer的初始化函数，初始化服务器地址，handler类等，然后初始化自身的监听套接字，最后调用server_bind绑定套接字，server_activate监听套接字
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">server_bind</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">    <span class="keyword">if</span> <span class="keyword">self</span>.<span class="symbol">allow_reuse_address:</span></div><div class="line">        <span class="keyword">self</span>.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, <span class="number">1</span>)</div><div class="line">    <span class="keyword">self</span>.socket.bind(<span class="keyword">self</span>.server_address)</div><div class="line">    <span class="keyword">self</span>.server_address = <span class="keyword">self</span>.socket.getsockname()</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">server_activate</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">    <span class="keyword">self</span>.socket.listen(<span class="keyword">self</span>.request_queue_size)</div></pre></td></tr></table></figure></p>
+<p>TCPServer还实现了另一个函数，那就是接收客户端请求，
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">get_request</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">        <span class="keyword">return</span> <span class="keyword">self</span>.socket.accept()</div></pre></td></tr></table></figure></p>
+<p>之前如果有学过linux编程，那么看这些代码应该会觉得很熟悉，因为函数名和Linux提供的系统调用名一模一样，这里也不多说了；</p>
+<p>TCPServer其实已经把基于tcp的服务器主体框架搭起来了，因此HTTPServer在继承TCPServer基础上，只是重载了server_bind函数，设置reuse_address等；</p>
+<p>ok，这里分析下上述例子程序的开启过程；</p>
+<ol>
+<li>httpd = ServerClass(server_address,HandlerClass)这行代码在初始化HTTPServer时，主要是调用基类TCPServer的初始化方法，初始化了监听的套接字，并绑定和监听；</li>
+<li>httpd.serve_forever()这行代码调用的是基类BaseServer的serve_forever方法，开启监听循环，等待客户端的连接；</li>
+</ol>
+<p>如果有看过redis或者一些后台组件的源码，对这种并发模型应该很熟悉；ok，分析了server之后，接下来看下handler是如何处理客户端请求的。</p>
+<h1>http之handler</h1>
+<hr>
+<p>handler类主要分析tcp层的handler和http应用层的handler,tcp层的handler是不能使用的，因为tcp层只负责传输字节，但是并不知对于接收到的字节要如何解析，如何处理等；因此应用层协议如该要使用TCP协议，必须继承TCP handler，然后实现handle函数即可;例如，http层的handler实现handle函数，解析http协议，处理业务请求以及结果返回给客户端；先来看下tcp层的handler</p>
+<h2>tcp层handler</h2>
+<hr>
+<p>tcp层handler主要有BaseRequestHandler和StreamRequestHandler(都在socketserver.py文件)，先看下BaseRequestHandler代码，
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">BaseRequestHandler</span>:</span></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">__init__</span><span class="params">(<span class="keyword">self</span>, request, client_address, server)</span></span>:</div><div class="line">        <span class="keyword">self</span>.request = request</div><div class="line">        <span class="keyword">self</span>.client_address = client_address</div><div class="line">        <span class="keyword">self</span>.server = server</div><div class="line">        <span class="keyword">self</span>.setup()</div><div class="line">        <span class="symbol">try:</span></div><div class="line">            <span class="keyword">self</span>.handle()</div><div class="line">        <span class="symbol">finally:</span></div><div class="line">            <span class="keyword">self</span>.finish()</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">setup</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">        pass</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">handle</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">        pass</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">finish</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">        pass</div></pre></td></tr></table></figure></p>
+<p>之前在看server时，知道处理客户端请求就是在handler类的初始化函数中完成；由这个基类初始化函数，我们知道处理请求大概经历三个过程：</p>
+<ol>
+<li>setup对客户端的socket做一些设置；</li>
+<li>handle真正处理请求的函数；</li>
+<li>finish关闭socket读写请求；</li>
+</ol>
+<p>这个BaseRequestHandler是handler top level 基类，只是抽象出handler整体框架，并没有实际的处理；我们看下tcp handler，
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">StreamRequestHandler</span>(<span class="title">BaseRequestHandler</span>):</span></div><div class="line">    timeout = None</div><div class="line">    disable_nagle_algorithm = False</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">setup</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">        <span class="keyword">self</span>.connection = <span class="keyword">self</span>.request</div><div class="line">        <span class="keyword">if</span> <span class="keyword">self</span>.timeout is <span class="keyword">not</span> <span class="symbol">None:</span></div><div class="line">            <span class="keyword">self</span>.connection.settimeout(<span class="keyword">self</span>.timeout)</div><div class="line">        <span class="keyword">if</span> <span class="keyword">self</span>.<span class="symbol">disable_nagle_algorithm:</span></div><div class="line">            <span class="keyword">self</span>.connection.setsockopt(socket.IPPROTO_TCP,</div><div class="line">                                       socket.TCP_NODELAY, True)</div><div class="line">        <span class="keyword">self</span>.rfile = <span class="keyword">self</span>.connection.makefile(<span class="string">'rb'</span>, <span class="keyword">self</span>.rbufsize)</div><div class="line">        <span class="keyword">self</span>.wfile = <span class="keyword">self</span>.connection.makefile(<span class="string">'wb'</span>, <span class="keyword">self</span>.wbufsize)</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">finish</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">self</span>.wfile.<span class="symbol">closed:</span></div><div class="line">            <span class="symbol">try:</span></div><div class="line">                <span class="keyword">self</span>.wfile.flush()</div><div class="line">            except socket.<span class="symbol">error:</span></div><div class="line">                pass</div><div class="line">        <span class="keyword">self</span>.wfile.close()</div><div class="line">        <span class="keyword">self</span>.rfile.close()</div></pre></td></tr></table></figure></p>
+<p>tcp handler实现了setup和finish函数，setup函数设置超时时间，开启nagle算法以及设置socket读写缓存；finish函数关闭socket读写；</p>
+<p>由上述两个tcp层的handler可知，要实现一个基于http的服务器handler，只需要继承StreamRequestHandler类，并实现handle函数即可；因此这也是http层handler主要做的事；</p>
+<h2>http层handler</h2>
+<hr>
+<p>由之前tcp层handler的介绍，我们知道http层handler在继承tcp层handler基础上，主要是实现了handle函数处理客户端的请求；还是直接看代码吧；
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">handle</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">        <span class="keyword">self</span>.close_connection = True</div><div class="line"></div><div class="line">        <span class="keyword">self</span>.handle_one_request()</div><div class="line">        <span class="keyword">while</span> <span class="keyword">not</span> <span class="keyword">self</span>.<span class="symbol">close_connection:</span></div><div class="line">            <span class="keyword">self</span>.handle_one_request()</div></pre></td></tr></table></figure></p>
+<p>这就是BaseHTTPRequestHandler的handle函数，在handle函数会调用handle_one_request函数处理一次请求；默认情况下是短链接，因此在执行了一次请求之后，就不会进入while循环在同一个连接上处理下一个请求，但是在handle_one_request函数内部会进行判断，如果请求头中的connection为keep_alive或者http版本大于等于1.1，则可以保持长链接；接下来看下handle_one_request函数是如何处理；
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">handle_one_request</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">    <span class="symbol">try:</span></div><div class="line">        <span class="keyword">self</span>.raw_requestline = <span class="keyword">self</span>.rfile.readline(<span class="number">65537</span>)</div><div class="line">        <span class="keyword">if</span> len(<span class="keyword">self</span>.raw_requestline) &gt; <span class="number">65536</span>:</div><div class="line">            <span class="keyword">self</span>.requestline = <span class="string">''</span></div><div class="line">            <span class="keyword">self</span>.request_version = <span class="string">''</span></div><div class="line">            <span class="keyword">self</span>.command = <span class="string">''</span></div><div class="line">            <span class="keyword">self</span>.send_error(HTTPStatus.REQUEST_URI_TOO_LONG)</div><div class="line">            <span class="keyword">return</span></div><div class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">self</span>.<span class="symbol">raw_requestline:</span></div><div class="line">            <span class="keyword">self</span>.close_connection = True</div><div class="line">            <span class="keyword">return</span></div><div class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">self</span>.parse_request():</div><div class="line">            <span class="keyword">return</span></div><div class="line">        mname = <span class="string">'do_'</span> + <span class="keyword">self</span>.command</div><div class="line">        <span class="keyword">if</span> <span class="keyword">not</span> hasattr(<span class="keyword">self</span>, mname):</div><div class="line">            <span class="keyword">self</span>.send_error(</div><div class="line">                HTTPStatus.NOT_IMPLEMENTED,</div><div class="line">                <span class="string">"Unsupported method (%r)"</span> % <span class="keyword">self</span>.command)</div><div class="line">            <span class="keyword">return</span></div><div class="line">        method = getattr(<span class="keyword">self</span>, mname)</div><div class="line">        method()</div><div class="line">        <span class="keyword">self</span>.wfile.flush()</div><div class="line">    except socket.timeout as <span class="symbol">e:</span></div><div class="line">        <span class="keyword">self</span>.log_error(<span class="string">"Request timed out: %r"</span>, e)</div><div class="line">        <span class="keyword">self</span>.close_connection = True</div><div class="line">        <span class="keyword">return</span></div></pre></td></tr></table></figure></p>
+<p>这个handle_one_request执行过程如下：</p>
+<ol>
+<li>先是调用parse_request解析客户端http请求内容</li>
+<li>通过&quot;do_&quot;+command构造出请求所对于的函数method</li>
+<li>调用method函数，处理业务并将response返回给客户端</li>
+</ol>
+<p>这个BaseHTTPRequestHandler是http handler基类，因此也是无法直接使用，因为它没有定义请求处理函数，即method函数；好在python为我们提供了一个简单的SimpleHTTPRequestHandler，该类继承了BaseHTTPRequestHandler，并实现了请求函数；我们看下get函数：
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># SimpleHTTPRequestHandler</span></div><div class="line"><span class="comment"># ---------------------------------------------</span></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">do_GET</span><span class="params">(self)</span>:</span></div><div class="line">      <span class="string">"""Serve a GET request."""</span></div><div class="line">      f = self.send_head()</div><div class="line">      <span class="keyword">if</span> f:</div><div class="line">          <span class="keyword">try</span>:</div><div class="line">              self.copyfile(f, self.wfile)</div><div class="line">          <span class="keyword">finally</span>:</div><div class="line">              f.close()</div></pre></td></tr></table></figure></p>
+<p>这个get函数先是调用do_GET函数给客户端返回response头部，并返回请求的文件，最后调用copyfile函数将请求文件通过连接返回给客户端；</p>
+<p>以上就是http模块最基础的内容，最后，总结下例子程序handler部分：</p>
+<ol>
+<li>server把请求传给SimpleHTTPRequestHandler初始化函数；</li>
+<li>SimpleHTTPRequestHandler在初始化部分，对这个客户端connection进行一些设置；</li>
+<li>接着调用handle函数处理请求；</li>
+<li>在handle函数接着调用handle_one_request处理请求；</li>
+<li>在handle_one_request函数内部，解析请求，找到请求处理函数；</li>
+<li>我之前的访问属于get访问，因此直接调用do_GET函数将index.html文件返回给客户端；</li>
+</ol>
+<p>python http模块到此已经分析结束；不知道大家有没发现，python自带的http模块使用起来不是很方便，因为它是通过请求方法来调用请求函数，这样当同一方法调用次数非常多时，例如get和post方法，会导致这个请求函数异常庞大，代码不好编写，各种情况判断；当然SimpleHTTPRequestHandler只是python提供的一个简单例子而已；</p>
+<p>当然，python官方提供了针对http更好用的框架，即wsgi server和wsgi application；接下来文章先分析python自带的wsgiref模块以及bottle，后面再分析flask;</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/python/" rel="tag">#python</a>
+          
+            <a href="/tags/http/" rel="tag">#http</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/09/04/golang03/" rel="next" title="从汇编角度理解golang多值返回和闭包">
+                <i class="fa fa-chevron-left"></i> 从汇编角度理解golang多值返回和闭包
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/11/12/python-wsgi/" rel="prev" title="python之wsgiref模块">
+                python之wsgiref模块 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/11/05/python-http/"
+     data-title="python之HTTP模块"
+     data-content=""
+     data-url="http://luodw.cc/2016/11/05/python-http/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/11/05/python-http/"
+           data-title="python之HTTP模块" data-url="http://luodw.cc/2016/11/05/python-http/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">python http简单例子</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">http之server</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.1.</span> <span class="nav-text">BaseServer</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.2.</span> <span class="nav-text">TCPServer</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">http之handler</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.1.</span> <span class="nav-text">tcp层handler</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.2.</span> <span class="nav-text">http层handler</span></a></li></ol></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

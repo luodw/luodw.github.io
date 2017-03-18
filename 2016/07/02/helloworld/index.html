@@ -1,0 +1,1142 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="helloworld," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="对于程序员来说，hello world的含义，可能并不只是一句简单的打招呼，更多的是学习一门编程语言的第一个示例．和编程接触了这么多年，如果要学习一门编程语言，我也会情不自禁地敲下hello world程序，看下程序的的输出．如今回过头的来重新看hello world，就会发现hello world背后隐藏的许多秘密；
+
+路走的远了，就需要不断回头审视自己来时的路，以及眺望未来之路，不忘初心，重新">
+<meta property="og:type" content="article">
+<meta property="og:title" content="不忘初心，重新认识hello world">
+<meta property="og:url" content="http://luodw.cc/2016/07/02/helloworld/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="对于程序员来说，hello world的含义，可能并不只是一句简单的打招呼，更多的是学习一门编程语言的第一个示例．和编程接触了这么多年，如果要学习一门编程语言，我也会情不自禁地敲下hello world程序，看下程序的的输出．如今回过头的来重新看hello world，就会发现hello world背后隐藏的许多秘密；
+
+路走的远了，就需要不断回头审视自己来时的路，以及眺望未来之路，不忘初心，重新">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-fpic1574.jpg">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-linux_process_address_space_03.png">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_015.png">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="不忘初心，重新认识hello world">
+<meta name="twitter:description" content="对于程序员来说，hello world的含义，可能并不只是一句简单的打招呼，更多的是学习一门编程语言的第一个示例．和编程接触了这么多年，如果要学习一门编程语言，我也会情不自禁地敲下hello world程序，看下程序的的输出．如今回过头的来重新看hello world，就会发现hello world背后隐藏的许多秘密；
+
+路走的远了，就需要不断回头审视自己来时的路，以及眺望未来之路，不忘初心，重新">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-fpic1574.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/07/02/helloworld/"/>
+
+
+  <title> 不忘初心，重新认识hello world | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                不忘初心，重新认识hello world
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-07-02T09:38:49+08:00" content="2016-07-02">
+              2016-07-02
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/hello-world/" itemprop="url" rel="index">
+                    <span itemprop="name">hello world</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/07/02/helloworld/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/07/02/helloworld/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/07/02/helloworld/" class="leancloud_visitors" data-flag-title="不忘初心，重新认识hello world">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>对于程序员来说，hello world的含义，可能并不只是一句简单的打招呼，更多的是学习一门编程语言的第一个示例．和编程接触了这么多年，如果要学习一门编程语言，我也会情不自禁地敲下hello world程序，看下程序的的输出．如今回过头的来重新看hello world，就会发现hello world背后隐藏的许多秘密；</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-fpic1574.jpg" alt="首页显示"></p>
+<p>路走的远了，就需要不断回头审视自己来时的路，以及眺望未来之路，不忘初心，重新(心)出发．所以才有了这篇文章，好好窥探hello world的秘密；</p>
+<p>这篇文章主要分为以下几块，</p>
+<ol>
+<li>什么是程序？</li>
+<li>代码如何转换为二进制?</li>
+<li>程序是怎么装载进内存？</li>
+<li>进程是怎么执行的?</li>
+<li>进程怎么退出?</li>
+</ol>
+<p>其实就是hello world的一生；都是我自己的理解，有误的地方，希望看者能提出来，互相进步；这里就是做个引子，介绍下，希望可以帮助大家更好的理解进程的运行,如果想深入学习，需要看相关书籍；</p>
+<h1>什么是程序</h1>
+<hr>
+<p>很多时候，人们会把程序和进程的概念弄混了，其实可以这么理解，程序是一堆无生命的二进制代码，而这些二进制代码被读取进内存，跑起来之后，就是进程了；也就是说，程序是躺在磁盘里无生命活力的二进制代码，而进程是在内存中有生命活力的二进制代码；ok，我写个hello world程序hello.c，作为例子:
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;stdio.h&gt;</span></span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">(<span class="keyword">void</span>)</span></span></div><div class="line">&#123;</div><div class="line">  <span class="built_in">printf</span>(<span class="string">"hello world!\n"</span>);</div><div class="line">  <span class="keyword">return</span> <span class="number">0</span>;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>看到这剪短的代码，有没很熟悉？如果有种很熟悉的感觉，那恭喜你，你肯定也是个程序员(不用回头，没错，就是你!!!)． 这段代码很简单，就是简单的输出一句&quot;hello world&quot;就退出了．按我的理解，这其实还不能算是程序，可以称呼为代码；我理解的是程序应该是能被操作系统认识理解，运行的代码．而操作系统只能认识二进制的东西，所以像我们编写的C/C++,JAVA,GO等等代码，最后都要被转换为二进制的代码，才能够执行；</p>
+<h1>代码如何转换为二进制</h1>
+<hr>
+<p>紧接着上述的话题，当我们写好一段代码之后，如果将其转换为二进制了?这就是我们默默无闻的编译器了．为什么说默默无闻了?因为编译器做着非常重要的工作，但是又有多少人真正打开编译器的心扉，好好认识编译器？(当然包括我，羞愧低下了头!!!)．编译C代码分为几个步奏，有技术背景应该听过，预处理，编译，汇编，链接；</p>
+<p>预处理阶段为:</p>
+<blockquote>
+<p>gcc -E hello.c -o hello.i</p>
+</blockquote>
+<p>我们可以打开hello.i看看，里面的头文件stdio.h已经被展开了，包括一些类型定义函数定义等等，截取片段如下:
+<figure class="highlight objectivec"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">typedef</span> <span class="keyword">unsigned</span> <span class="keyword">int</span> __socklen_t;</div><div class="line"><span class="meta"># 36 <span class="meta-string">"/usr/include/stdio.h"</span> 2 3 4</span></div><div class="line"><span class="meta"># 44 <span class="meta-string">"/usr/include/stdio.h"</span> 3 4</span></div><div class="line"><span class="keyword">struct</span> _IO_FILE;</div><div class="line"></div><div class="line"><span class="keyword">typedef</span> <span class="keyword">struct</span> _IO_FILE FILE;</div></pre></td></tr></table></figure></p>
+<p>从这个片段，我们可以看出来了，我们平时引用的stdio.h文件存在与/usr/include/stdio.h，所以想研究stdio.h的朋友，可以打开看看；这个代码片段很重要的还有FILE的定义，这就是我们用c语言打开一个文件返回的句柄结构，所以想理解C语言中缓冲流是怎么实现的，可以先看看_IO_FILE结构体中io流缓冲区的定义，再结合代码即可理解；</p>
+<p>预处理之后，接下来，就需要将这些代码编译成汇编代码:</p>
+<blockquote>
+<p>gcc -S hello.i -o hello.s</p>
+</blockquote>
+<p>这个过程，就是将上述的代码转换为汇编代码，其实就是一条条汇编指令，这个过程是c代码转换为二进制最为重要的过程，也是最复杂的过程；我们可以打开hello.s看看内部的东东
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="symbol">main:</span></div><div class="line"><span class="symbol">.LFB0:</span></div><div class="line"><span class="meta">        .cfi_startproc</span></div><div class="line">        pushq   %rbp</div><div class="line"><span class="meta">        .cfi_def_cfa_offset</span> <span class="number">16</span></div><div class="line"><span class="meta">        .cfi_offset</span> <span class="number">6</span>, -<span class="number">16</span></div><div class="line">        <span class="keyword">movq</span>    %rsp, %rbp</div><div class="line"><span class="meta">        .cfi_def_cfa_register</span> <span class="number">6</span></div><div class="line">        movl    $.LC0, %edi</div><div class="line">        <span class="keyword">call</span>    puts</div></pre></td></tr></table></figure></p>
+<p>这就是汇编指令，但是直接打开hello.s看，显示不是很友好，我们可以用objdump或者gdb的反汇编指令打开obj文件，如下:
+<figure class="highlight perl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">charles@charles-Lenovo:~$ objdump -d hello.o</div><div class="line"></div><div class="line">hello.o：     文件格式 elf64-x86-<span class="number">64</span></div><div class="line"></div><div class="line"></div><div class="line">Disassembly of section .text:</div><div class="line"></div><div class="line"><span class="number">0000000000000000</span> &lt;main&gt;:</div><div class="line">   <span class="number">0</span>:	<span class="number">55</span>                   	<span class="keyword">push</span>   %rbp</div><div class="line">   <span class="number">1</span>:	<span class="number">48</span> <span class="number">89</span> e5             	mov    %rsp,%rbp</div><div class="line">   <span class="number">4</span>:	bf <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span>       	mov    $0<span class="keyword">x</span><span class="number">0</span>,%edi</div><div class="line">   <span class="number">9</span>:	e8 <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span>       	callq  e &lt;main+<span class="number">0xe</span>&gt;</div><div class="line">   e:	b8 <span class="number">00</span> <span class="number">00</span> <span class="number">00</span> <span class="number">00</span>       	mov    $0<span class="keyword">x</span><span class="number">0</span>,%eax</div><div class="line">  <span class="number">13</span>:	<span class="number">5</span>d                   	<span class="keyword">pop</span>    %rbp</div><div class="line">  <span class="number">14</span>:	c3                   	retq</div></pre></td></tr></table></figure></p>
+<p>这样看是不是好很多了．学习汇编，重要的不是说还让你去写汇编代码(当然有些C代码是有嵌入汇编的，例如内存屏障),而是让我们能看懂汇编代码．那有人又会问，看懂汇编代码有什么用？我最深的体会就是可以从汇编代码看懂函数栈的调用过程，我很早也有写过<a href="http://luodw.cc/2015/10/07/gdb/">用gdb反汇编理解c函数栈调用过程</a>，还有就是理解底层ABI的一些东西，例如系统调用嵌入内核时，参数是存在哪些寄存器，然后从内核内核返回用户态时，返回值是存在哪个寄存器(rax)等等；如果你还有问知道这些有什么用，我只能问你，为什么来学计算机？</p>
+<p>ok，编译结束之后，接下来就是将汇编代码转换为目标文件：</p>
+<blockquote>
+<p>gcc -c hello.s -o hello.o</p>
+</blockquote>
+<p>目标文件已经是二进制代码了，这个hello.o也是之前用objdump打开查看汇编代码的文件；二进制代码是不能用文本编辑器打开查看的，可以试着用vim打开hello.o，可以看到一对乱码，可能会有几个看得懂的字符；我们可以用od -c　hello.o命令看二进制所对应的每个字符．
+<figure class="highlight livescript"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">charles@charles-Lenovo:~$ od -c hello.o</div><div class="line"><span class="number">0000000</span> <span class="number">177</span>   E   L   F <span class="number">002</span> <span class="number">001</span> <span class="number">001</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span></div><div class="line"><span class="number">0000020</span> <span class="number">001</span>  <span class="string">\0</span>   &gt;  <span class="string">\0</span> <span class="number">001</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span></div><div class="line"><span class="number">0000040</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>   <span class="number">0</span> <span class="number">001</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span></div><div class="line"><span class="number">0000060</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>   @  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>   @  <span class="string">\0</span>  <span class="string">\r</span>  <span class="string">\0</span>  <span class="string">\n</span>  <span class="string">\0</span></div><div class="line"><span class="number">0000100</span>   U   H <span class="number">211</span> <span class="number">345</span> <span class="number">277</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span> <span class="number">350</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span> <span class="number">270</span>  <span class="string">\0</span></div><div class="line"><span class="number">0000120</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>   ] <span class="number">303</span>   h   e   l   l   o       w   o   r   l   d</div><div class="line"><span class="number">0000140</span>   !  <span class="string">\0</span>  <span class="string">\0</span>   G   C   C   :       (   U   b   u   n   t   u    </div><div class="line"><span class="number">0000160</span>   <span class="number">4</span>   .   <span class="number">8</span>   .   <span class="number">4</span>   -   <span class="number">2</span>   u   b   u   n   t   u   <span class="number">1</span>   ~   <span class="number">1</span></div><div class="line"><span class="number">0000200</span>   <span class="number">4</span>   .   <span class="number">0</span>   <span class="number">4</span>   .   <span class="number">3</span>   )       <span class="number">4</span>   .   <span class="number">8</span>   .   <span class="number">4</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span></div><div class="line"><span class="number">0000220</span> <span class="number">024</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span> <span class="number">001</span>   z   R  <span class="string">\0</span> <span class="number">001</span>   x <span class="number">020</span> <span class="number">001</span></div><div class="line"><span class="number">0000240</span> <span class="number">033</span>  <span class="string">\f</span>  <span class="string">\a</span>  <span class="string">\b</span> <span class="number">220</span> <span class="number">001</span>  <span class="string">\0</span>  <span class="string">\0</span> <span class="number">034</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span> <span class="number">034</span>  <span class="string">\0</span>  <span class="string">\0</span>  <span class="string">\0</span></div></pre></td></tr></table></figure></p>
+<p>编译成目标文件之后，最后一步就是链接，生成可执行的目标文件．二进制代码文件有分为可重定向文件，可执行文件和可共享文件．一般情况下，hello.o是可重定向文件，多个.o文件链接在一起，就可以生成可执行文件；静态链接库和动态链接库为可共享的二进制代码．</p>
+<p>在这个例子中，只有一个文件，所以就直接生成可执行文件就好了</p>
+<blockquote>
+<p>gcc hello.o -o hello</p>
+</blockquote>
+<p>此时就生成了可执行的程序；在linux下，可执行的程序属于ELF文件，可以使用file命令查看文件类型．这时还没有进程，还只是程序而已；之前看到有些问题，如&quot;进程的的静态区是什么时候分配的，有些回答是编译时&quot;．我当时就醉了，编译的时候还没进程，哪来的内存；正确是编译时决定内存的如何分配，但是真正分配还是在进程跑起来之后．</p>
+<h1>程序是如何装载进内存</h1>
+<hr>
+<p>ok，到这为止，一个程序就已经准备好了，我们很习惯就会输出以下命令执行程序</p>
+<blockquote>
+<p>./hello</p>
+</blockquote>
+<p>就这么简短的一个运行命令，里面就有非常多的学问，涉及到程序的装载，操作系统内存分配，进程调度；在接下去讲进程装载时，有必要介绍下hello这个可执行文件的布局；很多人应该有听过进程的代码段，数据段，bbs，堆，栈等；相应的，在可执行文件中，也有代码段，数据段，bbs；而堆和栈在elf文件中没有相应的项，他俩属于匿名映射；当然elf文件不止之前说的三个段，还有很多，我们可以用readelf命令来查看elf文件中含有的sections:
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div></pre></td><td class="code"><pre><div class="line">charles@charles-Lenovo:~$ readelf -S hello</div><div class="line">共有<span class="number"> 30 </span>个节头，从偏移量 0x1178 开始：</div><div class="line"></div><div class="line">节头：</div><div class="line">  [Nr] Name              Type             Address           Offset</div><div class="line">       Size              EntSize          Flags  Link  Info  Align</div><div class="line">  [ 0]                   NULL            <span class="number"> 0000000000000000 </span> 00000000</div><div class="line">      <span class="number"> 0000000000000000 </span><span class="number"> 0000000000000000 </span>         <span class="number"> 0 </span>   <span class="number"> 0 </span>    0</div><div class="line">  [ 1] .interp           PROGBITS        <span class="number"> 0000000000400238 </span> 00000238</div><div class="line">       000000000000001c <span class="number"> 0000000000000000 </span>  A      <span class="number"> 0 </span>   <span class="number"> 0 </span>    1</div><div class="line">  [ 2] .note.ABI-tag     NOTE            <span class="number"> 0000000000400254 </span> 00000254</div><div class="line">      <span class="number"> 0000000000000020 </span><span class="number"> 0000000000000000 </span>  A      <span class="number"> 0 </span>   <span class="number"> 0 </span>    4</div><div class="line">  [ 3] .note.gnu.build-i NOTE            <span class="number"> 0000000000400274 </span> 00000274</div><div class="line">      <span class="number"> 0000000000000024 </span><span class="number"> 0000000000000000 </span>  A      <span class="number"> 0 </span>   <span class="number"> 0 </span>    4</div><div class="line">  [ 4] .gnu.hash         GNU_HASH        <span class="number"> 0000000000400298 </span> 00000298</div><div class="line">       000000000000001c <span class="number"> 0000000000000000 </span>  A      <span class="number"> 5 </span>   <span class="number"> 0 </span>    8</div><div class="line">  [ 5] .dynsym           DYNSYM           00000000004002b8  000002b8</div><div class="line">      <span class="number"> 0000000000000060 </span><span class="number"> 0000000000000018 </span>  A      <span class="number"> 6 </span>   <span class="number"> 1 </span>    8</div><div class="line">  [ 6] .dynstr           STRTAB          <span class="number"> 0000000000400318 </span> 00000318</div><div class="line">       000000000000003d <span class="number"> 0000000000000000 </span>  A      <span class="number"> 0 </span>   <span class="number"> 0 </span>    1</div><div class="line">  [ 7] .gnu.version      VERSYM          <span class="number"> 0000000000400356 </span> 00000356</div><div class="line">      <span class="number"> 0000000000000008 </span><span class="number"> 0000000000000002 </span>  A      <span class="number"> 5 </span>   <span class="number"> 0 </span>    2</div><div class="line">  [ 8] .gnu.version_r    VERNEED         <span class="number"> 0000000000400360 </span> 00000360</div><div class="line">      <span class="number"> 0000000000000020 </span><span class="number"> 0000000000000000 </span>  A      <span class="number"> 6 </span>   <span class="number"> 1 </span>    8</div></pre></td></tr></table></figure></p>
+<p>太长了，我就截取这部分sections．在这么多sections，很多我们并不知道他们有什么用，但是有几个setcion我们是必须了解的，因为在理解静态链接库和动态链接库时，需要他们；例如header,.symtab,.rel.text,.rel.data,.dynamic等等；rela.txt和rela.data一般是在可重定向文件才会有，链接生成的可执行文件一般是没有的；但是因为很多section的读写权限是一样的，所以在装载进内存时，这些sections会合并成一个segment，例如下图所示:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-linux_process_address_space_03.png" alt="进程地址空间和elf文件的映射"></p>
+<p>图片取自,<strong>程序员的自我修养</strong>从这幅图可以看出，进程的地址空间的一个段，就相当于elf文件中多个sections；所以我们看到的代码段，并不只是代码，还有可能是字符串常量或者一些常量，因为这些都是可读不可写的，所以可以合并在代码段中．</p>
+<p>ok，理解上面所说之后，接着可以说说进程是如何被载入内存了．因为终端也是一个程序，所以当我们在终端输入</p>
+<blockquote>
+<p>./hello</p>
+</blockquote>
+<p>这时，终端会调用fork创建一个子进程，fork函数是一个系统调用，这时会嵌入内核，调用的是clone函数，这个clone函数接着会调用do_fork函数，这个函数做了大部分创建工作，例如创建task_struct，内核栈，thread_info等结构，因为fork函数是采用写时复制技术，因此此时子进程task_struct大部分的属性还是和父进程task_struct一样，主要就是没有为子进程开辟内存空间；当子进程内核结构创建好之后，这时进程调度系统会优先调度子进程，因为一般情况下，子进程会直接调用exec函数避免写时拷贝开销．</p>
+<blockquote>
+<p>这里提下，一次fork调用为什么会返回两个值；因为当fork在内核调用成功，要返回用户态时，如果此时调度子进程执行，那么会把0放入rax寄存器中，等fork返回用户态执行子进程时，从rax得到的就是0；当内核调度的是父进程时，这时会把子进程的id号放入rax寄存器中，等返回到用户态执行父进程时，此时从rax获得的就是子进程的id号；</p>
+</blockquote>
+<p>到这里，还是只是创建了子进程内核的一些结构，接下来，在终端fork的子进程中，会调用exec系列函数</p>
+<blockquote>
+<p>execl(&quot;./hello&quot;,&quot;hello&quot;,&quot;&quot;,NULL);</p>
+</blockquote>
+<p>这个函数会会为子进程hello单独开辟一块内存(之前是和父进程共用内存空间)，其实最主要就是为mm_struct结构以及页表重新赋值；具体怎么做了，最主要是调用mmap函数；我们可以把上述图的左边看成是躺在磁盘中的可执行文件，右边对应的是进程在内存中布局；当内核要将可执行文件的代码段映射到进程空间时，内核会先把code segment读取进内核的cache中，然后给hello进程的code段分配一块vma虚拟内存，并把这块虚拟内存映射到在cache中code segment，并把这块vma放入mm_struct的红黑树和链表中．链表适合当需要遍历所有vma内存区域时，而红黑树适合快速获取某个特定内存区域；我们经常查看/proc/&lt;pid&gt;/maps某个进程的内存布局，其实就是便利这个进程的vma链表即可．</p>
+<p>数据段也是采用同样的方式载入．但是堆和栈不是采用这种方式，因为他俩在elf文件中没有相应的栈，所以他俩是通过mmap匿名映射的方式分配内存，同时也加入到mm_struct中vma链表和红黑树结构中．</p>
+<p>下面这张图更好说明了用户进程空间:
+<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_015.png" alt="进程用户态控空间"></p>
+<p>到目前为止，内核已经为hello这个子进程创建了内核task_struct结构，内核栈，thread_info以及用户空间内存结构．按理说应该开始执行程序了吧，但是并没有；在真正执行hello程序之前，首先会把权限交给动态链接器，也就是我们在输出/proc/&lt;pid&gt;/maps的时候，看到的</p>
+<blockquote>
+<p>/lib/x86_64-linux-gnu/ld-2.19.so</p>
+</blockquote>
+<p>这个链接器会把hello这个程序中用到的动态链接库载入用户空间的共享存储区，采用的方法也是内存映射，也会为这些动态链接库生成一个vma结构，放入mm_struct中vma链表和红黑树中．hello这个进程用的最主要就是C运行时库，</p>
+<blockquote>
+<p>/lib/x86_64-linux-gnu/libc-2.19.so</p>
+</blockquote>
+<p>我还是输出hello这个进程的内存结构吧
+<figure class="highlight crystal"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">root@charles-<span class="symbol">Lenovo:</span>/home/charles<span class="comment"># cat /proc/1658/maps</span></div><div class="line"><span class="number">00400000</span>-<span class="number">00401000</span> r-xp <span class="number">00000000</span> <span class="number">08</span>:<span class="number">09</span> <span class="number">130893</span>                             /home/charles/hello</div><div class="line"><span class="number">00600000</span>-<span class="number">00601000</span> r--p <span class="number">00000000</span> <span class="number">08</span>:<span class="number">09</span> <span class="number">130893</span>                             /home/charles/hello</div><div class="line"><span class="number">00601000</span>-<span class="number">00602000</span> rw-p <span class="number">00001000</span> <span class="number">08</span>:<span class="number">09</span> <span class="number">130893</span>                             /home/charles/hello</div><div class="line"><span class="number">7</span>f1a47bc6000-<span class="number">7</span>f1a47d80000 r-xp <span class="number">00000000</span> <span class="number">08</span>:<span class="number">06</span> <span class="number">28902</span>                      /<span class="class"><span class="keyword">lib</span>/<span class="title">x86_64</span>-<span class="title">linux</span>-<span class="title">gnu</span>/<span class="title">libc</span>-2.19.<span class="title">so</span></span></div><div class="line"><span class="number">7</span>f1a47d80000-<span class="number">7</span>f1a47f80000 ---p <span class="number">001</span>ba000 <span class="number">08</span>:<span class="number">06</span> <span class="number">28902</span>                      /<span class="class"><span class="keyword">lib</span>/<span class="title">x86_64</span>-<span class="title">linux</span>-<span class="title">gnu</span>/<span class="title">libc</span>-2.19.<span class="title">so</span></span></div><div class="line"><span class="number">7</span>f1a47f80000-<span class="number">7</span>f1a47f84000 r--p <span class="number">001</span>ba000 <span class="number">08</span>:<span class="number">06</span> <span class="number">28902</span>                      /<span class="class"><span class="keyword">lib</span>/<span class="title">x86_64</span>-<span class="title">linux</span>-<span class="title">gnu</span>/<span class="title">libc</span>-2.19.<span class="title">so</span></span></div><div class="line"><span class="number">7</span>f1a47f84000-<span class="number">7</span>f1a47f86000 rw-p <span class="number">001</span>be000 <span class="number">08</span>:<span class="number">06</span> <span class="number">28902</span>                      /<span class="class"><span class="keyword">lib</span>/<span class="title">x86_64</span>-<span class="title">linux</span>-<span class="title">gnu</span>/<span class="title">libc</span>-2.19.<span class="title">so</span></span></div><div class="line"><span class="number">7</span>f1a47f86000-<span class="number">7</span>f1a47f8b000 rw-p <span class="number">00000000</span> <span class="number">00</span>:<span class="number">00</span> <span class="number">0</span> </div><div class="line"><span class="number">7</span>f1a47f8b000-<span class="number">7</span>f1a47fae000 r-xp <span class="number">00000000</span> <span class="number">08</span>:<span class="number">06</span> <span class="number">28893</span>                      /<span class="class"><span class="keyword">lib</span>/<span class="title">x86_64</span>-<span class="title">linux</span>-<span class="title">gnu</span>/<span class="title">ld</span>-2.19.<span class="title">so</span></span></div><div class="line"><span class="number">7</span>f1a4818d000-<span class="number">7</span>f1a48190000 rw-p <span class="number">00000000</span> <span class="number">00</span>:<span class="number">00</span> <span class="number">0</span> </div><div class="line"><span class="number">7</span>f1a481aa000-<span class="number">7</span>f1a481ad000 rw-p <span class="number">00000000</span> <span class="number">00</span>:<span class="number">00</span> <span class="number">0</span> </div><div class="line"><span class="number">7</span>f1a481ad000-<span class="number">7</span>f1a481ae000 r--p <span class="number">00022000</span> <span class="number">08</span>:<span class="number">06</span> <span class="number">28893</span>                      /<span class="class"><span class="keyword">lib</span>/<span class="title">x86_64</span>-<span class="title">linux</span>-<span class="title">gnu</span>/<span class="title">ld</span>-2.19.<span class="title">so</span></span></div><div class="line"><span class="number">7</span>f1a481ae000-<span class="number">7</span>f1a481af000 rw-p <span class="number">00023000</span> <span class="number">08</span>:<span class="number">06</span> <span class="number">28893</span>                      /<span class="class"><span class="keyword">lib</span>/<span class="title">x86_64</span>-<span class="title">linux</span>-<span class="title">gnu</span>/<span class="title">ld</span>-2.19.<span class="title">so</span></span></div><div class="line"><span class="number">7</span>f1a481af000-<span class="number">7</span>f1a481b0000 rw-p <span class="number">00000000</span> <span class="number">00</span>:<span class="number">00</span> <span class="number">0</span> </div><div class="line"><span class="number">7</span>fff82079000-<span class="number">7</span>fff8209a000 rw-p <span class="number">00000000</span> <span class="number">00</span>:<span class="number">00</span> <span class="number">0</span>                          [stack]</div><div class="line"><span class="number">7</span>fff820ed000-<span class="number">7</span>fff820ef000 r-xp <span class="number">00000000</span> <span class="number">00</span>:<span class="number">00</span> <span class="number">0</span>                          [vdso]</div><div class="line"><span class="number">7</span>fff820ef000-<span class="number">7</span>fff820f1000 r--p <span class="number">00000000</span> <span class="number">00</span>:<span class="number">00</span> <span class="number">0</span>                          [vvar]</div><div class="line">ffffffffff600000-ffffffffff601000 r-xp <span class="number">00000000</span> <span class="number">00</span>:<span class="number">00</span> <span class="number">0</span>                  [vsyscall]</div></pre></td></tr></table></figure></p>
+<p>这些vma段和上述图片是一样的，图片看得更形象；hello这个进程没有堆结构，因为进程运行过程中，并没有申请堆内存．ok，当动态链接库也转载进内存之后，就把控制权交给hello进程执行．</p>
+<h1>进程是如何执行的?</h1>
+<hr>
+<p>进程的执行其实就是cpu获取指令以及数据，并进行计算，这里cpu各个寄存器的使用和虚拟内存与物理内存转换等等；而hello这个进程非常简单，就是调用C库函数printf输出一句话．但是其中涉及的过程还是相当复杂的．</p>
+<p>首先当执行到printf时，因为hello.c中没有定义这个函数，所以进程会去C库的动态链接库查找，当找到printf之后，进程会跳转到printf函数执行；在printf函数内部，会执行系统调用</p>
+<blockquote>
+<p>write(1, &quot;hello world!\n&quot;, 13)</p>
+</blockquote>
+<p>其中1是STDOUT_FILENO表示标准输，对应的就是输出到显示器；到这里，我们可以聊聊系统调用；当执行这个write函数时，因为write是个系统调用，在执行这个write之前，会将参数放入寄存器中，例如1放在rdi,＂hello world!\n&quot;字符串指针放入rsi,13放入rdx寄存器中．linux在执行系统调用时，会触发一次int80软中断，并把系统调用号放入rax寄存器中；这时cpu切换到内核软中断处理函数中，怎么找到这个软中断函数？这个说起来，话又很多了(IDTR寄存器和中断描述符表)．在中断函数中，找到rax寄存器对应的系统调用，write对应的是sys_write函数，开始执行sys_write函数．在sys_write函数中，会通过fd找到file结构，inode结构等等，最后输出到显示器．</p>
+<h1>进程是如何退出的</h1>
+<hr>
+<p>当进程执行结束之后，会调用exit函数，而这个函数调用的系统调用函数_exit()会嵌入内核，进行清除工作．例如释放进程打开的文件，释放进程mm_struct对应的内存(如果没有共享内存)等等，最后只剩下task_struct,内核栈和thread_info三个结构．子进程会给父进程发送一个SIGCHLD信号，表示进程退出；父进程在收到这个信号之后，会调用wait或waitpid函数回收子进程的资源，task_struct,内核栈以及thread_info．到这里，hello进程的生命就算走完了．</p>
+<h1>总结</h1>
+<hr>
+<p>这篇文章主要就是介绍linux下面，一个进程的生命过程，从诞生到终结．涉及到非常多的知识，也希望能给大家对进程的一个比较清晰的认识；我并没有写得很深入，因为那样的话，会非常长，大部分人会看不懂．我自己发现有些知识点还需要好好巩固，因为有时候，我并不能非常熟练的表达出来，还需要多研究．</p>
+<p>还是那句话，如果有什么出错的地方，还希望各位能够指出来，共同进步．</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/helloworld/" rel="tag">#helloworld</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/06/26/libtask01/" rel="next" title="libtask之channel实现机制">
+                <i class="fa fa-chevron-left"></i> libtask之channel实现机制
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/08/01/pipeof/" rel="prev" title="从内核源码聊聊pipe实现">
+                从内核源码聊聊pipe实现 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/07/02/helloworld/"
+     data-title="不忘初心，重新认识hello world"
+     data-content=""
+     data-url="http://luodw.cc/2016/07/02/helloworld/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/07/02/helloworld/"
+           data-title="不忘初心，重新认识hello world" data-url="http://luodw.cc/2016/07/02/helloworld/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">什么是程序</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">代码如何转换为二进制</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">程序是如何装载进内存</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">进程是如何执行的?</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">5.</span> <span class="nav-text">进程是如何退出的</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

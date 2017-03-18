@@ -1,0 +1,1089 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="python,wsgiref,wsgi," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="之前写了python的http原生模块，分析了原生http模块的实现原理以及不足;而实际使用过程中，用的比较多的是python的wsgi server和wsgi application; 关于什么是wsgi协议，简单的来说，就是wsgi server调用wsgi application接口的约定，即当有个请求到达wsgi server时，wsgi server通过调用wsgi applicatio">
+<meta property="og:type" content="article">
+<meta property="og:title" content="python之wsgiref模块">
+<meta property="og:url" content="http://luodw.cc/2016/11/12/python-wsgi/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="之前写了python的http原生模块，分析了原生http模块的实现原理以及不足;而实际使用过程中，用的比较多的是python的wsgi server和wsgi application; 关于什么是wsgi协议，简单的来说，就是wsgi server调用wsgi application接口的约定，即当有个请求到达wsgi server时，wsgi server通过调用wsgi applicatio">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1970767937.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="python之wsgiref模块">
+<meta name="twitter:description" content="之前写了python的http原生模块，分析了原生http模块的实现原理以及不足;而实际使用过程中，用的比较多的是python的wsgi server和wsgi application; 关于什么是wsgi协议，简单的来说，就是wsgi server调用wsgi application接口的约定，即当有个请求到达wsgi server时，wsgi server通过调用wsgi applicatio">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1970767937.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/11/12/python-wsgi/"/>
+
+
+  <title> python之wsgiref模块 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                python之wsgiref模块
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-11-12T19:34:43+08:00" content="2016-11-12">
+              2016-11-12
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/python/" itemprop="url" rel="index">
+                    <span itemprop="name">python</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/11/12/python-wsgi/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/11/12/python-wsgi/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/11/12/python-wsgi/" class="leancloud_visitors" data-flag-title="python之wsgiref模块">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>之前写了python的http原生模块，分析了原生http模块的实现原理以及不足;而实际使用过程中，用的比较多的是python的wsgi server和wsgi application; 关于什么是wsgi协议，简单的来说，就是wsgi server调用wsgi application接口的约定，即当有个请求到达wsgi server时，wsgi server通过调用wsgi application提供的接口来处理这个请求;其实，看过python wsgiref模块，也就能理解什么是wsgi模块。</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1970767937.jpg" alt="圆明园遗址(时光相册制作)"></p>
+<p>现在比较流行的wsgi application有bottle, flask,django等，比较流行的wsgi server有werkzeug,gunicorn,gevent等;今天这篇文章主要分析下python自带的wsgiref模块，以这个为模板，可以理解下wsgi协议；</p>
+<p>这篇文章主要有以下两部分：</p>
+<ol>
+<li>wsgiref简单示例</li>
+<li>wsgiref实现原理</li>
+<li>原理解释示例程序</li>
+<li>总结</li>
+</ol>
+<h2>wsgiref简单示例</h2>
+<hr>
+<p>这里先给出wsgiref模块的简单示例，有个感性的认识，后续在分析实现原理；代码如下:
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">from</span> wsgiref.simple_server <span class="keyword">import</span> make_server</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">application</span><span class="params">(environ, start_response)</span>:</span></div><div class="line">    start_response(<span class="string">'200 OK'</span>, [(<span class="string">'Content-Type'</span>, <span class="string">'text/html'</span>)])</div><div class="line">    <span class="keyword">return</span> [<span class="string">b'&lt;h1&gt;Hello, web!&lt;/h1&gt;'</span>]</div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    httpd = make_server(<span class="string">''</span>, <span class="number">9999</span>, application)</div><div class="line">    print(<span class="string">"Serving HTTP on port 9999..."</span>)</div><div class="line">    httpd.serve_forever()</div></pre></td></tr></table></figure></p>
+<p>这个示例程序很简单，创建一个httpd服务器，并监听9999端口，当有客户端请求时，在浏览器显示Hello, web字符串；</p>
+<p>上述例子中的application就是wsgiref application，当然也可以一个类，平时常见的也是类，例如flask,bottle等，这些类实现__call__方法，并且该方法参数为environ, start_response即可，environ为一个字典，保存系统变量以及请求相关属性，例如请求路径，请求参数，请求方法等等；start_response为函数，设置response的状态码和header，然后application函数的返回值为response的body；因此上述例子程序，设置response状态码为200，表示请求成功，在headers添加返回数据类型为text/html，以及返回的response body为[b'&lt;h1&gt;Hello, web!&lt;/h1&gt;']</p>
+<h2>wsgiref实现原理</h2>
+<hr>
+<p>wsgiref模块也是由server和handler组成，server用于监听端口，接收请求；handler用于处理请求；先来看下server
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="class"><span class="keyword">class</span> <span class="title">WSGIServer</span><span class="params">(HTTPServer)</span>:</span></div><div class="line"></div><div class="line">    <span class="string">"""BaseHTTPServer that implements the Python WSGI protocol"""</span></div><div class="line"></div><div class="line">    application = <span class="keyword">None</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">server_bind</span><span class="params">(self)</span>:</span></div><div class="line">        <span class="string">"""Override server_bind to store the server name."""</span></div><div class="line">        HTTPServer.server_bind(self)</div><div class="line">        self.setup_environ()</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">setup_environ</span><span class="params">(self)</span>:</span></div><div class="line">        <span class="comment"># Set up base environment</span></div><div class="line">        env = self.base_environ = &#123;&#125;</div><div class="line">        env[<span class="string">'SERVER_NAME'</span>] = self.server_name</div><div class="line">        env[<span class="string">'GATEWAY_INTERFACE'</span>] = <span class="string">'CGI/1.1'</span></div><div class="line">        env[<span class="string">'SERVER_PORT'</span>] = str(self.server_port)</div><div class="line">        env[<span class="string">'REMOTE_HOST'</span>]=<span class="string">''</span></div><div class="line">        env[<span class="string">'CONTENT_LENGTH'</span>]=<span class="string">''</span></div><div class="line">        env[<span class="string">'SCRIPT_NAME'</span>] = <span class="string">''</span></div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">get_app</span><span class="params">(self)</span>:</span></div><div class="line">        <span class="keyword">return</span> self.application</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">def</span> <span class="title">set_app</span><span class="params">(self,application)</span>:</span></div><div class="line">        self.application = application</div></pre></td></tr></table></figure></p>
+<p>WSGIServer继承自HTTPServer，并重载来server_bind方法，同时提供注册和获取server application的接口；其中set_environ函数设置了该web应用程序的环境变量，例如服务器名称，服务器端口等等；</p>
+<p>ok，了解来WSGIServer之后，来看下handler是如何实现；WSGIRequestHandler类继承自BaseHTTPRequestHandler，并且重载handle方法，即处理请求的方法；</p>
+<p>我们来看下WSGIRequestHandler的handle方法：
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">handle</span><span class="params">(<span class="keyword">self</span>)</span></span>:</div><div class="line">        <span class="string">""</span><span class="string">"Handle a single HTTP request"</span><span class="string">""</span></div><div class="line">	<span class="comment"># 读取客户端发送的请求行</span></div><div class="line">        <span class="keyword">self</span>.raw_requestline = <span class="keyword">self</span>.rfile.readline(<span class="number">65537</span>)</div><div class="line">        <span class="keyword">if</span> len(<span class="keyword">self</span>.raw_requestline) &gt; <span class="number">65536</span>:</div><div class="line">            <span class="keyword">self</span>.requestline = <span class="string">''</span></div><div class="line">            <span class="keyword">self</span>.request_version = <span class="string">''</span></div><div class="line">            <span class="keyword">self</span>.command = <span class="string">''</span></div><div class="line">            <span class="keyword">self</span>.send_error(<span class="number">414</span>)</div><div class="line">            <span class="keyword">return</span></div><div class="line">	<span class="comment"># 解析客户端的请求行和请求头</span></div><div class="line">        <span class="keyword">if</span> <span class="keyword">not</span> <span class="keyword">self</span>.parse_request(): <span class="comment"># An error code has been sent, just exit</span></div><div class="line">            <span class="keyword">return</span></div><div class="line"></div><div class="line">        <span class="comment"># Avoid passing the raw file object wfile, which can do partial</span></div><div class="line">        <span class="comment"># writes (Issue 24291)</span></div><div class="line">        stdout = BufferedWriter(<span class="keyword">self</span>.wfile)</div><div class="line">        <span class="symbol">try:</span></div><div class="line">	　　<span class="comment"># 用于调用wsgi application的handler</span></div><div class="line">            handler = ServerHandler(</div><div class="line">                <span class="keyword">self</span>.rfile, stdout, <span class="keyword">self</span>.get_stderr(), <span class="keyword">self</span>.get_environ()</div><div class="line">            )</div><div class="line">            handler.request_handler = <span class="keyword">self</span>      <span class="comment"># backpointer for logging</span></div><div class="line">            handler.run(<span class="keyword">self</span>.server.get_app())</div><div class="line">        <span class="symbol">finally:</span></div><div class="line">            stdout.detach()</div></pre></td></tr></table></figure></p>
+<p>handle函数首先解析请求行和请求头，然后实例化ServerHandler类，用该类来调用wsgi application；</p>
+<p>ServerHandler类接受参数为socket读端，输出端，错误输出端以及一个包含请求信息的字典；self.get_environ()函数返回包含web应用程序的环境变量和请求的环境变量的字典；</p>
+<p>最后再来看下ServerHandler;ServerHandler继承自SimpleHandler,SimpleHandler继承自BaseHandler；我们直接看下ServerHandler的run方法；
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">run</span><span class="params">(<span class="keyword">self</span>, application)</span></span>:</div><div class="line">	<span class="symbol">try:</span></div><div class="line">            <span class="keyword">self</span>.setup_environ()</div><div class="line">            <span class="keyword">self</span>.result = application(<span class="keyword">self</span>.environ, <span class="keyword">self</span>.start_response)</div><div class="line">            <span class="keyword">self</span>.finish_response()</div><div class="line">        <span class="symbol">except:</span></div><div class="line">            <span class="symbol">try:</span></div><div class="line">                <span class="keyword">self</span>.handle_error()</div><div class="line">            <span class="symbol">except:</span></div><div class="line">                <span class="comment"># If we get an error handling an error, just give up already!</span></div><div class="line">                <span class="keyword">self</span>.close()</div><div class="line">                raise   <span class="comment"># ...and let the actual server figure it out.</span></div></pre></td></tr></table></figure></p>
+<ol>
+<li>self.setup_environ函数用于建立每次请求的相关信息，并存储在self.environ；</li>
+<li>self.start_response为该handler函数，用于设置response的状态码和header；</li>
+<li>self.result为response body；</li>
+<li>self.finish_response用于将response返回给客户端；</li>
+</ol>
+<p>这个handler类就不一一分析了，详情可以看wsgiref/handlers.py模块；</p>
+<h2>原理解释示例程序</h2>
+<hr>
+<p>了解了wsgiref模块之后．从原理层面来解释上述例子程序；再次粘帖程序代码如下:
+<figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">from</span> wsgiref.simple_server <span class="keyword">import</span> make_server</div><div class="line"></div><div class="line"><span class="function"><span class="keyword">def</span> <span class="title">application</span><span class="params">(environ, start_response)</span>:</span></div><div class="line">    start_response(<span class="string">'200 OK'</span>, [(<span class="string">'Content-Type'</span>, <span class="string">'text/html'</span>)])</div><div class="line">    <span class="keyword">return</span> [<span class="string">b'&lt;h1&gt;Hello, web!&lt;/h1&gt;'</span>]</div><div class="line"></div><div class="line"><span class="keyword">if</span> __name__ == <span class="string">'__main__'</span>:</div><div class="line">    httpd = make_server(<span class="string">''</span>, <span class="number">9999</span>, application)</div><div class="line">    print(<span class="string">"Serving HTTP on port 9999..."</span>)</div><div class="line">    httpd.serve_forever()</div></pre></td></tr></table></figure></p>
+<p>示例程序先是调用wsgiref模块的make_server方法，可以看下该方法如下：
+<figure class="highlight ceylon"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">def make<span class="number">_</span>server(</div><div class="line">    host, port, app, server<span class="number">_</span><span class="keyword">class</span>=WSGIServer, handler<span class="number">_</span><span class="keyword">class</span>=WSGIRequestHandler</div><div class="line">):</div><div class="line">    <span class="string">"""Create a new WSGI server listening on `host` and `port` for `app`"""</span></div><div class="line">    server = server<span class="number">_</span><span class="keyword">class</span>((host, port), handler<span class="number">_</span><span class="keyword">class</span>)</div><div class="line">    server.set<span class="number">_</span>app(app)</div><div class="line">    <span class="keyword">return</span> server</div></pre></td></tr></table></figure></p>
+<p>可以看到wsgiref默认的server_class为WSGIServer，handler_class为WSGIRequestHandler；先是实例化一个WSGIServer，然后注册application，最后返回该server实例；</p>
+<p>在示例程序中，最后调用httpd.server_forever()方法开启事件监听循环；</p>
+<p>当某个请求到来之后，先是实例化一个WSGIRequestHandler，并在该WSGIRequestHandler的handle方法内部解析请求参数，以及实例化一个ServerHandler，以及调用ServerHandler的run方法来处理请求；</p>
+<p>在ServerHandler的run方法内部先是建立环境变量字典environ，然后调用wsgi application设置resopnse的状态码和headers，以及返回response body；最后调用finish_response()方法将response返回给客户端；</p>
+<p>上述即为一次请求全过程；</p>
+<h2>总结</h2>
+<hr>
+<p>这篇文章分析了python的wsgiref模块，解释了wsgiref模块一次请求的过程；当然实际应用中，wsgi application可不是示例程序中那么简单的返回一个字符串，因为一个web应用程序需要根据路由来调用相应的view函数以及一些其他特性，这等到分析bottle时再来分析；</p>
+<p>wsgi server和wsgi application分离的设计，使python web的开发非常灵活，在部署python web应用程序时，可以根据性能的需求，选择合适的wsgi server；例如flask自带的wsgi server不适合在正式工业环境中使用，因此flask经常的搭配是nginx+gunicorn+flask，而不是用自带的werkzeug；</p>
+<p>不同的wsgi server，区别主要是在并发模型的选择上，有单线程，多进程，多线程，协程；而wsgi application主要功能相近，无非就是根据请求路由，执行相应的view函数，当然有一些特性上的不同；</p>
+<p>今天就先写到这，下篇文章分析bottle的实现；</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/python/" rel="tag">#python</a>
+          
+            <a href="/tags/wsgiref/" rel="tag">#wsgiref</a>
+          
+            <a href="/tags/wsgi/" rel="tag">#wsgi</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/11/05/python-http/" rel="next" title="python之HTTP模块">
+                <i class="fa fa-chevron-left"></i> python之HTTP模块
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/12/08/nsq01/" rel="prev" title="NSQ源码分析之概述">
+                NSQ源码分析之概述 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/11/12/python-wsgi/"
+     data-title="python之wsgiref模块"
+     data-content=""
+     data-url="http://luodw.cc/2016/11/12/python-wsgi/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/11/12/python-wsgi/"
+           data-title="python之wsgiref模块" data-url="http://luodw.cc/2016/11/12/python-wsgi/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">wsgiref简单示例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">wsgiref实现原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">原理解释示例程序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

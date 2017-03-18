@@ -1,0 +1,1200 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="network,netstat,trace,tcpdump," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="最近在学网络，特别是在用tcpdump命令捕获数据包时，发现网络的几个命令是那么强大，特此，上网搜索了相关资料，总结下这几个命令的用法。从网络接口到tcp层，有ifconfig,route和routetrace,netstat.还有一个抓包命令tcpdump。
+netstat命令
+
+netstat命令主要是用于显示各种网络相关信息，如网络连接，路由表，接口状态，多播成员等等。命令用法比较多，初学记">
+<meta property="og:type" content="article">
+<meta property="og:title" content="命令netstat,trace和tcpdump">
+<meta property="og:url" content="http://luodw.cc/2015/12/30/network-command/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="最近在学网络，特别是在用tcpdump命令捕获数据包时，发现网络的几个命令是那么强大，特此，上网搜索了相关资料，总结下这几个命令的用法。从网络接口到tcp层，有ifconfig,route和routetrace,netstat.还有一个抓包命令tcpdump。
+netstat命令
+
+netstat命令主要是用于显示各种网络相关信息，如网络连接，路由表，接口状态，多播成员等等。命令用法比较多，初学记">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="命令netstat,trace和tcpdump">
+<meta name="twitter:description" content="最近在学网络，特别是在用tcpdump命令捕获数据包时，发现网络的几个命令是那么强大，特此，上网搜索了相关资料，总结下这几个命令的用法。从网络接口到tcp层，有ifconfig,route和routetrace,netstat.还有一个抓包命令tcpdump。
+netstat命令
+
+netstat命令主要是用于显示各种网络相关信息，如网络连接，路由表，接口状态，多播成员等等。命令用法比较多，初学记">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2015/12/30/network-command/"/>
+
+
+  <title> 命令netstat,trace和tcpdump | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                命令netstat,trace和tcpdump
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-12-30T20:07:29+08:00" content="2015-12-30">
+              2015-12-30
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2015/12/30/network-command/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2015/12/30/network-command/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/12/30/network-command/" class="leancloud_visitors" data-flag-title="命令netstat,trace和tcpdump">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>最近在学网络，特别是在用tcpdump命令捕获数据包时，发现网络的几个命令是那么强大，特此，上网搜索了相关资料，总结下这几个命令的用法。从网络接口到tcp层，有ifconfig,route和routetrace,netstat.还有一个抓包命令tcpdump。</p>
+<h1>netstat命令</h1>
+<hr>
+<p>netstat命令主要是用于显示各种网络相关信息，如网络连接，路由表，接口状态，多播成员等等。命令用法比较多，初学记住几个常用的就行了。</p>
+<p>首先是默认情况下，netstat命令输出所有的连接情况，默认情况下，netstat输出的是所有已连接的tcp,udp和unix域套接字。如下：
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">root@charles-Lenovo:/home/charles<span class="comment"># netstat | more</span></div><div class="line">激活Internet连接 (w/o 服务器)</div><div class="line">Proto Recv-Q Send-Q Local Address           Foreign Address         State      </div><div class="line">tcp       <span class="number"> 0 </span>    <span class="number"> 0 </span>localhost:49558         localhost:36329         ESTABLISHED</div><div class="line">tcp       <span class="number"> 0 </span>    <span class="number"> 0 </span>localhost:49558         localhost:36377         ESTABLISHED</div><div class="line">tcp       <span class="number"> 0 </span>    <span class="number"> 0 </span>localhost:36377         localhost:49558         ESTABLISHED</div><div class="line">tcp       <span class="number"> 0 </span>    <span class="number"> 0 </span>localhost:36329         localhost:49558         ESTABLISHED</div><div class="line">tcp6      <span class="number"> 1 </span>    <span class="number"> 0 </span>ip6-localhost:46135     ip6-localhost:ipp       CLOSE_WAIT </div><div class="line">活跃的UNIX域套接字 (w/o 服务器)</div><div class="line">Proto RefCnt Flags       Type       State         I-Node   路径</div><div class="line">unix <span class="number"> 20 </span>    [ ]         数据报               <span class="number"> 11336 </span>   /dev/log</div><div class="line">unix <span class="number"> 3 </span>     [ ]         流        已连接    <span class="number"> 17634 </span>   </div><div class="line">unix <span class="number"> 3 </span>     [ ]         流        已连接    <span class="number"> 14118 </span>   </div><div class="line">unix <span class="number"> 3 </span>     [ ]         流        已连接    <span class="number"> 14812 </span>   /run/user/1000/pulse/nati</div><div class="line">ve</div><div class="line">unix <span class="number"> 3 </span>     [ ]         流        已连接    <span class="number"> 16987 </span>   </div><div class="line">unix <span class="number"> 3 </span>     [ ]         流        已连接    <span class="number"> 14188 </span>   </div><div class="line">unix <span class="number"> 3 </span>     [ ]         流        已连接    <span class="number"> 17596 </span>   </div><div class="line">unix <span class="number"> 3 </span>     [ ]         流        已连接     17482</div></pre></td></tr></table></figure></p>
+<p>从输出可以看出，netstat主要就是显示各种连接的状态，包括tcp,udp和unix。这个输出没有udp，因为我没有开启udp程序，当我开启一个udp程序和浏览器时，这时就会显示两个udp连接，一个是我udp程序的连接，一个是浏览器向本地域名服务器解析域名的udp连接：
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">udp</span>        0      0 <span class="selector-tag">localhost</span><span class="selector-pseudo">:59634</span>         <span class="selector-tag">localhost</span><span class="selector-pseudo">:8888</span>          <span class="selector-tag">ESTABLISHED</span></div><div class="line"><span class="selector-tag">udp</span>        0      0 <span class="selector-tag">localhost</span><span class="selector-pseudo">:52440</span>         <span class="selector-tag">charles-Lenovo</span><span class="selector-pseudo">:domain</span>   <span class="selector-tag">ESTABLISHED</span></div></pre></td></tr></table></figure></p>
+<p>第一个是我的udp程序调用connect函数之后，出现的连接状态，如果没有connect函数，那么是不会显示udp连接状态的，因为udp是面向无连接。第二个是浏览器向dnsmasq建立udp连接，用于解析域名。当调用getaddinfo函数时，也是会有第二条连接的。linux系统unix域套接字用的比较多，主要是因为性能比tcp/udp好。</p>
+<ol>
+<li>
+<p>列出所有的端口（包括监听和未监听的）
+netstat -a
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">root@charles-Lenovo:/home/charles<span class="comment"># netstat -a | more</span></div><div class="line">激活Internet连接 (服务器和已建立连接的)</div><div class="line">Proto Recv-Q Send-Q Local Address           Foreign Address         State     </div><div class="line">tcp       <span class="number"> 0 </span>    <span class="number"> 0 </span>localhost:mysql         *:*                     LISTEN     </div><div class="line">tcp       <span class="number"> 0 </span>    <span class="number"> 0 </span>charles-Lenovo:domain   *:*                     LISTEN     </div><div class="line">udp       <span class="number"> 0 </span>    <span class="number"> 0 </span>charles-Lenovo:domain   *:*                                </div><div class="line">udp       <span class="number"> 0 </span>    <span class="number"> 0 </span>*:bootpc                *:* </div><div class="line">活跃的UNIX域套接字 (服务器和已建立连接的)</div><div class="line">Proto RefCnt Flags       Type       State         I-Node   路径</div><div class="line">unix <span class="number"> 2 </span>     [ ACC ]     流        LISTENING    <span class="number"> 11264 </span>   /run/user/1000/pulse/native</div><div class="line">unix <span class="number"> 2 </span>     [ ACC ]     流        LISTENING    <span class="number"> 12805 </span>   /var/run/mysqld/mysqld.sock</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>只列出所有的tcp连接
+netstat -at</p>
+</li>
+<li>
+<p>只列出所有的udp连接
+netstat -au</p>
+</li>
+<li>
+<p>列出所有处于监听的连接，包括tcp,udp和unix域套接字
+netstat -l
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">root@charles-Lenovo:/home/charles<span class="comment"># netstat -l</span></div><div class="line">激活Internet连接 (仅服务器)</div><div class="line">Proto Recv-Q Send-Q Local Address           Foreign Address         State      </div><div class="line">tcp       <span class="number"> 0 </span>    <span class="number"> 0 </span>localhost:mysql         *:*                     LISTEN     </div><div class="line">tcp       <span class="number"> 0 </span>    <span class="number"> 0 </span>charles-Lenovo:domain   *:*                     LISTEN   </div><div class="line">udp       <span class="number"> 0 </span>    <span class="number"> 0 </span>charles-Lenovo:domain   *:*                                </div><div class="line">udp       <span class="number"> 0 </span>    <span class="number"> 0 </span>*:bootpc                *:*                            </div><div class="line">活跃的UNIX域套接字 (仅服务器)</div><div class="line">Proto RefCnt Flags       Type       State         I-Node   路径</div><div class="line">unix <span class="number"> 2 </span>     [ ACC ]     流        LISTENING    <span class="number"> 11264 </span>   /run/user/1000/pulse/native</div><div class="line">unix <span class="number"> 2 </span>     [ ACC ]     流        LISTENING    <span class="number"> 12805 </span>   /var/run/mysqld/mysqld.sock</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>只列出tcp监听端口
+netstat -lt</p>
+</li>
+<li>
+<p>只列出udp监听端口
+netstat -lu</p>
+</li>
+<li>
+<p>只列出unix域套接字监听端口
+netstat -lx</p>
+</li>
+<li>
+<p>查看路由表信息
+netstat -r
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">root@charles-Lenovo:/home/charles# netstat -r</div><div class="line">内核 <span class="built_in">IP</span> 路由表</div><div class="line">Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface</div><div class="line"><span class="meta">default</span>         <span class="number">192.168</span><span class="meta">.1</span><span class="meta">.1</span>     <span class="number">0.0</span><span class="meta">.0</span><span class="meta">.0</span>         UG        <span class="number">0</span> <span class="number">0</span>          <span class="number">0</span> eth0</div><div class="line"><span class="number">192.168</span><span class="meta">.1</span><span class="meta">.0</span>     *               <span class="number">255.255</span><span class="meta">.255</span><span class="meta">.0</span>   U         <span class="number">0</span> <span class="number">0</span>          <span class="number">0</span> eth0</div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>一般有两条路由信息，一个是默认路由，即目的地地址不在本网络时，通过网络接口eth0，传到网关192.168.1.1这个也就是第一跳路由器的地址；如果目的地地址是在同一个局域网中，即与子网掩码255.255.255.0与之后=192.168.1.0，则没有网关，通过eth0广播询问即可。</p>
+<ol start="9">
+<li>
+<p>查询网络接口列表
+netstat -i
+<figure class="highlight tap"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">root@charles-Lenovo:/home/charles<span class="comment"># netstat -i</span></div><div class="line">Kernel Interface table</div><div class="line">Iface   MTU Met   RX-OK RX-ERR RX-DRP RX-OVR    TX-OK TX-ERR TX-DRP TX-OVR Flg</div><div class="line">eth0      <span class="number"> 1500 </span>0    <span class="number"> 57318 </span>    <span class="number"> 0 </span>    <span class="number"> 0 </span>0        <span class="number"> 41328 </span>    <span class="number"> 0 </span>    <span class="number"> 0 </span>    <span class="number"> 0 </span>BMRU</div><div class="line">lo       <span class="number"> 65536 </span>0    <span class="number"> 13239 </span>    <span class="number"> 0 </span>    <span class="number"> 0 </span>0        <span class="number"> 13239 </span>    <span class="number"> 0 </span>    <span class="number"> 0 </span>    <span class="number"> 0 </span>LRU</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>找出程序运行的端口
+netstat -ap | grep ssh
+<figure class="highlight dts"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">root@charles-Lenovo:<span class="meta-keyword">/home/</span>charles<span class="meta"># netstat -ap | grep ssh</span></div><div class="line">unix  <span class="number">2</span>      [ ACC ]     流        LISTENING     <span class="number">13893</span>    <span class="number">1693</span>/gnome-keyring- </div><div class="line"><span class="meta-keyword">/run/</span>user/<span class="number">1000</span><span class="meta-keyword">/keyring-32r7ap/</span>ssh</div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>这里ssh服务器居然是建立unix套接字，这让我很费解，怎么实现远程连接的？</p>
+<p>之后就是与一些命令组合，例如，awk,sed,grep等等，输出各个字段的信息，这后面在学习了。</p>
+<h1>route命令</h1>
+<hr>
+<p>这个命令主要是用于查看路由表，添加路由信息，设置网关等等；默认输出的是路由表信息；
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">root@charles-Lenovo:/home/charles# route</div><div class="line">内核 <span class="built_in">IP</span> 路由表</div><div class="line">目标            网关            子网掩码        标志  跃点   引用  使用 接口</div><div class="line"><span class="meta">default</span>         <span class="number">192.168</span><span class="meta">.1</span><span class="meta">.1</span>     <span class="number">0.0</span><span class="meta">.0</span><span class="meta">.0</span>         UG    <span class="number">0</span>      <span class="number">0</span>        <span class="number">0</span> eth0</div><div class="line"><span class="number">192.168</span><span class="meta">.1</span><span class="meta">.0</span>     *               <span class="number">255.255</span><span class="meta">.255</span><span class="meta">.0</span>   U     <span class="number">1</span>      <span class="number">0</span>        <span class="number">0</span> eth0</div></pre></td></tr></table></figure></p>
+<p>route -n这个和route的区别就是：route显示的主机名称，而route -n显示的IP地址</p>
+<p>下面说下主要几个标志的意义：</p>
+<ul>
+<li>U (route is up)：该路由是启动的；</li>
+<li>H (target is a host)：目标是一部主机 (IP) 而非网域；</li>
+<li>G (use gateway)：需要透过外部的主机 (gateway) 来转递封包；</li>
+<li>R (reinstate route for dynamic routing)：使用动态路由时，恢复路由资讯的旗标；</li>
+<li>D (dynamically installed by daemon or redirect)：已经由服务或转 port 功能设定为动态路由；</li>
+<li>M (modified from routing daemon or redirect)：路由已经被修改了；</li>
+<li>!  (reject route)：这个路由将不会被接受(用来抵挡不安全的网域！)</li>
+</ul>
+<ol>
+<li>向路由表添加一个路由信息
+一般来说，都是为了能访问别的子网才设置路由的，比如说，你的主机处于192.168.10.0/24，而你想访问192.168.20.0/24网的主机，当然你知道一个网关IP，例如192.168.10.1（必须和你主机处于同一子网），那么，你可以这样配置路由。</li>
+</ol>
+<p>添加路由
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">route</span> <span class="selector-tag">add</span> <span class="selector-tag">-net</span> 192<span class="selector-class">.168</span><span class="selector-class">.20</span><span class="selector-class">.0</span> <span class="selector-tag">netmask</span> 255<span class="selector-class">.255</span><span class="selector-class">.255</span><span class="selector-class">.0</span> <span class="selector-tag">gw</span> 192<span class="selector-class">.168</span><span class="selector-class">.10</span><span class="selector-class">.1</span></div></pre></td></tr></table></figure></p>
+<p>删除路由
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">route</span> <span class="selector-tag">del</span> <span class="selector-tag">-net</span> 192<span class="selector-class">.168</span><span class="selector-class">.20</span><span class="selector-class">.0</span> <span class="selector-tag">netmask</span> 255<span class="selector-class">.255</span><span class="selector-class">.255</span><span class="selector-class">.0</span></div></pre></td></tr></table></figure></p>
+<p>这个命令最主要的用法就是查看路由表，添加路由和删除路由器。</p>
+<h1>ifconfig命令</h1>
+<hr>
+<p>这个命令平常使用最主要的功能就是，查看网络接口的信息，例如物理地址，ip地址，掩码等等。其他就是设置网络接口开关，设置mtu等等。
+<figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">root</span>@<span class="selector-tag">charles-Lenovo</span>:/<span class="selector-tag">home</span>/<span class="selector-tag">charles</span># <span class="selector-tag">ifconfig</span></div><div class="line"><span class="selector-tag">eth0</span>      <span class="selector-tag">Link</span> <span class="selector-tag">encap</span>:以太网  硬件地址 <span class="selector-tag">44</span><span class="selector-pseudo">:37</span><span class="selector-pseudo">:e6</span><span class="selector-pseudo">:53</span><span class="selector-pseudo">:d7</span><span class="selector-pseudo">:8c</span>  </div><div class="line">          <span class="selector-tag">inet</span> 地址<span class="selector-pseudo">:192.168.1.151</span>  广播<span class="selector-pseudo">:192.168.1.255</span>  掩码<span class="selector-pseudo">:255.255.255.0</span></div><div class="line">          <span class="selector-tag">inet6</span> 地址: <span class="selector-tag">fe80</span><span class="selector-pseudo">::4637</span><span class="selector-pseudo">:e6ff</span><span class="selector-pseudo">:fe53</span><span class="selector-pseudo">:d78c</span>/<span class="selector-tag">64</span> <span class="selector-tag">Scope</span><span class="selector-pseudo">:Link</span></div><div class="line">          <span class="selector-tag">UP</span> <span class="selector-tag">BROADCAST</span> <span class="selector-tag">RUNNING</span> <span class="selector-tag">MULTICAST</span>  <span class="selector-tag">MTU</span><span class="selector-pseudo">:1500</span>  跃点数<span class="selector-pseudo">:1</span></div><div class="line">          接收数据包<span class="selector-pseudo">:63010</span> 错误<span class="selector-pseudo">:0</span> 丢弃<span class="selector-pseudo">:0</span> 过载<span class="selector-pseudo">:0</span> 帧数<span class="selector-pseudo">:0</span></div><div class="line">          发送数据包<span class="selector-pseudo">:45853</span> 错误<span class="selector-pseudo">:0</span> 丢弃<span class="selector-pseudo">:0</span> 过载<span class="selector-pseudo">:0</span> 载波<span class="selector-pseudo">:0</span></div><div class="line">          碰撞<span class="selector-pseudo">:0</span> 发送队列长度<span class="selector-pseudo">:1000</span> </div><div class="line">          接收字节<span class="selector-pseudo">:54436715</span> (<span class="number">54.4</span> MB)  发送字节<span class="selector-pseudo">:6200233</span> (<span class="number">6.2</span> MB)</div><div class="line">          中断<span class="selector-pseudo">:20</span> <span class="selector-tag">Memory</span><span class="selector-pseudo">:fe400000-fe420000</span> </div><div class="line"></div><div class="line"><span class="selector-tag">lo</span>        <span class="selector-tag">Link</span> <span class="selector-tag">encap</span>:本地环回  </div><div class="line">          <span class="selector-tag">inet</span> 地址<span class="selector-pseudo">:127.0.0.1</span>  掩码<span class="selector-pseudo">:255.0.0.0</span></div><div class="line">          <span class="selector-tag">inet6</span> 地址: <span class="selector-pseudo">::1</span>/<span class="selector-tag">128</span> <span class="selector-tag">Scope</span><span class="selector-pseudo">:Host</span></div><div class="line">          <span class="selector-tag">UP</span> <span class="selector-tag">LOOPBACK</span> <span class="selector-tag">RUNNING</span>  <span class="selector-tag">MTU</span><span class="selector-pseudo">:65536</span>  跃点数<span class="selector-pseudo">:1</span></div><div class="line">          接收数据包<span class="selector-pseudo">:15778</span> 错误<span class="selector-pseudo">:0</span> 丢弃<span class="selector-pseudo">:0</span> 过载<span class="selector-pseudo">:0</span> 帧数<span class="selector-pseudo">:0</span></div><div class="line">          发送数据包<span class="selector-pseudo">:15778</span> 错误<span class="selector-pseudo">:0</span> 丢弃<span class="selector-pseudo">:0</span> 过载<span class="selector-pseudo">:0</span> 载波<span class="selector-pseudo">:0</span></div><div class="line">          碰撞<span class="selector-pseudo">:0</span> 发送队列长度<span class="selector-pseudo">:0</span> </div><div class="line">          接收字节<span class="selector-pseudo">:13352760</span> (<span class="number">13.3</span> MB)  发送字节<span class="selector-pseudo">:13352760</span> (<span class="number">13.3</span> MB)</div></pre></td></tr></table></figure></p>
+<ol>
+<li>启动关闭指定网卡
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">ifconfig eth0 <span class="meta">up</span></div><div class="line">ifconfig eth0 <span class="meta">down</span></div></pre></td></tr></table></figure></li>
+</ol>
+<p>第一个为启动eth0网卡，第二个为关闭eth0网卡，但是如果是ssh登陆linux，则要小心了，因为关闭之后，就连不上了，除非有两个网卡。</p>
+<ol start="2">
+<li>为网卡配置和删除IPv6地址
+<figure class="highlight less"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">ifconfig</span> <span class="selector-tag">eth0</span> <span class="selector-tag">add</span> <span class="selector-tag">33ffe</span><span class="selector-pseudo">:3240</span><span class="selector-pseudo">:800</span><span class="selector-pseudo">:1005</span><span class="selector-pseudo">::2</span>/<span class="selector-tag">64</span> 为网卡<span class="selector-tag">eth0</span>配置<span class="selector-tag">IPv6</span>地址；</div><div class="line"><span class="selector-tag">ifconfig</span> <span class="selector-tag">eth0</span> <span class="selector-tag">add</span> <span class="selector-tag">33ffe</span><span class="selector-pseudo">:3240</span><span class="selector-pseudo">:800</span><span class="selector-pseudo">:1005</span><span class="selector-pseudo">::2</span>/<span class="selector-tag">64</span> 为网卡<span class="selector-tag">eth0</span>删除<span class="selector-tag">IPv6</span>地址；</div></pre></td></tr></table></figure></li>
+</ol>
+<p>练习的时候，ssh登陆linux服务器操作要小心，关闭了就不能开启了，除非你有多网卡。</p>
+<ol start="3">
+<li>
+<p>用ifconfig修改MAC地址
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">ifconfig</span> <span class="selector-tag">eth0</span> <span class="selector-tag">hw</span> <span class="selector-tag">ether</span> 00<span class="selector-pseudo">:AA</span><span class="selector-pseudo">:BB</span><span class="selector-pseudo">:CC</span><span class="selector-pseudo">:DD</span><span class="selector-pseudo">:EE</span></div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>配置ip地址
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">ifconfig eth0 <span class="number">192.168</span><span class="number">.120</span><span class="number">.56</span> </div><div class="line">给eth0网卡配置IP地：<span class="number">192.168</span><span class="number">.120</span><span class="number">.56</span></div><div class="line"> ifconfig eth0 <span class="number">192.168</span><span class="number">.120</span><span class="number">.56</span> netmask <span class="number">255.255</span><span class="number">.255</span><span class="number">.0</span> </div><div class="line">给eth0网卡配置IP地址：<span class="number">192.168</span><span class="number">.120</span><span class="number">.56</span> ，并加上子掩码：<span class="number">255.255</span><span class="number">.255</span><span class="number">.0</span></div><div class="line">ifconfig eth0 <span class="number">192.168</span><span class="number">.120</span><span class="number">.56</span> netmask <span class="number">255.255</span><span class="number">.255</span><span class="number">.0</span> broadcast <span class="number">192.168</span><span class="number">.120</span><span class="number">.255</span></div><div class="line">/给eth0网卡配置IP地址：<span class="number">192.168</span><span class="number">.120</span><span class="number">.56</span>，加上子掩码：<span class="number">255.255</span><span class="number">.255</span><span class="number">.0</span>，加上个广播地址：</div><div class="line"><span class="number">192.168</span><span class="number">.120</span><span class="number">.255</span></div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>启用和关闭ARP协议
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">ifconfig</span> eth0 arp 开启网卡eth0 的arp协议；</div><div class="line">ifconfig eth0 -arp 关闭网卡eth0 的arp协议；</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>设置最大传输单元
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ifconfig eth0 mtu <span class="number">1500</span></div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>ifconfig后面这些命令选项平常使用用得少，记得如何查看自己的ip地址是最关键。</p>
+<h1>tcpdump命令</h1>
+<hr>
+<p>这个命令主要用于抓包，这也是我最喜欢的 命令之一，太强大了.当udp程序收到icmp不可达数据包时，用户程序是不会知道的，所以用tcpdump看到，因为tcpdump可以解析所有到大网络层的数据包，包括icmp，arp等等。当然还有udp,tcp。</p>
+<ol>
+<li>默认启动
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">tcpdump</span></div></pre></td></tr></table></figure></li>
+</ol>
+<p>普通情况下，直接启动tcpdump将监视第一个网络接口上所有流过的数据包。</p>
+<ol start="2">
+<li>监视指定网络接口的数据包
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">tcpdump -i lo</div><div class="line">charles@charles-Lenovo:~/mydir/mycode$ sudo tcpdump -i lo </div><div class="line">tcpdump: verbose output suppressed, <span class="keyword">use</span> -v <span class="keyword">or</span> -vv <span class="keyword">for</span> <span class="keyword">full</span> protocol <span class="keyword">decode</span></div><div class="line">listening <span class="keyword">on</span> lo, <span class="keyword">link</span>-<span class="keyword">type</span> EN10MB (Ethernet), capture <span class="keyword">size</span> <span class="number">65535</span> <span class="keyword">bytes</span></div><div class="line"><span class="number">11</span>:<span class="number">16</span>:<span class="number">16.541533</span> IP localhost<span class="number">.44530</span> &gt; localhost<span class="number">.8888</span>: UDP, <span class="keyword">length</span> <span class="number">6</span></div><div class="line"><span class="number">11</span>:<span class="number">16</span>:<span class="number">16.541558</span> IP localhost &gt; localhost: ICMP localhost udp port <span class="number">8888</span> unreachable, <span class="keyword">length</span> <span class="number">42</span></div></pre></td></tr></table></figure></li>
+</ol>
+<p>这是我当初在线测试connect函数时写的程序，不开启服务器，开启客户端，然后输入数据，之后服务器会返回不可达的ICMP包文消息。默认监听eth0，我们可以指定tcpdump监听回环接口。</p>
+<ol start="3">
+<li>
+<p>指定监听tcp或者udp
+<figure class="highlight ebnf"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="attribute">tcpdump tcp</span></div><div class="line">tcpdump udp</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>指定监听的主机，可以是主机名或者ip
+<figure class="highlight css"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="selector-tag">tcpdump</span> <span class="selector-tag">host</span> <span class="selector-tag">Charles</span></div><div class="line"><span class="selector-tag">tcpdump</span> <span class="selector-tag">host</span> 192<span class="selector-class">.168</span><span class="selector-class">.1</span><span class="selector-class">.151</span></div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>指定监听的端口
+<figure class="highlight elm"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="title">tcpdump</span> <span class="keyword">port</span> 8888</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>截获主机hostname发送或接收的所有消息
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">截获主机hostname发送的所有数据</div><div class="line">tcpdump -<span class="selector-tag">i</span> eth0 src host hostname</div><div class="line">监视所有送到主机hostname的数据包</div><div class="line">tcpdump -<span class="selector-tag">i</span> eth0 dst host hostname</div></pre></td></tr></table></figure></p>
+</li>
+<li>
+<p>监视指定主机和端口的数据包
+<figure class="highlight lsl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">如果想要获取主机<span class="number">210.27</span><span class="number">.48</span><span class="number">.1</span>接收或发出的telnet包，使用如下命令</div><div class="line">tcpdump tcp port <span class="number">23</span> and host <span class="number">210.27</span><span class="number">.48</span><span class="number">.1</span></div><div class="line">对本机的udp <span class="number">123</span> 端口进行监视 <span class="number">123</span> 为ntp的服务端口</div><div class="line">tcpdump udp port <span class="number">123</span></div></pre></td></tr></table></figure></p>
+</li>
+</ol>
+<p>初学阶段先了解这么多，就够了。后面有需要，在深入学习。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/network/" rel="tag">#network</a>
+          
+            <a href="/tags/netstat/" rel="tag">#netstat</a>
+          
+            <a href="/tags/trace/" rel="tag">#trace</a>
+          
+            <a href="/tags/tcpdump/" rel="tag">#tcpdump</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2015/12/27/dns03/" rel="next" title="域名解析之dig,host,nslookup命令">
+                <i class="fa fa-chevron-left"></i> 域名解析之dig,host,nslookup命令
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/01/06/nonblock/" rel="prev" title="linux下非阻塞I/O">
+                linux下非阻塞I/O <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2015/12/30/network-command/"
+     data-title="命令netstat,trace和tcpdump"
+     data-content=""
+     data-url="http://luodw.cc/2015/12/30/network-command/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2015/12/30/network-command/"
+           data-title="命令netstat,trace和tcpdump" data-url="http://luodw.cc/2015/12/30/network-command/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">netstat命令</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">route命令</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">ifconfig命令</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">tcpdump命令</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

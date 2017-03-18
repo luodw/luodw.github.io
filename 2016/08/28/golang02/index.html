@@ -1,0 +1,1106 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="golang,database/sql,go-sql-driver," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="上篇文章也有说道，golang的http,rpc,以及第三方的redigo,go-sql-driver是开发一个服务常见的四大组件，因此我是很推荐有时间可以看下上述四大组件，而且golang自带的http和rpc框架本身就是http和rpc很好的教程，而且第三方框架miekg/dns也是采用http框架的形式，所以看懂http，对快速看懂miekg/dns是很有帮助的；
+
+redigo相对较小，看">
+<meta property="og:type" content="article">
+<meta property="og:title" content="golang之database/sql与go-sql-driver">
+<meta property="og:url" content="http://luodw.cc/2016/08/28/golang02/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="上篇文章也有说道，golang的http,rpc,以及第三方的redigo,go-sql-driver是开发一个服务常见的四大组件，因此我是很推荐有时间可以看下上述四大组件，而且golang自带的http和rpc框架本身就是http和rpc很好的教程，而且第三方框架miekg/dns也是采用http框架的形式，所以看懂http，对快速看懂miekg/dns是很有帮助的；
+
+redigo相对较小，看">
+<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1612992717.jpg">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="golang之database/sql与go-sql-driver">
+<meta name="twitter:description" content="上篇文章也有说道，golang的http,rpc,以及第三方的redigo,go-sql-driver是开发一个服务常见的四大组件，因此我是很推荐有时间可以看下上述四大组件，而且golang自带的http和rpc框架本身就是http和rpc很好的教程，而且第三方框架miekg/dns也是采用http框架的形式，所以看懂http，对快速看懂miekg/dns是很有帮助的；
+
+redigo相对较小，看">
+<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1612992717.jpg">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/08/28/golang02/"/>
+
+
+  <title> golang之database/sql与go-sql-driver | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                golang之database/sql与go-sql-driver
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-08-28T10:38:43+08:00" content="2016-08-28">
+              2016-08-28
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/08/28/golang02/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/08/28/golang02/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/08/28/golang02/" class="leancloud_visitors" data-flag-title="golang之database/sql与go-sql-driver">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>上篇文章也有说道，golang的http,rpc,以及第三方的redigo,go-sql-driver是开发一个服务常见的四大组件，因此我是很推荐有时间可以看下上述四大组件，而且golang自带的http和rpc框架本身就是http和rpc很好的教程，而且第三方框架miekg/dns也是采用http框架的形式，所以看懂http，对快速看懂miekg/dns是很有帮助的；</p>
+<p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1612992717.jpg" alt="厦大美景"></p>
+<p>redigo相对较小，看起来比较容易，但是必须好好学习下redis的网络传输协议；http协议看懂整体流程相对较简单，但是要完全看懂，需要一定时日，毕竟内容较多；而golang的rpc框架可以基于tcp和http，也是比较好看懂，主要是反射比较多，rpc关键用了http自带的gob数解析格式，可以顺便学习下gob是如何使用的；而数据库操作之前用的就是挺迷糊的，明明有两个包database/sql和go-sql-driver为什么就只调用了database/sql里面的接口，因此在看了database/sql和go-sql-driver代码之后，就恍然大悟，也写篇博客记录下；</p>
+<h1>前言</h1>
+<hr>
+<p>这里先给出简单例子，说明下如何使用database/sql；
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line">package main</div><div class="line"></div><div class="line">import (</div><div class="line">	<span class="string">"database/sql"</span></div><div class="line">	<span class="string">"fmt"</span></div><div class="line"></div><div class="line">	_ <span class="string">"github.com/go-sql-driver/mysql"</span></div><div class="line">)</div><div class="line"></div><div class="line">func main() &#123;</div><div class="line">	<span class="keyword">db</span>, <span class="keyword">err</span> := sql.<span class="keyword">Open</span>(<span class="string">"mysql"</span>, <span class="string">"root:root@/test"</span>)</div><div class="line">	checkErr(<span class="keyword">err</span>)</div><div class="line">	rows, <span class="keyword">err</span> := <span class="keyword">db</span>.<span class="keyword">Query</span>(<span class="string">"select * from test"</span>)</div><div class="line">	checkErr(<span class="keyword">err</span>)</div><div class="line">	<span class="keyword">var</span> (</div><div class="line">		id   uint64</div><div class="line">		name <span class="built_in">string</span></div><div class="line">	)</div><div class="line">	<span class="keyword">for</span> rows.Next() &#123;</div><div class="line">		<span class="keyword">err</span> = rows.Scan(&amp;id, &amp;name)</div><div class="line">		checkErr(<span class="keyword">err</span>)</div><div class="line">		fmt.Println(id, <span class="string">"-&gt;"</span>, name)</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line">func checkErr(<span class="keyword">err</span> <span class="keyword">error</span>) &#123;</div><div class="line">	<span class="keyword">if</span> <span class="keyword">err</span> != nil &#123;</div><div class="line">		panic(<span class="keyword">err</span>)</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个例子很简单，先实例化一个数据库实例，然后通过db实例的query方法查询test数据库中的数据；大家可以看到，并没有用到go-sql-driver这个驱动程序，这是为什么了？</p>
+<p>首先给出两个结论:</p>
+<ol>
+<li>database/sql是golang提供操作数据库的接口，但是有些内部方法需要调用驱动程序的接口；</li>
+<li>go-sql-driver是符合database/sql接口的一套驱动程序，因此，真正进行数据库操作的接口是在go-sql-driver中实现的；</li>
+</ol>
+<p>好，接下来，我们看下database/sql是如何调用go-sql-driver的接口的；</p>
+<h1>database/sql与go-sql-driver</h1>
+<hr>
+<p>我们先来看下，database/sql是如何注册驱动程序的，这个有点类似于linux虚拟文件系统，注册不同的文件系统，最后调用的就是相应文件系统的接口；
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//database/sql/sql.go</span></div><div class="line"><span class="keyword">var</span> (</div><div class="line">	driversMu sync.Mutex</div><div class="line">	drivers   = <span class="built_in">make</span>(<span class="keyword">map</span>[<span class="keyword">string</span>]driver.Driver)</div><div class="line">)</div><div class="line"><span class="comment">/*-------------------------------------------------*/</span></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">Register</span><span class="params">(name <span class="keyword">string</span>, driver driver.Driver)</span></span> &#123;</div><div class="line">	driversMu.Lock()</div><div class="line">	<span class="keyword">defer</span> driversMu.Unlock()</div><div class="line">	<span class="keyword">if</span> driver == <span class="literal">nil</span> &#123;</div><div class="line">		<span class="built_in">panic</span>(<span class="string">"sql: Register driver is nil"</span>)</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">if</span> _, dup := drivers[name]; dup &#123;</div><div class="line">		<span class="built_in">panic</span>(<span class="string">"sql: Register called twice for driver "</span> + name)</div><div class="line">	&#125;</div><div class="line">	<span class="comment">//将驱动放入map中</span></div><div class="line">	drivers[name] = driver</div><div class="line">&#125;</div><div class="line"><span class="comment">/*--------------------------------------------------------*/</span></div><div class="line"><span class="comment">//go-sql-driver/mysql/driver.go</span></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">init</span><span class="params">()</span></span> &#123;</div><div class="line">	sql.Register(<span class="string">"mysql"</span>, &amp;MySQLDriver&#123;&#125;)</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从这个代码可以看出，向database/sql注册驱动，其实就是将驱动程序存入database/sql内部定义的一个map中；而init()函数是在包引入时首先执行的函数，因此我们在使用go-sql-driver时，就不用显式注册驱动，因为包引入时，就已经注册好；我们接下来看下如何获得一个数据库；</p>
+<h2>获取一个数据库</h2>
+<p>由上述例子程序可以看出，要操作数据库，必须先获取一个数据库实例db，代码如下:
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//database/sql/sql.go</span></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">Open</span><span class="params">(driverName, dataSourceName <span class="keyword">string</span>)</span> <span class="params">(*DB, error)</span></span> &#123;</div><div class="line">	driversMu.Lock()</div><div class="line">	driveri, ok := drivers[driverName]</div><div class="line">	driversMu.Unlock()</div><div class="line">	<span class="keyword">if</span> !ok &#123;</div><div class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, fmt.Errorf(<span class="string">"sql: unknown driver %q (forgotten import?)"</span>, driverName)</div><div class="line">	&#125;</div><div class="line">	db := &amp;DB&#123;</div><div class="line">		driver:   driveri,</div><div class="line">		dsn:      dataSourceName,</div><div class="line">		openerCh: <span class="built_in">make</span>(<span class="keyword">chan</span> <span class="keyword">struct</span>&#123;&#125;, connectionRequestQueueSize),</div><div class="line">		lastPut:  <span class="built_in">make</span>(<span class="keyword">map</span>[*driverConn]<span class="keyword">string</span>),</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">go</span> db.connectionOpener()</div><div class="line">	<span class="keyword">return</span> db, <span class="literal">nil</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>由这段代码，根据driverName获取驱动程序实例，然后封装成一个db实例返回，此时并没有一个连接存在；而是开启了一个goroutine来生产连接；我们来看下这个goroutine是怎么生产连接的；
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div></pre></td><td class="code"><pre><div class="line">func (<span class="keyword">db</span> *<span class="keyword">DB</span>) connectionOpener() &#123;</div><div class="line">	<span class="comment">//这个channel的缓冲区大小为1000000</span></div><div class="line">	<span class="keyword">for</span> <span class="keyword">range</span> <span class="keyword">db</span>.openerCh &#123;</div><div class="line">		<span class="keyword">db</span>.openNewConnection()</div><div class="line">	&#125;</div><div class="line">&#125;</div><div class="line"></div><div class="line"><span class="comment">// Open one new connection</span></div><div class="line">func (<span class="keyword">db</span> *<span class="keyword">DB</span>) openNewConnection() &#123;</div><div class="line">	<span class="comment">//这是database/sql第一次调用驱动的接口，获取一个真实的连接</span></div><div class="line">	<span class="keyword">ci</span>, <span class="keyword">err</span> := <span class="keyword">db</span>.driver.<span class="keyword">Open</span>(<span class="keyword">db</span>.dsn)</div><div class="line">	<span class="keyword">db</span>.mu.Lock()</div><div class="line">	defer <span class="keyword">db</span>.mu.Unlock()</div><div class="line">	<span class="keyword">if</span> <span class="keyword">db</span>.closed &#123;</div><div class="line">		<span class="keyword">if</span> <span class="keyword">err</span> == nil &#123;</div><div class="line">			<span class="keyword">ci</span>.<span class="keyword">Close</span>()</div><div class="line">		&#125;</div><div class="line">		<span class="built_in">return</span></div><div class="line">	&#125;</div><div class="line">	<span class="keyword">db</span>.pendingOpens--</div><div class="line">	<span class="keyword">if</span> <span class="keyword">err</span> != nil &#123;</div><div class="line">		<span class="keyword">db</span>.putConnDBLocked(nil, <span class="keyword">err</span>)</div><div class="line">		<span class="built_in">return</span></div><div class="line">	&#125;</div><div class="line">	<span class="comment">//将从驱动获取的连接封装成driverConn</span></div><div class="line">	dc := &amp;driverConn&#123;</div><div class="line">		<span class="keyword">db</span>: <span class="keyword">db</span>,</div><div class="line">		<span class="keyword">ci</span>: <span class="keyword">ci</span>,</div><div class="line">	&#125;</div><div class="line">	<span class="comment">//将新生成的driverConn放入空闲数组中</span></div><div class="line">	<span class="keyword">if</span> <span class="keyword">db</span>.putConnDBLocked(dc, <span class="keyword">err</span>) &#123;</div><div class="line">		<span class="keyword">db</span>.addDepLocked(dc, dc)</div><div class="line">		<span class="keyword">db</span>.numOpen++</div><div class="line">	&#125; <span class="keyword">else</span> &#123;</div><div class="line">		<span class="keyword">ci</span>.<span class="keyword">Close</span>()</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>因此，在获取一个db实例的时候，同时也生成了一个生产连接的goroutine，这个goroutine阻塞在channel中，当需要连接的时候，直接向这个channel发送数据即可；那么什么时候会产生连接了？有以下两种情况:</p>
+<ol>
+<li>第一次调用ping函数的时候，会产生一个连接；</li>
+<li>当调用db.Exec或者db.Query等方法时，如果空闲数组中有连接，则直接获取，如果空闲数组中没有可用的连接，则会产生一个新的连接；</li>
+</ol>
+<h2>ping函数</h2>
+<p>这里用ping函数来演示，如何通过向上述的goroutine发送数据，并产生一个连接，来，看下ping函数:
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(db *DB)</span> <span class="title">Ping</span><span class="params">()</span> <span class="title">error</span></span> &#123;</div><div class="line">	<span class="comment">//获取一个连接</span></div><div class="line">	dc, err := db.conn(cachedOrNewConn)</div><div class="line">	<span class="keyword">if</span> err != <span class="literal">nil</span> &#123;</div><div class="line">		<span class="keyword">return</span> err</div><div class="line">	&#125;</div><div class="line">	<span class="comment">//将连接放入空闲数组中</span></div><div class="line">	db.putConn(dc, <span class="literal">nil</span>)</div><div class="line">	<span class="keyword">return</span> <span class="literal">nil</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>ping这个函数很简单，调用db.conn获取一个连接，参数表示获取策略，可以是</p>
+<ol>
+<li>cachedOrNewConn从空闲数组获取或者新新生成一个连接</li>
+<li>alwaysNewConn总是从新生成一个连接</li>
+</ol>
+<p>接下来，看下db.conn函数:
+<figure class="highlight stylus"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div></pre></td><td class="code"><pre><div class="line">func (db *DB) conn(strategy connReuseStrategy) (*driverConn, error) &#123;</div><div class="line">	db<span class="selector-class">.mu</span><span class="selector-class">.Lock</span>()</div><div class="line">	<span class="keyword">if</span> db<span class="selector-class">.closed</span> &#123;</div><div class="line">		db<span class="selector-class">.mu</span><span class="selector-class">.Unlock</span>()</div><div class="line">		return nil, errDBClosed</div><div class="line">	&#125;</div><div class="line">	<span class="comment">//如果策略可以从空闲连接数组中获取，且空闲连接大于0,则直接从空闲数组获取连接返回；</span></div><div class="line">	numFree := len(db.freeConn)</div><div class="line">	<span class="keyword">if</span> strategy == cachedOrNewConn &amp;&amp; numFree &gt; <span class="number">0</span> &#123;</div><div class="line">		conn := db<span class="selector-class">.freeConn</span>[<span class="number">0</span>]</div><div class="line">		copy(db<span class="selector-class">.freeConn</span>, db<span class="selector-class">.freeConn</span>[<span class="number">1</span>:])</div><div class="line">		db<span class="selector-class">.freeConn</span> = db<span class="selector-class">.freeConn</span>[:numFree-<span class="number">1</span>]</div><div class="line">		conn<span class="selector-class">.inUse</span> = true</div><div class="line">		db<span class="selector-class">.mu</span><span class="selector-class">.Unlock</span>()</div><div class="line">		return conn, nil</div><div class="line">	&#125;</div><div class="line">	<span class="comment">//如果当前打开的连接数大于设定的最大连接数，则阻塞在connQequest这个channel上，</span></div><div class="line">	<span class="comment">//下文再揭晓什么时候往这个channel写数据</span></div><div class="line">	<span class="keyword">if</span> db<span class="selector-class">.maxOpen</span> &gt; <span class="number">0</span> &amp;&amp; db<span class="selector-class">.numOpen</span> &gt;= db<span class="selector-class">.maxOpen</span> &#123;</div><div class="line">		req := make(chan connRequest, <span class="number">1</span>)</div><div class="line">		db<span class="selector-class">.connRequests</span> = append(db<span class="selector-class">.connRequests</span>, req)</div><div class="line">		db<span class="selector-class">.mu</span><span class="selector-class">.Unlock</span>()</div><div class="line">		ret := &lt;-req</div><div class="line">		return ret<span class="selector-class">.conn</span>, ret<span class="selector-class">.err</span></div><div class="line">	&#125;</div><div class="line">	<span class="comment">//如果空闲连接数组中没有可用连接，且当前打开连接数还没达到最大值，则直接生成一个连接；</span></div><div class="line">	db.numOpen++ </div><div class="line">	db<span class="selector-class">.mu</span><span class="selector-class">.Unlock</span>()</div><div class="line">	ci, err := db<span class="selector-class">.driver</span><span class="selector-class">.Open</span>(db.dsn)</div><div class="line">	<span class="keyword">if</span> err != nil &#123;</div><div class="line">		db<span class="selector-class">.mu</span><span class="selector-class">.Lock</span>()</div><div class="line">		db<span class="selector-class">.numOpen--</span> <span class="comment">// 获取失败，则当前连接数减一</span></div><div class="line">		db<span class="selector-class">.mu</span><span class="selector-class">.Unlock</span>()</div><div class="line">		return nil, err</div><div class="line">	&#125;</div><div class="line">	db<span class="selector-class">.mu</span><span class="selector-class">.Lock</span>()</div><div class="line">	<span class="comment">//封装成driverConn</span></div><div class="line">	dc := &amp;driverConn&#123;</div><div class="line">		db: db,</div><div class="line">		ci: ci,</div><div class="line">	&#125;</div><div class="line">	db.addDepLocked(dc, dc)</div><div class="line">	dc<span class="selector-class">.inUse</span> = true</div><div class="line">	db<span class="selector-class">.mu</span><span class="selector-class">.Unlock</span>()</div><div class="line">	return dc, nil</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从这个函数可以看出，并不是所有连接都是从之前提到的那个goroutine产生，这个db.conn也会直接调用driver.Open函数产生连接；接下来看下ping函数内部是如何把连接放入空闲连接数组中的；
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">func (<span class="keyword">db</span> *<span class="keyword">DB</span>) putConn(dc *driverConn, <span class="keyword">err</span> <span class="keyword">error</span>) &#123;</div><div class="line">	<span class="keyword">db</span>.mu.Lock()</div><div class="line">	<span class="keyword">if</span> <span class="keyword">err</span> == driver.ErrBadConn &#123;</div><div class="line">		<span class="keyword">db</span>.maybeOpenNewConnections()</div><div class="line">		<span class="keyword">db</span>.mu.Unlock()</div><div class="line">		dc.<span class="keyword">Close</span>()</div><div class="line">		<span class="built_in">return</span></div><div class="line">	&#125;</div><div class="line">	added := <span class="keyword">db</span>.putConnDBLocked(dc, nil)</div><div class="line">	<span class="keyword">db</span>.mu.Unlock()</div><div class="line"></div><div class="line">	<span class="keyword">if</span> !added &#123;</div><div class="line">		dc.<span class="keyword">Close</span>()</div><div class="line">	&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数内部，如果传进来的err为driver.ErrBadConn，那么之前在调用db.conn时获取的是一个无效的连接，因此这里需要调用db.maybeOpenNewConnections()来产生新连接；这个函数后面分析，先来看下added := db.putConnDBLocked(dc, nil)
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div></pre></td><td class="code"><pre><div class="line">func (<span class="keyword">db</span> *<span class="keyword">DB</span>) putConnDBLocked(dc *driverConn, <span class="keyword">err</span> <span class="keyword">error</span>) bool &#123;</div><div class="line">	<span class="keyword">if</span> <span class="keyword">db</span>.maxOpen &gt; 0 &amp;&amp; <span class="keyword">db</span>.numOpen &gt; <span class="keyword">db</span>.maxOpen &#123;</div><div class="line">		<span class="keyword">return</span> false</div><div class="line">	&#125;</div><div class="line">	<span class="comment">//如果有goroutine阻塞在获取连接上，则将这个本应该放回空闲连接数组的连接</span></div><div class="line">	<span class="comment">//返回给那个goroutine</span></div><div class="line">	<span class="keyword">if</span> c := len(<span class="keyword">db</span>.connRequests); c &gt; 0 &#123;</div><div class="line">		req := <span class="keyword">db</span>.connRequests[0]</div><div class="line">		<span class="keyword">copy</span>(<span class="keyword">db</span>.connRequests, <span class="keyword">db</span>.connRequests[1:])</div><div class="line">		<span class="keyword">db</span>.connRequests = <span class="keyword">db</span>.connRequests[:c-1]</div><div class="line">		<span class="keyword">if</span> <span class="keyword">err</span> == nil &#123;</div><div class="line">			dc.inUse = true</div><div class="line">		&#125;</div><div class="line">		req &lt;- connRequest&#123;</div><div class="line">			conn: dc,</div><div class="line">			<span class="keyword">err</span>:  <span class="keyword">err</span>,</div><div class="line">		&#125;</div><div class="line">		<span class="keyword">return</span> true</div><div class="line">	<span class="comment">//否则将这个连接放入空闲数组中</span></div><div class="line">	&#125; <span class="keyword">else</span> <span class="keyword">if</span> <span class="keyword">err</span> == nil &amp;&amp; !<span class="keyword">db</span>.closed &amp;&amp; <span class="keyword">db</span>.maxIdleConnsLocked() &gt; len(<span class="keyword">db</span>.freeConn) &#123;</div><div class="line">		<span class="keyword">db</span>.freeConn = <span class="keyword">append</span>(<span class="keyword">db</span>.freeConn, dc)</div><div class="line">		<span class="keyword">return</span> true</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> false</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>ok，到这里，可以做个小结</p>
+<ul>
+<li>当某个goroutine需要一个连接的时候，首先查看空闲连接数组中是否有可用连接，如果有，则直接从空闲数组中获取；如果空闲数组中没有可用的连接，则需要判断当前打开的连接数是否超出设定的最大值，如果是，则当前goroutine阻塞；如果当前打开的连接数并没有大于设定的最大值，则直接生产一个连接返回；</li>
+<li>当某个goroutine结束数据库操作时，将当前使用的连接放入空闲连接数组中，这时需要进行判断，是否有某个goroutine阻塞在获取连接上，如果有，则将当前的连接直接返回给阻塞的goroutine，如果没有goroutine阻塞在获取连接上，则可以直接放入空闲连接数组即可；</li>
+</ul>
+<p>之前还提到一个问题，就是当在putConn函数中，如果传入的是一个badConn，那么这时可能要生成新的连接；道理也很简单，因为如果某个goroutine阻塞在获取连接上，那么可能因为这个连接未及时调用putConn而阻塞更久；</p>
+<p>我们来看下这个db.maybeOpenNewConnections()函数
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">func (<span class="keyword">db</span> *<span class="keyword">DB</span>) maybeOpenNewConnections() &#123;</div><div class="line">	<span class="comment">//需要产生新的连接数量，db.pendingOpens是正在生成连接的数量</span></div><div class="line">	numRequests := len(<span class="keyword">db</span>.connRequests) - <span class="keyword">db</span>.pendingOpens</div><div class="line">	<span class="keyword">if</span> <span class="keyword">db</span>.maxOpen &gt; 0 &#123;</div><div class="line">		numCanOpen := <span class="keyword">db</span>.maxOpen - (<span class="keyword">db</span>.numOpen + <span class="keyword">db</span>.pendingOpens)</div><div class="line">		<span class="keyword">if</span> numRequests &gt; numCanOpen &#123;</div><div class="line">			numRequests = numCanOpen</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">for</span> numRequests &gt; 0 &#123;</div><div class="line">		<span class="keyword">db</span>.pendingOpens++</div><div class="line">		numRequests--</div><div class="line">		<span class="comment">//向db.openerCh发送数据，connectionOpener便会产生一个新连接</span></div><div class="line">		<span class="keyword">db</span>.openerCh &lt;- struct&#123;&#125;&#123;&#125;</div><div class="line">	&#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>到这里，才知道，原来一开始产生db的时候，新建的goroutine是在当连接出错时，用来生产连接的；</p>
+<h2>db.Query方法</h2>
+<p>之前已经知道如何获取一个连接，接着我们可以用db.Query是方法是如何实现的；
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">func (<span class="keyword">db</span> *<span class="keyword">DB</span>) <span class="keyword">Query</span>(<span class="keyword">query</span> string, <span class="keyword">args</span> ...interface&#123;&#125;) (*Rows, <span class="keyword">error</span>) &#123;</div><div class="line">	<span class="keyword">var</span> rows *Rows</div><div class="line">	<span class="keyword">var</span> <span class="keyword">err</span> <span class="keyword">error</span></div><div class="line">	<span class="keyword">for</span> i := 0; i &lt; maxBadConnRetries; i++ &#123;</div><div class="line">		rows, <span class="keyword">err</span> = <span class="keyword">db</span>.<span class="keyword">query</span>(<span class="keyword">query</span>, <span class="keyword">args</span>, cachedOrNewConn)</div><div class="line">		<span class="keyword">if</span> <span class="keyword">err</span> != driver.ErrBadConn &#123;</div><div class="line">			<span class="keyword">break</span></div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">if</span> <span class="keyword">err</span> == driver.ErrBadConn &#123;</div><div class="line">		<span class="keyword">return</span> <span class="keyword">db</span>.<span class="keyword">query</span>(<span class="keyword">query</span>, <span class="keyword">args</span>, alwaysNewConn)</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> rows, <span class="keyword">err</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>这个函数，最终调用的是db.query()函数
+<figure class="highlight stata"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//database/sql/sql.go</span></div><div class="line">func (<span class="keyword">db</span> *<span class="keyword">DB</span>) <span class="keyword">query</span>(<span class="keyword">query</span> string, <span class="keyword">args</span> []interface&#123;&#125;, strategy connReuseStrategy) (*Rows, <span class="keyword">error</span>) &#123;</div><div class="line">	<span class="comment">//调用db.conn获取连接，如果出错，则回到Query方法的for循环中</span></div><div class="line">	<span class="keyword">ci</span>, <span class="keyword">err</span> := <span class="keyword">db</span>.conn(strategy)</div><div class="line">	<span class="keyword">if</span> <span class="keyword">err</span> != nil &#123;</div><div class="line">		<span class="keyword">return</span> nil, <span class="keyword">err</span></div><div class="line">	&#125;</div><div class="line"></div><div class="line">	<span class="keyword">return</span> <span class="keyword">db</span>.queryConn(<span class="keyword">ci</span>, <span class="keyword">ci</span>.releaseConn, <span class="keyword">query</span>, <span class="keyword">args</span>)</div><div class="line">&#125;</div><div class="line"><span class="comment">/*-------------------------------------------------------------*/</span></div><div class="line">func (<span class="keyword">db</span> *<span class="keyword">DB</span>) queryConn(dc *driverConn, releaseConn func(<span class="keyword">error</span>), <span class="keyword">query</span> string, <span class="keyword">args</span> []interface&#123;&#125;) (*Rows, <span class="keyword">error</span>) &#123;</div><div class="line">	<span class="comment">//driver.Queryer是一个接口，只有query方法；从驱动中获取的</span></div><div class="line">	<span class="comment">//连接必须实现Query方法，</span></div><div class="line">	<span class="keyword">if</span> queryer, ok := dc.<span class="keyword">ci</span>.(driver.Queryer); ok &#123;</div><div class="line">		dargs, <span class="keyword">err</span> := driverArgs(nil, <span class="keyword">args</span>)</div><div class="line">		<span class="keyword">if</span> <span class="keyword">err</span> != nil &#123;</div><div class="line">			releaseConn(<span class="keyword">err</span>)</div><div class="line">			<span class="keyword">return</span> nil, <span class="keyword">err</span></div><div class="line">		&#125;</div><div class="line">		dc.Lock()</div><div class="line">		<span class="comment">//调用go-sql-driver中连接的Query方法</span></div><div class="line">		rowsi, <span class="keyword">err</span> := queryer.<span class="keyword">Query</span>(<span class="keyword">query</span>, dargs)</div><div class="line">		dc.Unlock()</div><div class="line">		<span class="keyword">if</span> <span class="keyword">err</span> != driver.ErrSkip &#123;</div><div class="line">			<span class="keyword">if</span> <span class="keyword">err</span> != nil &#123;</div><div class="line">				releaseConn(<span class="keyword">err</span>)</div><div class="line">				<span class="keyword">return</span> nil, <span class="keyword">err</span></div><div class="line">			&#125;</div><div class="line">			<span class="comment">// 将结果封装成Rows</span></div><div class="line">			rows := &amp;Rows&#123;</div><div class="line">				dc:          dc,</div><div class="line">				releaseConn: releaseConn,</div><div class="line">				rowsi:       rowsi,</div><div class="line">			&#125;</div><div class="line">			<span class="keyword">return</span> rows, nil</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	...省去一些代码...</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从queryConn函数可以看出，db.Query方法最终调用go-sql-driver驱动中mysqlConn.Query方法，最后将结果封装成Rows，返回给客户端；最后看下go-sql-driver的mysqlConn.Query方法
+<figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">func</span> <span class="params">(mc *mysqlConn)</span> <span class="title">Query</span><span class="params">(query <span class="keyword">string</span>, args []driver.Value)</span> <span class="params">(driver.Rows, error)</span></span> &#123;</div><div class="line">	<span class="keyword">if</span> mc.netConn == <span class="literal">nil</span> &#123;</div><div class="line">		errLog.Print(ErrInvalidConn)</div><div class="line">		<span class="keyword">return</span> <span class="literal">nil</span>, driver.ErrBadConn</div><div class="line">	&#125;</div><div class="line">	<span class="comment">// 发送sql语句请求，comQuery是查询类型</span></div><div class="line">	err := mc.writeCommandPacketStr(comQuery, query)</div><div class="line">	<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</div><div class="line">		<span class="comment">// 读取结果</span></div><div class="line">		<span class="keyword">var</span> resLen <span class="keyword">int</span></div><div class="line">		resLen, err = mc.readResultSetHeaderPacket()</div><div class="line">		<span class="keyword">if</span> err == <span class="literal">nil</span> &#123;</div><div class="line">			rows := <span class="built_in">new</span>(textRows)</div><div class="line">			rows.mc = mc</div><div class="line"></div><div class="line">			<span class="keyword">if</span> resLen == <span class="number">0</span> &#123;</div><div class="line">				<span class="comment">// no columns, no more data</span></div><div class="line">				<span class="keyword">return</span> emptyRows&#123;&#125;, <span class="literal">nil</span></div><div class="line">			&#125;</div><div class="line">			<span class="comment">// Columns</span></div><div class="line">			rows.columns, err = mc.readColumns(resLen)</div><div class="line">			<span class="keyword">return</span> rows, err</div><div class="line">		&#125;</div><div class="line">	&#125;</div><div class="line">	<span class="keyword">return</span> <span class="literal">nil</span>, err</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>可以看到，对于实现database/sql接口的驱动，操作的是真实的数据库，然后将结果返回给database/sql中的方法；其他方法类似，这里不一一分析；</p>
+<h1>总结</h1>
+<p>这篇文章主要分析了golang的database/sql模块是如何调用驱动中定义的方法；了解这些之后，对于使用database/sql将会更加得心应手，以及在驱动出现错误时，可以更快速的定位到错误；</p>
+<p>之前看到很多地方都有用到protobuf，因此决定好好研究下这个框架，下次理解透之后，在发出来.</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/golang/" rel="tag">#golang</a>
+          
+            <a href="/tags/database-sql/" rel="tag">#database/sql</a>
+          
+            <a href="/tags/go-sql-driver/" rel="tag">#go-sql-driver</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/08/23/golang01/" rel="next" title="golang语言之groupcache">
+                <i class="fa fa-chevron-left"></i> golang语言之groupcache
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/09/04/golang03/" rel="prev" title="从汇编角度理解golang多值返回和闭包">
+                从汇编角度理解golang多值返回和闭包 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/08/28/golang02/"
+     data-title="golang之database/sql与go-sql-driver"
+     data-content=""
+     data-url="http://luodw.cc/2016/08/28/golang02/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/08/28/golang02/"
+           data-title="golang之database/sql与go-sql-driver" data-url="http://luodw.cc/2016/08/28/golang02/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">database/sql与go-sql-driver</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.1.</span> <span class="nav-text">获取一个数据库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.2.</span> <span class="nav-text">ping函数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#undefined"><span class="nav-number">2.3.</span> <span class="nav-text">db.Query方法</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

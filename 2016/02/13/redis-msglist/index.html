@@ -1,0 +1,1083 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="redis," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="redis消息队列之链表实现
+之前在知乎上看到用redis来实现消息队列，其实消息队列，linux在进程间通信有提到过，以及在memcache主线程和工作线程之间通信也是通过消息队列，但是我认为redis消息队列有一个好处，就是可以实现分布式和共享，就和memcache作为mysql的缓存和mysql自带的缓存一样。
+redis有两种方式实现消息队列
+
+用redis自带的链表数据结构
+用redis">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis消息队列之链表实现">
+<meta property="og:url" content="http://luodw.cc/2016/02/13/redis-msglist/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="redis消息队列之链表实现
+之前在知乎上看到用redis来实现消息队列，其实消息队列，linux在进程间通信有提到过，以及在memcache主线程和工作线程之间通信也是通过消息队列，但是我认为redis消息队列有一个好处，就是可以实现分布式和共享，就和memcache作为mysql的缓存和mysql自带的缓存一样。
+redis有两种方式实现消息队列
+
+用redis自带的链表数据结构
+用redis">
+<meta property="og:updated_time" content="2017-03-16T08:51:34.133Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="redis消息队列之链表实现">
+<meta name="twitter:description" content="redis消息队列之链表实现
+之前在知乎上看到用redis来实现消息队列，其实消息队列，linux在进程间通信有提到过，以及在memcache主线程和工作线程之间通信也是通过消息队列，但是我认为redis消息队列有一个好处，就是可以实现分布式和共享，就和memcache作为mysql的缓存和mysql自带的缓存一样。
+redis有两种方式实现消息队列
+
+用redis自带的链表数据结构
+用redis">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2016/02/13/redis-msglist/"/>
+
+
+  <title> redis消息队列之链表实现 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                redis消息队列之链表实现
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-13T11:03:45+08:00" content="2016-02-13">
+              2016-02-13
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2016/02/13/redis-msglist/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/02/13/redis-msglist/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/13/redis-msglist/" class="leancloud_visitors" data-flag-title="redis消息队列之链表实现">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1>redis消息队列之链表实现</h1>
+<p>之前在知乎上看到用redis来实现消息队列，其实消息队列，linux在进程间通信有提到过，以及在memcache主线程和工作线程之间通信也是通过消息队列，但是我认为redis消息队列有一个好处，就是可以实现分布式和共享，就和memcache作为mysql的缓存和mysql自带的缓存一样。</p>
+<p>redis有两种方式实现消息队列</p>
+<ol>
+<li>用redis自带的链表数据结构</li>
+<li>用redis发布/订阅模式</li>
+</ol>
+<h1>链表实现消息队列</h1>
+<p>redis链表支持前后插入以及前后取出，所以如果往尾部插入元素，往头部取出元素，这就是一种消息队列，也可以说是消费者/生产者模型。可以利用lpush和rpop来实现。但是有一个问题，如果链表中没有数据，那么消费者将要在while循环中调用rpop，这样以来就浪费cpu资源，好在redis提供一种阻塞版pop命令brpop或者blpop，用法为brpop/blpop list timeout, 当链表为空的时候，brpop/blpop将阻塞，直到设置超时时间到或者list插入一个元素。看下用法如下:
+<figure class="highlight lasso"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">charles@charles<span class="params">-Aspire</span><span class="number">-4741</span>:~/mydir/mylib/redis$ ./src/redis<span class="params">-cli</span></div><div class="line"><span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">6379</span>&gt; lpush <span class="built_in">list</span> hello</div><div class="line">(<span class="built_in">integer</span>) <span class="number">1</span></div><div class="line"><span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">6379</span>&gt; brpop <span class="built_in">list</span> <span class="number">0</span></div><div class="line"><span class="number">1</span>) <span class="string">"list"</span></div><div class="line"><span class="number">2</span>) <span class="string">"hello"</span></div><div class="line"><span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">6379</span>&gt; brpop <span class="built_in">list</span> <span class="number">0</span></div><div class="line"><span class="comment">//阻塞在这里</span></div><div class="line"><span class="comment">/* ---------------------------------------------------- */</span></div><div class="line"><span class="comment">//当我在另一个客户端lpush一个元素之后，客户端输出为</span></div><div class="line"><span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span>:<span class="number">6379</span>&gt; brpop <span class="built_in">list</span> <span class="number">0</span></div><div class="line"><span class="number">1</span>) <span class="string">"list"</span></div><div class="line"><span class="number">2</span>) <span class="string">"world"</span></div><div class="line">(<span class="number">50.60</span>s)<span class="comment">//阻塞的时间</span></div></pre></td></tr></table></figure></p>
+<p>当链表为空的时候，brpop是阻塞的，等待超时时间到或者另一个客户端lpush一个元素。接下来，看下源码是如何实现阻塞brpop命令的。要实现客户端阻塞，只需要服务器不给客户端发送消息，那么客户端就会阻塞在read调用中，等待消息到达。这是很好实现的，关键是如何判断这个客户端阻塞的链表有数据到达以及通知客户端解除阻塞？redis的做法是，将阻塞的键以及阻塞在这个键上的客户端链表存储在一个字典中，然后每当向数据库插入一个链表时，就判断这个新插入的链表是否有客户端阻塞，有的话，就解除这个阻塞的客户端，并且发送刚插入链表元素给客户端，客户端就这样解除阻塞。</p>
+<p>先看下有关数据结构，以及server和client有关属性
+<figure class="highlight thrift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//阻塞状态</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">blockingState</span> </span>&#123;</div><div class="line">    <span class="comment">/* Generic fields. */</span></div><div class="line">    mstime_t timeout;       <span class="comment">/* 超时时间 */</span></div><div class="line"></div><div class="line">    <span class="comment">/* REDIS_BLOCK_LIST */</span></div><div class="line">    dict *keys;             <span class="comment">/* The keys we are waiting to terminate a blocking</span></div><div class="line">                             * operation such as BLPOP. Otherwise NULL. */</div><div class="line">    robj *target;           <span class="comment">/* The key that should receive the element,</span></div><div class="line">                             * for BRPOPLPUSH. */</div><div class="line"></div><div class="line">    <span class="comment">/* REDIS_BLOCK_WAIT */</span></div><div class="line">    int numreplicas;        <span class="comment">/* Number of replicas we are waiting for ACK. */</span></div><div class="line">    long long reploffset;   <span class="comment">/* Replication offset to reach. */</span></div><div class="line">&#125; blockingState;</div><div class="line"><span class="comment">//继续列表</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">readyList</span> </span>&#123;</div><div class="line">    redisDb *db;<span class="comment">//就绪键所在的数据库</span></div><div class="line">    robj *key;<span class="comment">//就绪键</span></div><div class="line">&#125; readyList;</div><div class="line"><span class="comment">//客户端有关属性</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisClient</span> </span>&#123;</div><div class="line">   int btype;              <span class="comment">/* Type of blocking op if REDIS_BLOCKED. */</span></div><div class="line">    blockingState bpop;     <span class="comment">/* blocking state */</span></div><div class="line">&#125;</div><div class="line"><span class="comment">//服务器有关属性</span></div><div class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> </span>&#123;</div><div class="line">     <span class="comment">/* Blocked clients */</span></div><div class="line">    unsigned int bpop_blocked_clients; <span class="comment">/* Number of clients blocked by lists */</span></div><div class="line">    <span class="keyword">list</span> *unblocked_clients; <span class="comment">/* list of clients to unblock before next loop */</span></div><div class="line">    <span class="keyword">list</span> *ready_keys;        <span class="comment">/* List of readyList structures for BLPOP &amp; co */</span></div><div class="line">&#125;</div><div class="line"><span class="comment">//数据库有关属性</span></div><div class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisDb</span> </span>&#123;</div><div class="line">       <span class="comment">//keys-&gt;redisCLient映射</span></div><div class="line">       dict *blocking_keys;        <span class="comment">/* Keys with clients waiting for data (BLPOP) */</span></div><div class="line">    dict *ready_keys;           <span class="comment">/* Blocked keys that received a PUSH */</span></div><div class="line">&#125;redisDB</div></pre></td></tr></table></figure></p>
+<p>必须对上述的数据结构足够了解，否则很难看懂下面的代码，因为这些代码需要操作上述的数据结构。先从brpop命令执行函数开始分析，brpop命令执行函数为
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div></pre></td><td class="code"><pre><div class="line">void brpopCommand(redisClient *c) &#123;</div><div class="line">    blockingPopGenericCommand(c,REDIS_TAIL);</div><div class="line">&#125;</div><div class="line"><span class="comment">//++++++++++++++++++++++++++++++++++++++++++++++++++</span></div><div class="line">void blockingPopGenericCommand(redisClient *c, int <span class="keyword">where</span>) &#123;</div><div class="line">    robj *o;</div><div class="line">    mstime_t timeout;</div><div class="line">    int j;</div><div class="line"></div><div class="line">    <span class="function"><span class="title">if</span> (getTimeoutFromObjectOrReply(c,c-&gt;</span><span class="function"><span class="title">argv</span>[c-&gt;</span>argc-<span class="number">1</span>],&amp;timeout,UNIT_SECONDS)</div><div class="line">        != REDIS_OK) return;<span class="comment">//将超时时间保存在timeout中</span></div><div class="line"></div><div class="line">    <span class="function"><span class="title">for</span> (j = 1; j &lt; c-&gt;</span>argc-<span class="number">1</span>; j++) &#123;</div><div class="line">        <span class="function"><span class="title">o</span> = lookupKeyWrite(c-&gt;</span><span class="function"><span class="title">db</span>,c-&gt;</span>argv[j]);<span class="comment">//在数据库中查找操作的链表</span></div><div class="line">        <span class="keyword">if</span> (o != NULL) &#123;<span class="comment">//如果不为空</span></div><div class="line">            <span class="function"><span class="title">if</span> (o-&gt;</span>type != REDIS_LIST) &#123;<span class="comment">//不是链表类型</span></div><div class="line">                addReply(c,shared.wrongtypeerr);<span class="comment">//报错</span></div><div class="line">                return;</div><div class="line">            &#125; <span class="keyword">else</span> &#123;</div><div class="line">                <span class="keyword">if</span> (listTypeLength(o) != <span class="number">0</span>) &#123;<span class="comment">//链表不为空</span></div><div class="line">                    <span class="comment">/* Non empty list, this is like a non normal [LR]POP. */</span></div><div class="line">                    char *event = (<span class="keyword">where</span> == REDIS_HEAD) ? <span class="string">"lpop"</span> : <span class="string">"rpop"</span>;</div><div class="line">                    robj *value = listTypePop(o,<span class="keyword">where</span>);<span class="comment">//从链表中pop出一个元素</span></div><div class="line">                    redisAssert(value != NULL);</div><div class="line">                    <span class="comment">//给客户端发送pop出来的元素信息</span></div><div class="line">                    addReplyMultiBulkLen(c,<span class="number">2</span>);</div><div class="line">                    <span class="function"><span class="title">addReplyBulk</span>(c,c-&gt;</span>argv[j]);</div><div class="line">                    addReplyBulk(c,value);</div><div class="line">                    decrRefCount(value);</div><div class="line">                    notifyKeyspaceEvent(REDIS_NOTIFY_LIST,event,</div><div class="line">                                        <span class="function"><span class="title">c</span>-&gt;</span><span class="function"><span class="title">argv</span>[j],c-&gt;</span><span class="function"><span class="title">db</span>-&gt;</span>id);</div><div class="line">                    <span class="keyword">if</span> (listTypeLength(o) == <span class="number">0</span>) &#123;<span class="comment">//如果链表为空，从数据库删除链表</span></div><div class="line">                        <span class="function"><span class="title">dbDelete</span>(c-&gt;</span><span class="function"><span class="title">db</span>,c-&gt;</span>argv[j]);</div><div class="line">                        notifyKeyspaceEvent(REDIS_NOTIFY_GENERIC,<span class="string">"del"</span>,</div><div class="line">                                            <span class="function"><span class="title">c</span>-&gt;</span><span class="function"><span class="title">argv</span>[j],c-&gt;</span><span class="function"><span class="title">db</span>-&gt;</span>id);</div><div class="line">                    &#125;</div><div class="line">                 <span class="comment">/* 省略一部分 */</span></div><div class="line">               &#125;</div><div class="line">          &#125;</div><div class="line">       &#125;</div><div class="line">    &#125;</div><div class="line">     <span class="comment">/* 如果链表为空，则阻塞客户端 */</span></div><div class="line">        <span class="function"><span class="title">blockForKeys</span>(c, c-&gt;</span><span class="function"><span class="title">argv</span> + 1, c-&gt;</span>argc - <span class="number">2</span>, timeout, NULL);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从源码可以看出，brpop可以操作多个链表变量，例如brpop list1 list2 0，但是只能输出第一个有元素的链表。如果list1没有元素，而list2有元素，则输出list2的元素；如果两个都有元素，则输出list1的元素；如果都没有元素，则等待其中某个链表插入一个元素，之后在2返回。最后调用blockForyKeys阻塞
+<figure class="highlight zephir"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line">void blockForKeys(redisClient *c, robj **keys, <span class="keyword">int</span> numkeys, mstime_t timeout, robj *target) &#123;</div><div class="line">    dictEntry *de;</div><div class="line">    <span class="keyword">list</span> *l;</div><div class="line">    <span class="keyword">int</span> j;</div><div class="line"></div><div class="line">    c-&gt;bpop.timeout = timeout;<span class="comment">//超时时间赋值给客户端blockingState属性</span></div><div class="line">    c-&gt;bpop.target = target;<span class="comment">//这属性适用于brpoplpush命令的输入对象，如果是brpop,    //则target为空</span></div><div class="line"></div><div class="line">    <span class="keyword">if</span> (target != <span class="keyword">NULL</span>) incrRefCount(target);<span class="comment">//不为空，增加引用计数</span></div><div class="line"></div><div class="line">    <span class="keyword">for</span> (j = <span class="number">0</span>; j &lt; numkeys; j++) &#123;</div><div class="line">        <span class="comment">/* 将阻塞的key存入c.bpop.keys字典中 */</span></div><div class="line">        <span class="keyword">if</span> (dictAdd(c-&gt;bpop.keys,keys[j],<span class="keyword">NULL</span>) != DICT_OK) <span class="keyword">continue</span>;</div><div class="line">        incrRefCount(keys[j]);</div><div class="line"></div><div class="line">        <span class="comment">/* And in the other "side", to map keys -&gt; clients */</span></div><div class="line">        <span class="comment">//将阻塞的key和客户端添加进c-&gt;db-&gt;blocking_keys</span></div><div class="line">        de = dictFind(c-&gt;db-&gt;blocking_keys,keys[j]);</div><div class="line">        <span class="keyword">if</span> (de == <span class="keyword">NULL</span>) &#123;</div><div class="line">            <span class="keyword">int</span> retval;</div><div class="line"></div><div class="line">            <span class="comment">/* For every key we take a list of clients blocked for it */</span></div><div class="line">            l = listCreate();</div><div class="line">            retval = dictAdd(c-&gt;db-&gt;blocking_keys,keys[j],l);</div><div class="line">            incrRefCount(keys[j]);</div><div class="line">            redisAssertWithInfo(c,keys[j],retval == DICT_OK);</div><div class="line">        &#125; <span class="keyword">else</span> &#123;</div><div class="line">            l = dictGetVal(de);</div><div class="line">        &#125;</div><div class="line">        listAddNodeTail(l,c);<span class="comment">//添加到阻塞键的客户点链表中</span></div><div class="line">    &#125;</div><div class="line">    blockClient(c,REDIS_BLOCKED_LIST);<span class="comment">//设置客户端阻塞标志</span></div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>blockClient函数只是简单的设置客户端属性，如下
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">void blockClient(redisClient *c, int btype) &#123;</div><div class="line">    <span class="function"><span class="title">c</span>-&gt;</span>flags |= REDIS_BLOCKED;<span class="comment">//设置标志</span></div><div class="line">    <span class="function"><span class="title">c</span>-&gt;</span>btype = btype;<span class="comment">//阻塞操作类型</span></div><div class="line">    server.bpop_blocked_clients++;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>由于这个函数之后，brpop命令执行函数就结束了，由于没有给客户端发送消息，所以客户端就阻塞在read调用中。那么如何解开客户端的阻塞了？</p>
+<h1>插入一个元素解阻塞</h1>
+<p>任何指令的执行函数都是在processCommand函数中调用call函数，然后在call函数中调用命令执行函数，lpush也一样。当执行完lpush之后，此时链表不为空，回到processCommand调用中，执行以下语句
+<figure class="highlight lisp"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">if (<span class="name">listLength</span>(<span class="name">server</span>.ready_keys))</div><div class="line">          handleClientsBlockedOnLists()<span class="comment">;</span></div></pre></td></tr></table></figure></p>
+<p>这两行代码是先检查server.ready_keys是否为空，如果不为空，说明已经有一些就绪的链表，此时可以判断是否有客户端阻塞在这个键值上，如果有，则唤醒；现在问题又来了，这个server.ready_keys在哪更新链表了？</p>
+<p>原来是在dbAdd函数中，当往数据库中添加的值类型为REDIS-LIST时，这时就要调用signalListAsReady函数将链表指针添加进server.ready_keys:
+<figure class="highlight gauss"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div></pre></td><td class="code"><pre><div class="line"><span class="comment">//db.c</span></div><div class="line">void dbAdd(redisDb *db, robj *<span class="built_in">key</span>, robj *val) &#123;</div><div class="line">    sds copy = sdsdup(<span class="built_in">key</span>-&gt;ptr);</div><div class="line">    int retval = dictAdd(db-&gt;dict, copy, val);<span class="comment">//将数据添加进数据库</span></div><div class="line"></div><div class="line">    redisAssertWithInfo(<span class="built_in">NULL</span>,<span class="built_in">key</span>,retval == REDIS_OK);</div><div class="line">    <span class="comment">//判断是否为链表类型，如果是，调用有链表已经ready函数</span></div><div class="line">    <span class="keyword">if</span> (val-&gt;<span class="built_in">type</span> == REDIS_LIST) signalListAsReady(db, <span class="built_in">key</span>);</div><div class="line">    <span class="keyword">if</span> (server.cluster_enabled) slotToKeyAdd(<span class="built_in">key</span>);</div><div class="line"> &#125;</div><div class="line"><span class="comment">//t_list.c</span></div><div class="line">void signalListAsReady(redisDb *db, robj *<span class="built_in">key</span>) &#123;</div><div class="line">    readyList *rl;</div><div class="line"></div><div class="line">    <span class="comment">/* 没有客户端阻塞在这个键上，则直接返回. */</span></div><div class="line">    <span class="keyword">if</span> (dictFind(db-&gt;blocking_keys,<span class="built_in">key</span>) == <span class="built_in">NULL</span>) <span class="keyword">return</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* 这个键已近被唤醒了，所以没必要重新入队 */</span></div><div class="line">    <span class="keyword">if</span> (dictFind(db-&gt;ready_keys,<span class="built_in">key</span>) != <span class="built_in">NULL</span>) <span class="keyword">return</span>;</div><div class="line"></div><div class="line">    <span class="comment">/* Ok, 除了上述两情况，把这个键放入server.ready_keys */</span></div><div class="line">    rl = zmalloc(sizeof(*rl));</div><div class="line">    rl-&gt;<span class="built_in">key</span> = <span class="built_in">key</span>;</div><div class="line">    rl-&gt;db = db;</div><div class="line">    incrRefCount(<span class="built_in">key</span>);</div><div class="line">    listAddNodeTail(server.ready_keys,rl);<span class="comment">//添加链表末尾</span></div><div class="line"></div><div class="line">    <span class="comment">/* We also add the key in the db-&gt;ready_keys dictionary in order</span></div><div class="line">     * to avoid adding it multiple times into a list with a simple O(1)</div><div class="line">     * check. */</div><div class="line">    incrRefCount(<span class="built_in">key</span>);</div><div class="line">    <span class="comment">//同时将这个阻塞键放入db-&gt;ready_keys</span></div><div class="line">    redisAssert(dictAdd(db-&gt;ready_keys,<span class="built_in">key</span>,<span class="built_in">NULL</span>) == DICT_OK);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>OK，这时server.ready_keys上已经有就绪键了，这时就调用processCommand函数中的handleClientsBlockedOnLists()函数来处理阻塞客户端,在这个函数中，
+<figure class="highlight xl"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div></pre></td><td class="code"><pre><div class="line">void handleClientsBlockedOnLists(void) &#123;</div><div class="line">    <span class="keyword">while</span>(listLength(server.ready_keys) != <span class="number">0</span>) &#123;</div><div class="line">        list *l;</div><div class="line">        <span class="comment">/* 将server.ready_keys赋给一个新的list,再将server.ready_keys清空  */</span></div><div class="line">        l = server.ready_keys;</div><div class="line">        server.ready_keys = listCreate();</div><div class="line">        <span class="comment">/* 迭代每一个就绪的每一个readyList  */</span></div><div class="line">        <span class="keyword">while</span>(listLength(l) != <span class="number">0</span>) &#123;</div><div class="line">            listNode *ln = listFirst(l);<span class="comment">//获取第一个就绪readyList</span></div><div class="line">            <span class="function"><span class="title">readyList</span> *rl = ln-&gt;</span>value;</div><div class="line"></div><div class="line">            <span class="comment">/* 从rl所属的数据库中删除rl */</span></div><div class="line">            <span class="function"><span class="title">dictDelete</span>(rl-&gt;</span><span class="function"><span class="title">db</span>-&gt;</span><span class="function"><span class="title">ready_keys</span>,rl-&gt;</span>key);</div><div class="line"></div><div class="line">            <span class="comment">/* 查询rl所属的数据库查找rl-&gt;key ,给阻塞客户端回复rl-&gt;key链表中的第一个元素*/</span></div><div class="line">            <span class="function"><span class="title">robj</span> *o = lookupKeyWrite(rl-&gt;</span><span class="function"><span class="title">db</span>,rl-&gt;</span>key);</div><div class="line">            <span class="function"><span class="title">if</span> (o != NULL &amp;&amp; o-&gt;</span>type == REDIS_LIST) &#123;</div><div class="line">                dictEntry *de;</div><div class="line"></div><div class="line">                <span class="comment">/* 在rl-&gt;db-&gt;blocking_keys查找阻塞在rl-&gt;key的客户端链表 */</span></div><div class="line">                <span class="function"><span class="title">de</span> = dictFind(rl-&gt;</span><span class="function"><span class="title">db</span>-&gt;</span><span class="function"><span class="title">blocking_keys</span>,rl-&gt;</span>key);</div><div class="line">                <span class="keyword">if</span> (de) &#123;</div><div class="line">                    list *clients = dictGetVal(de);<span class="comment">//转换为客户端链表</span></div><div class="line">                    int numclients = listLength(clients);</div><div class="line"></div><div class="line">                    <span class="keyword">while</span>(numclients--) &#123;<span class="comment">//给每个客户端发送消息</span></div><div class="line">                        listNode *clientnode = listFirst(clients);</div><div class="line">                        <span class="function"><span class="title">redisClient</span> *receiver = clientnode-&gt;</span>value;<span class="comment">//阻塞的客户端</span></div><div class="line">                        <span class="function"><span class="title">robj</span> *dstkey = receiver-&gt;</span>bpop.target;<span class="comment">//brpoplpush命令目的链表</span></div><div class="line">                        <span class="function"><span class="title">int</span> <span class="keyword">where</span> = (receiver-&gt;</span>lastcmd &amp;&amp;</div><div class="line">                                     <span class="function"><span class="title">receiver</span>-&gt;</span><span class="function"><span class="title">lastcmd</span>-&gt;</span>proc == blpopCommand) ?</div><div class="line">                                    REDIS_HEAD : REDIS_TAIL;<span class="comment">//获取取出的方向</span></div><div class="line">                        robj *value = listTypePop(o,<span class="keyword">where</span>);<span class="comment">//取出就绪链表的元素</span></div><div class="line"></div><div class="line">                        <span class="keyword">if</span> (value) &#123;</div><div class="line">                            <span class="comment">/* Protect receiver-&gt;bpop.target, that will be</span></div><div class="line">                             * freed by the next unblockClient()</div><div class="line">                             * call. */</div><div class="line">                            <span class="keyword">if</span> (dstkey) incrRefCount(dstkey);</div><div class="line">                            unblockClient(receiver);<span class="comment">//设置客户端为非阻塞状态</span></div><div class="line"></div><div class="line">                            <span class="keyword">if</span> (serveClientBlockedOnList(receiver,</div><div class="line">                                <span class="function"><span class="title">rl</span>-&gt;</span><span class="function"><span class="title">key</span>,dstkey,rl-&gt;</span>db,value,</div><div class="line">                                <span class="keyword">where</span>) == REDIS_ERR)</div><div class="line">                            &#123;</div><div class="line">                                <span class="comment">/* If we failed serving the client we need</span></div><div class="line">                                 * to also undo the POP operation. */</div><div class="line">                                    listTypePush(o,value,<span class="keyword">where</span>);</div><div class="line">                            &#125;<span class="comment">//给客户端回复链表中的元素内容</span></div><div class="line"></div><div class="line">                            <span class="keyword">if</span> (dstkey) decrRefCount(dstkey);</div><div class="line">                            decrRefCount(value);</div><div class="line">                        &#125; <span class="keyword">else</span> &#123;</div><div class="line">                            break;</div><div class="line">                        &#125;</div><div class="line">                    &#125;</div><div class="line">                &#125;</div><div class="line">                <span class="comment">//如果链表为空，则从数据库中删除</span></div><div class="line">                <span class="function"><span class="title">if</span> (listTypeLength(o) == 0) dbDelete(rl-&gt;</span><span class="function"><span class="title">db</span>,rl-&gt;</span>key);</div><div class="line">                <span class="comment">/* We don't call signalModifiedKey() as it was already called</span></div><div class="line">                 * when an element was pushed on the list. */</div><div class="line">            &#125;</div><div class="line"></div><div class="line">            <span class="comment">/* 回收rl */</span></div><div class="line">            <span class="function"><span class="title">decrRefCount</span>(rl-&gt;</span>key);</div><div class="line">            zfree(rl);</div><div class="line">            listDelNode(l,ln);</div><div class="line">        &#125;</div><div class="line">        listRelease(l); <span class="comment">/* We have the new list on place at this point. */</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>从这个源码可知，如果有两个客户端，同时阻塞在一个链表上面，那么如果链表插入一个元素之后，只有先阻塞的那个客户端收到消息，后面阻塞的那个客户端继续阻塞，这也是先阻塞先服务的思想。handleClientsBlockedOnLists函数调用了unblockClient(receiver)，该函数功能为接触客户端阻塞标志，以及找到db阻塞在key上的客户端链表，并将接触阻塞的客户端从链表删除。然后调用serveClientBlockOnList给客户端回复刚在链表插入的元素。
+<figure class="highlight cs"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">int</span> <span class="title">serveClientBlockedOnList</span>(<span class="params">redisClient *receiver, robj *key, robj *dstkey, redisDb *db, robj *<span class="keyword">value</span>, <span class="keyword">int</span> <span class="keyword">where</span></span>)</span></div><div class="line">&#123;</div><div class="line">    robj *argv[<span class="number">3</span>];</div><div class="line"></div><div class="line">    <span class="keyword">if</span> (dstkey == NULL) &#123;</div><div class="line">        <span class="comment">/* Propagate the [LR]POP operation. */</span></div><div class="line">        argv[<span class="number">0</span>] = (<span class="keyword">where</span> == REDIS_HEAD) ? shared.lpop :</div><div class="line">                                          shared.rpop;</div><div class="line">        argv[<span class="number">1</span>] = key;</div><div class="line">        propagate((<span class="keyword">where</span> == REDIS_HEAD) ?</div><div class="line">            server.lpopCommand : server.rpopCommand,</div><div class="line">            db-&gt;id,argv,<span class="number">2</span>,REDIS_PROPAGATE_AOF|REDIS_PROPAGATE_REPL);</div><div class="line"></div><div class="line">        <span class="comment">/* BRPOP/BLPOP */</span></div><div class="line">        addReplyMultiBulkLen(receiver,<span class="number">2</span>);</div><div class="line">        addReplyBulk(receiver,key);</div><div class="line">        addReplyBulk(receiver,<span class="keyword">value</span>);</div><div class="line">    &#125; <span class="keyword">else</span> &#123;</div><div class="line">        <span class="comment">/* BRPOPLPUSH */</span></div><div class="line">          <span class="comment">/* 省略  */</span></div><div class="line">    &#125;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>propagate函数主要是将命令信息发送给aof和slave。函数中省略部分是brpoplpush list list1 0命令的目的链表list1非空时，将从list链表pop出来的元素插入list1中。当给客户端发送消息之后，客户端就从read函数调用中返回，变为不阻塞。</p>
+<h1>通过超时时间解阻塞</h1>
+<p>如果链表一直没有数据插入，那么客户端将会一直阻塞下去，这肯定是不行的，所以brpop还支持超时阻塞，即阻塞时间超过一定值之后，服务器返回一个空值，这样客户端就解脱阻塞了。</p>
+<p>对于时间超时，都放在了100ms执行一次的时间事件中；超时解脱阻塞函数也在serverCron中；在serverCron-&gt;clientsCron-&gt;clientsCronHandleTimeout
+<figure class="highlight swift"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">int clientsCronHandleTimeout(redisClient *<span class="built_in">c</span>, mstime_t now_ms) &#123;</div><div class="line">    time_t now = now_ms/<span class="number">1000</span>;</div><div class="line">    <span class="comment">//..........</span></div><div class="line">    <span class="keyword">else</span> <span class="keyword">if</span> (<span class="built_in">c</span>-&gt;flags &amp; <span class="type">REDIS_BLOCKED</span>) &#123;</div><div class="line">        <span class="comment">/* Blocked OPS timeout is handled with milliseconds resolution.</span></div><div class="line">         * However note that the actual resolution is limited by</div><div class="line">         * server.hz. */</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (<span class="built_in">c</span>-&gt;bpop.timeout != <span class="number">0</span> &amp;&amp; <span class="built_in">c</span>-&gt;bpop.timeout &lt; now_ms) &#123;</div><div class="line">            <span class="comment">/* Handle blocking operation specific timeout. */</span></div><div class="line">            replyToBlockedClientTimedOut(<span class="built_in">c</span>);</div><div class="line">            unblockClient(<span class="built_in">c</span>);</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line">    <span class="comment">//.............</span></div></pre></td></tr></table></figure></p>
+<p>把这个函数不相干的代码删除，主要部分先判断这个客户端是否阻塞，如果是，超时时间是否到期，如果是，则调用replyToBlockedClientTimedOut给客户端回复一个空回复，以及接触客户端阻塞。</p>
+<p>链表消息队列实现暂时分析到这，下篇文章分析下订阅与发布。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/redis/" rel="tag">#redis</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/02/05/redis-procCom/" rel="next" title="redis源码分析之命令处理过程">
+                <i class="fa fa-chevron-left"></i> redis源码分析之命令处理过程
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2016/02/14/redis-slowlog/" rel="prev" title="redis源码分析之慢日志">
+                redis源码分析之慢日志 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2016/02/13/redis-msglist/"
+     data-title="redis消息队列之链表实现"
+     data-content=""
+     data-url="http://luodw.cc/2016/02/13/redis-msglist/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
+      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+  <p>热评文章</p>
+  <div class="ds-top-threads" data-range="weekly" data-num-items="4"></div>
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2016/02/13/redis-msglist/"
+           data-title="redis消息队列之链表实现" data-url="http://luodw.cc/2016/02/13/redis-msglist/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-name">标签</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">redis消息队列之链表实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">链表实现消息队列</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">插入一个元素解阻塞</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">通过超时时间解阻塞</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"luodw"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+    <script src="/lib/ua-parser-js/dist/ua-parser.min.js?v=0.7.9"></script>
+    <script src="/js/src/hook-duoshuo.js"></script>
+  
+
+
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>
