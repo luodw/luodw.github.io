@@ -68,7 +68,7 @@
 <link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
 
 
-  <meta name="keywords" content="linux," />
+  <meta name="keywords" content="Hexo, NexT" />
 
 
 
@@ -86,33 +86,37 @@
 
 
 
-<meta name="description" content="linux内核内存管理
-今天这篇文章主要是我之前看linux内核相关知识和博客Gustavo Duarte中。我主要是看了这篇博客，并且结合之前的知识，对内存管理的的理解又上升了一个档次。所以想通过这篇文章总结下。
-我们先来看下linux内存布局，此图比我之前写的那篇文章写的布局更详细
+<meta name="description" content="＃ 关于初衷
+之前把很多优秀的技术网站都收藏在浏览器里，但是学习工作经常使用不同的电脑，那么不同电脑上的收藏夹经常就是使用不方便；当然很多人会说，浏览器建个账号就可以同步了，恩，是可以的，但是我有这个网站，还是希望放在博客上，可以与他人分享，也希望路过技术之人可以留下优秀的技术网站；
+强烈推荐网站
 
-在linux中，每一个进程都被抽象为task_struct结构体，称为进程描述符，存储着进程各方面的信息；例如">
-<meta property="og:type" content="article">
-<meta property="og:title" content="linux内存管理">
-<meta property="og:url" content="http://luodw.cc/2016/02/17/linux-memory/index.html">
+斯坦福大学提供的一个全面位运算技巧
+介绍Linux网络IO;
+何登成的技术博客
+一个分享源码的网站">
+<meta property="og:type" content="website">
+<meta property="og:title" content="index">
+<meta property="og:url" content="http://luodw.cc/bookmark/index.html">
 <meta property="og:site_name" content="罗道文的私房菜">
-<meta property="og:description" content="linux内核内存管理
-今天这篇文章主要是我之前看linux内核相关知识和博客Gustavo Duarte中。我主要是看了这篇博客，并且结合之前的知识，对内存管理的的理解又上升了一个档次。所以想通过这篇文章总结下。
-我们先来看下linux内存布局，此图比我之前写的那篇文章写的布局更详细
+<meta property="og:description" content="＃ 关于初衷
+之前把很多优秀的技术网站都收藏在浏览器里，但是学习工作经常使用不同的电脑，那么不同电脑上的收藏夹经常就是使用不方便；当然很多人会说，浏览器建个账号就可以同步了，恩，是可以的，但是我有这个网站，还是希望放在博客上，可以与他人分享，也希望路过技术之人可以留下优秀的技术网站；
+强烈推荐网站
 
-在linux中，每一个进程都被抽象为task_struct结构体，称为进程描述符，存储着进程各方面的信息；例如">
-<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_014.png">
-<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_015.png">
-<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0191.png">
-<meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0201.png">
-<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+斯坦福大学提供的一个全面位运算技巧
+介绍Linux网络IO;
+何登成的技术博客
+一个分享源码的网站">
+<meta property="og:updated_time" content="2017-03-20T07:18:54.467Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="linux内存管理">
-<meta name="twitter:description" content="linux内核内存管理
-今天这篇文章主要是我之前看linux内核相关知识和博客Gustavo Duarte中。我主要是看了这篇博客，并且结合之前的知识，对内存管理的的理解又上升了一个档次。所以想通过这篇文章总结下。
-我们先来看下linux内存布局，此图比我之前写的那篇文章写的布局更详细
+<meta name="twitter:title" content="index">
+<meta name="twitter:description" content="＃ 关于初衷
+之前把很多优秀的技术网站都收藏在浏览器里，但是学习工作经常使用不同的电脑，那么不同电脑上的收藏夹经常就是使用不方便；当然很多人会说，浏览器建个账号就可以同步了，恩，是可以的，但是我有这个网站，还是希望放在博客上，可以与他人分享，也希望路过技术之人可以留下优秀的技术网站；
+强烈推荐网站
 
-在linux中，每一个进程都被抽象为task_struct结构体，称为进程描述符，存储着进程各方面的信息；例如">
-<meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_014.png">
+斯坦福大学提供的一个全面位运算技巧
+介绍Linux网络IO;
+何登成的技术博客
+一个分享源码的网站">
 
 
 
@@ -133,10 +137,16 @@
 
 
 
-  <link rel="canonical" href="http://luodw.cc/2016/02/17/linux-memory/"/>
+  <link rel="canonical" href="http://luodw.cc/bookmark/"/>
 
 
-  <title> linux内存管理 | 罗道文的私房菜 </title>
+  <title>
+  
+
+  
+    index | 罗道文的私房菜
+  
+</title>
 </head>
 
 <body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
@@ -167,7 +177,7 @@
     
   
 
-  <div class="container one-collumn sidebar-position-left page-post-detail ">
+  <div class="container one-collumn sidebar-position-left  ">
     <div class="headband"></div>
 
     <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
@@ -293,203 +303,28 @@
 
   <div id="posts" class="posts-expand">
     
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+    
+      <p>＃ 关于初衷</p>
+<p>之前把很多优秀的技术网站都收藏在浏览器里，但是学习工作经常使用不同的电脑，那么不同电脑上的收藏夹经常就是使用不方便；当然很多人会说，浏览器建个账号就可以同步了，恩，是可以的，但是我有这个网站，还是希望放在博客上，可以与他人分享，也希望路过技术之人可以留下优秀的技术网站；</p>
+<h1>强烈推荐网站</h1>
+<ol>
+<li><a href="http://graphics.stanford.edu/~seander/bithacks.html" target="_blank" rel="external">斯坦福大学提供的一个全面位运算技巧</a></li>
+<li><a href="http://www.kegel.com/c10k.html" target="_blank" rel="external">介绍Linux网络IO</a>;</li>
+<li><a href="http://hedengcheng.com/" target="_blank" rel="external">何登成的技术博客</a></li>
+<li><a href="http://ccodearchive.net/list.html" target="_blank" rel="external">一个分享源码的网站</a>;</li>
+<li><a href="http://blog.jcole.us/innodb/" target="_blank" rel="external">一位谷歌工程师关于innodb博客</a></li>
+<li><a href="http://duartes.org/gustavo/blog/archives/" target="_blank" rel="external">一位外国大神的博客,在linux内核内存管理方面写的很好</a></li>
+<li><a href="https://pdos.csail.mit.edu/6.828/2008/readings/i386/toc.htm" target="_blank" rel="external">英特尔80386CPU编程手册</a></li>
+<li><a href="http://csrd.aliapp.com/" target="_blank" rel="external">阿里核心系统团队博客</a></li>
+<li><a href="https://tracymacding.gitbooks.io/implementation-of-golang/content/" target="_blank" rel="external">golang的实现</a></li>
+<li><a href="http://locklessinc.com/articles/mutex_cv_futex/" target="_blank" rel="external">无锁设计，因为futex才找到的</a></li>
+<li><a href="http://restcookbook.com/Basics/loggingin/" target="_blank" rel="external">restcookbook.com</a></li>
+<li><a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/index.html" target="_blank" rel="external">深入理解go</a></li>
+<li><a href="http://thesecretlivesofdata.com/raft/" target="_blank" rel="external">Raft原理动图</a></li>
+</ol>
+<p>＃　后面再好好分类整理下～</p>
 
     
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                linux内存管理
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-02-17T11:13:21+08:00" content="2016-02-17">
-              2016-02-17
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/linux/" itemprop="url" rel="index">
-                    <span itemprop="name">linux</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-              <span class="post-comments-count">
-                &nbsp; | &nbsp;
-                <a href="/2016/02/17/linux-memory/#comments" itemprop="discussionUrl">
-                  <span class="post-comments-count ds-thread-count" data-thread-key="2016/02/17/linux-memory/" itemprop="commentsCount"></span>
-                </a>
-              </span>
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/02/17/linux-memory/" class="leancloud_visitors" data-flag-title="linux内存管理">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        <h1>linux内核内存管理</h1>
-<p>今天这篇文章主要是我之前看linux内核相关知识和博客<a href="http://duartes.org/gustavo/blog/post/how-the-kernel-manages-your-memory/" target="_blank" rel="external">Gustavo Duarte</a>中。我主要是看了这篇博客，并且结合之前的知识，对内存管理的的理解又上升了一个档次。所以想通过这篇文章总结下。</p>
-<p>我们先来看下linux内存布局，此图比我之前写的那篇文章写的布局更详细
-<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_014.png" alt="linux进程内存布局">
-在linux中，每一个进程都被抽象为task_struct结构体，称为进程描述符，存储着进程各方面的信息；例如打开的文件，信号以及内存等等；然后task_struct的一个属性mm_struct管理着进程的所有虚拟内存，称为内存描述符。在mm_struct结构体中，存储着进程各个内存段的开始以及结尾，如上图所示；这个进程使用的物理内存，即常驻内存RSS页数，这个内存使用的虚拟地址空间VSZ页数，还有这个进程虚拟内存区域集合和页表。</p>
-<p>从上面这个图可以看出，进程是有代码段Text segment,数据段（已初始化的全局，静态变量），BSS段（未初始化的全局，静态变量），堆，内存映射区以及栈；</p>
-<p>每一块虚拟内存区(VMA)都是由一块连续的虚拟地址组成，这些地址从不覆盖。一个vm_area_struct实例描述了一块内存区域，包括这块内存区域的开始以及结尾地址；flags标志决定了这块内存的访问权限和行为；vm_file决定这块内存是由哪个文件映射的，如果没有文件映射，则这块内存为匿名的(anonymous)。上述图中提到的每个内存段，都对应于一个vm_area_struct结构。如下图所示
-<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_015.png" alt="内存段vm_area_struct结构">
-上图即为/bin/gonzo进程的内存布局。程序的二进制文件映射到代码段和数据段，代码段为只读只执行，不可更改；全局以及静态的未初始化的变量映射到BSS段，为匿名映射，堆和栈也是匿名映射，因为没有相应的文件映射；内存映射区可以映射共享库，映射文件以及匿名映射，所以这块内存段可以是文件映射也可以是匿名映射。而且不同的文件，映射到不同的vm_area_struct区。</p>
-<p>这些vm_area_struct集合存储在mm_struct中的一个单向链表和红黑树中；当输出/proc/pid/maps文件时，只需要遍历这个链表即可。红黑树主要是为了快速定位到某一个内存块,红黑树的根存储在mm_rb域。</p>
-<p>之前介绍过，线性地址需要通过页表才能转换为物理地址。每个进程的内存描述符也保存了这个进程页表指针pgd，每一块虚拟内存页都和页表的某一项对应。</p>
-<p>虚拟内存是不存储任何数据的，它只是将地址空间映射到物理内存。物理内存有内核伙伴系统分配，如果一块物理内存没有被映射，就可以被伙伴系统分配给虚拟内存。刚分配的物理内存叶框可能是匿名的，存储进程数据，也可能是也缓存，存储文件或块设备的数据。一块虚拟内存vm_area_struct块是由连续的虚拟内存页组成的，而这些虚拟内存块映射的物理内存却不一定连续，如下图所示:
-<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0191.png" alt="虚拟内存映射到物理内存">
-如上图所示，有三个页映射到物理内存，还有两个页没有映射，所以常驻内存RSS为12kb，而虚拟内存大小为20kb。对于有映射到物理内存的三个页的页表项PTE的Present标志设为1，而两个没有映射物理内存的虚拟内存页表项的Present位清除。所以这时访问那两块内存，则会导致异常缺页。</p>
-<p>vma就像应用程序和内核的一个契约。当应用程序申请内存或者文件映射时，内核先响应这个请求，分配或更新虚拟内存；但是这些虚拟内存并没有映射到真实的物理内存。而是等到内存访问产生一个内存异常缺页时才真正映射物理内存。即当访问没有映射的虚拟内存时，由于页表项的Present位没有被设置，所以此时会产生一个缺页异常。vma记录和页表项两个在解决内存缺页，释放内存以及内存swap out都起着重要的作用。下面图展示了上述情况:
-<img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_0201.png" alt="内存分配情况"></p>
-<ol>
-<li>一开始堆中只有8kb的内存，而且都已经映射到物理内存；</li>
-<li>当调用brk()函数扩展堆时，新的页是没有映射到物理内存的，</li>
-<li>当处理器需要访问一个地址，而且这个地址在上述刚分配的虚拟内存中，这时产生一个缺页异常；</li>
-<li>这时进程向伙伴系统申请一页的物理内存，映射到那块虚拟内存上，并添加页表项，设置Present位.</li>
-</ol>
-<p>自此，这个内存管理暂时就说到这。总结下：</p>
-<ol>
-<li>linux进程的内存布局的每个段都是有一个vm_area_struct,而这个实例是由连续的虚拟内存地址组成；</li>
-<li>当请求内存时，先是扩展vm_area_struct或者新分配一个vm_area_struct，但是并不映射物理内存，只有等到访问这块内存时，产生缺页异常，内核才分配物理内存。</li>
-</ol>
-
-      
-    </div>
-
-    <div>
-      
-        
-
-      
-    </div>
-
-    <div>
-      
-        
-
-      
-    </div>
-
-    <footer class="post-footer">
-      
-        <div class="post-tags">
-          
-            <a href="/tags/linux/" rel="tag">#linux</a>
-          
-        </div>
-      
-
-      
-        <div class="post-nav">
-          <div class="post-nav-next post-nav-item">
-            
-              <a href="/2016/02/17/address/" rel="next" title="linux虚拟地址转物理地址">
-                <i class="fa fa-chevron-left"></i> linux虚拟地址转物理地址
-              </a>
-            
-          </div>
-
-          <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2016/02/17/malloc/" rel="prev" title="malloc实现原理">
-                malloc实现原理 <i class="fa fa-chevron-right"></i>
-              </a>
-            
-          </div>
-        </div>
-      
-
-      
-      
-    </footer>
-  </article>
-
-
-
-    <div class="post-spread">
-      
-        <div class="ds-share flat" data-thread-key="2016/02/17/linux-memory/"
-     data-title="linux内存管理"
-     data-content=""
-     data-url="http://luodw.cc/2016/02/17/linux-memory/">
-  <div class="ds-share-inline">
-    <ul  class="ds-share-icons-16">
-
-      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
-      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
-      <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li>
-      <li><a class="ds-qqt" href="javascript:void(0);" data-service="qqt">腾讯微博</a></li>
-      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
-
-    </ul>
-    <div class="ds-share-icons-more">
-    </div>
-  </div>
-</div>
-      
-    </div>
   </div>
 
 
@@ -503,8 +338,8 @@
           
   <div class="comments" id="comments">
     
-      <div class="ds-thread" data-thread-key="2016/02/17/linux-memory/"
-           data-title="linux内存管理" data-url="http://luodw.cc/2016/02/17/linux-memory/">
+      <div class="ds-thread" data-thread-key="bookmark/index.html"
+           data-title="index" data-url="http://luodw.cc/bookmark/index.html">
       </div>
     
   </div>
@@ -528,17 +363,8 @@
       
 
       
-        <ul class="sidebar-nav motion-element">
-          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
-            文章目录
-          </li>
-          <li class="sidebar-nav-overview" data-target="site-overview">
-            站点概览
-          </li>
-        </ul>
-      
 
-      <section class="site-overview sidebar-panel ">
+      <section class="site-overview sidebar-panel  sidebar-panel-active ">
         <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
           <img class="site-author-image" itemprop="image"
                src="/uploads/psb.jpg"
@@ -657,17 +483,6 @@
       </section>
 
       
-        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
-          <div class="post-toc">
-            
-              
-            
-            
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">linux内核内存管理</span></a></li></ol></div>
-            
-          </div>
-        </section>
-      
 
     </div>
   </aside>
@@ -777,10 +592,6 @@
 
 
   
-  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
-<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
-
-
 
   
 
