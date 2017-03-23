@@ -5470,9 +5470,9 @@ insert(pos, first, last, iterator_category(first));
         
         <tags>
             
-            <tag> C/C++ </tag>
-            
             <tag> STL </tag>
+            
+            <tag> C/C++ </tag>
             
             <tag> list </tag>
             
@@ -6588,9 +6588,9 @@ C++有三种情况会用到C++复制构造函数</p>
             
             <tag> C++ </tag>
             
-            <tag> 对象模型 </tag>
-            
             <tag> 构造函数 </tag>
+            
+            <tag> 对象模型 </tag>
             
         </tags>
         

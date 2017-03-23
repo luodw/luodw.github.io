@@ -30,14 +30,21 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/12/18/socket02/</loc>
+    <loc>http://luodw.cc/tags/index.html</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/02/13/redis-msglist/</loc>
+    <loc>http://luodw.cc/2016/11/05/python-http/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.133Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2016/11/12/python-wsgi/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
@@ -52,13 +59,6 @@
   
   <url>
     <loc>http://luodw.cc/2017/01/05/weedfs/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.133Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://luodw.cc/2016/05/20/tfs01/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
@@ -86,7 +86,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/11/28/socket01/</loc>
+    <loc>http://luodw.cc/2016/05/20/tfs01/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
@@ -107,21 +107,14 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/tags/index.html</loc>
+    <loc>http://luodw.cc/2015/11/28/socket01/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/02/15/redis-msgpub/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.133Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://luodw.cc/2016/02/05/redis-procCom/</loc>
+    <loc>http://luodw.cc/2016/02/17/register/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
@@ -135,13 +128,6 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/01/23/redis-mainae/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.133Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://luodw.cc/2016/02/14/redis-slowlog/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
@@ -149,21 +135,28 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/11/05/python-http/</loc>
+    <loc>http://luodw.cc/2016/02/05/redis-procCom/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/11/12/python-wsgi/</loc>
+    <loc>http://luodw.cc/2016/02/15/redis-msgpub/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/10/ptr/</loc>
+    <loc>http://luodw.cc/2016/02/13/redis-msglist/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.133Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2016/01/23/redis-mainae/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
@@ -184,6 +177,13 @@
   </url>
   
   <url>
+    <loc>http://luodw.cc/2015/10/10/ptr/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.133Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://luodw.cc/2016/12/13/nsqlookupd/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
@@ -191,7 +191,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/02/17/register/</loc>
+    <loc>http://luodw.cc/2015/12/18/socket02/</loc>
     
     <lastmod>2017-03-16T08:51:34.133Z</lastmod>
     
@@ -219,7 +219,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/11/02/leveldb-19/</loc>
+    <loc>http://luodw.cc/2016/04/09/mydb/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
     
@@ -233,14 +233,14 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/01/18/memcache-slabs-rebalance/</loc>
+    <loc>http://luodw.cc/2015/11/04/leveldb-20/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/04/09/mydb/</loc>
+    <loc>http://luodw.cc/2016/01/18/memcache-slabs-rebalance/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
     
@@ -254,6 +254,13 @@
   </url>
   
   <url>
+    <loc>http://luodw.cc/2016/01/21/memcache-socket/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.129Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://luodw.cc/2016/01/19/memcache-lru-maintenance/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
@@ -261,7 +268,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/01/21/memcache-socket/</loc>
+    <loc>http://luodw.cc/2016/01/13/memcache-assoc-maintenance/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
     
@@ -275,13 +282,6 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/01/12/memcache-drive-machine/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.129Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://luodw.cc/2016/01/10/memcache-item/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
@@ -289,7 +289,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/01/13/memcache-assoc-maintenance/</loc>
+    <loc>http://luodw.cc/2016/01/12/memcache-drive-machine/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
     
@@ -310,13 +310,6 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/08/13/linux-cache/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.129Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://luodw.cc/2016/02/17/malloc/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
@@ -331,14 +324,14 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/02/16/limit/</loc>
+    <loc>http://luodw.cc/2016/08/13/linux-cache/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/06/21/libtask/</loc>
+    <loc>http://luodw.cc/2016/02/16/limit/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
     
@@ -352,14 +345,14 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/02/27/leveldb-schedule/</loc>
+    <loc>http://luodw.cc/2015/10/31/leveldb-16/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/31/leveldb-16/</loc>
+    <loc>http://luodw.cc/2016/06/21/libtask/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
     
@@ -380,9 +373,23 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/11/04/leveldb-20/</loc>
+    <loc>http://luodw.cc/2015/11/02/leveldb-19/</loc>
     
     <lastmod>2017-03-16T08:51:34.129Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2016/02/27/leveldb-schedule/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.129Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2015/10/08/gdb2/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.125Z</lastmod>
     
   </url>
   
@@ -394,7 +401,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/09/duotai/</loc>
+    <loc>http://luodw.cc/2015/10/25/leveldb-13/</loc>
     
     <lastmod>2017-03-16T08:51:34.125Z</lastmod>
     
@@ -402,13 +409,6 @@
   
   <url>
     <loc>http://luodw.cc/2015/10/24/leveldb-12/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.125Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://luodw.cc/2015/10/25/leveldb-13/</loc>
     
     <lastmod>2017-03-16T08:51:34.125Z</lastmod>
     
@@ -429,7 +429,21 @@
   </url>
   
   <url>
+    <loc>http://luodw.cc/2015/10/09/duotai/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.125Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://luodw.cc/2015/10/21/leveldb-09/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.125Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2015/12/27/emptyfile/</loc>
     
     <lastmod>2017-03-16T08:51:34.125Z</lastmod>
     
@@ -443,14 +457,14 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/16/leveldb-05/</loc>
+    <loc>http://luodw.cc/2015/10/17/leveldb-06/</loc>
     
     <lastmod>2017-03-16T08:51:34.125Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/17/leveldb-06/</loc>
+    <loc>http://luodw.cc/2015/10/16/leveldb-05/</loc>
     
     <lastmod>2017-03-16T08:51:34.125Z</lastmod>
     
@@ -478,13 +492,6 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/03/15/innodb02/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.125Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://luodw.cc/2015/10/14/leveldb-01/</loc>
     
     <lastmod>2017-03-16T08:51:34.125Z</lastmod>
@@ -493,6 +500,13 @@
   
   <url>
     <loc>http://luodw.cc/2016/03/15/innodb03/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.125Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2016/03/15/innodb02/</loc>
     
     <lastmod>2017-03-16T08:51:34.125Z</lastmod>
     
@@ -534,7 +548,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/08/gdb2/</loc>
+    <loc>http://luodw.cc/2015/10/30/leveldb-14/</loc>
     
     <lastmod>2017-03-16T08:51:34.125Z</lastmod>
     
@@ -548,20 +562,6 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/30/leveldb-14/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.125Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://luodw.cc/2015/12/27/emptyfile/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.125Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://luodw.cc/2015/10/31/leveldb-15/</loc>
     
     <lastmod>2017-03-16T08:51:34.125Z</lastmod>
@@ -569,7 +569,14 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/09/28/cmemory/</loc>
+    <loc>http://luodw.cc/2016/02/25/cache/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.121Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2015/09/25/config/</loc>
     
     <lastmod>2017-03-16T08:51:34.121Z</lastmod>
     
@@ -577,6 +584,13 @@
   
   <url>
     <loc>http://luodw.cc/2015/12/27/dns03/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.121Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2015/12/27/dns02/</loc>
     
     <lastmod>2017-03-16T08:51:34.121Z</lastmod>
     
@@ -604,20 +618,6 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/09/28/cfun/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.121Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://luodw.cc/2016/02/25/cache/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.121Z</lastmod>
-    
-  </url>
-  
-  <url>
     <loc>http://luodw.cc/2015/09/23/cpp1-md/</loc>
     
     <lastmod>2017-03-16T08:51:34.121Z</lastmod>
@@ -625,7 +625,21 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/09/25/config/</loc>
+    <loc>http://luodw.cc/2015/09/28/cmemory/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.121Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2015/10/12/Cplus5-md/</loc>
+    
+    <lastmod>2017-03-16T08:51:34.121Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://luodw.cc/2015/09/28/cfun/</loc>
     
     <lastmod>2017-03-16T08:51:34.121Z</lastmod>
     
@@ -639,7 +653,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/12/27/dns02/</loc>
+    <loc>http://luodw.cc/2015/11/14/avl/</loc>
     
     <lastmod>2017-03-16T08:51:34.121Z</lastmod>
     
@@ -647,13 +661,6 @@
   
   <url>
     <loc>http://luodw.cc/2016/02/17/address/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.121Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://luodw.cc/2015/11/14/avl/</loc>
     
     <lastmod>2017-03-16T08:51:34.121Z</lastmod>
     
@@ -681,14 +688,14 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2016/04/29/HighLinux/</loc>
+    <loc>http://luodw.cc/2015/11/04/STL-deque/</loc>
     
     <lastmod>2017-03-16T08:51:34.121Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/11/04/STL-deque/</loc>
+    <loc>http://luodw.cc/2016/04/29/HighLinux/</loc>
     
     <lastmod>2017-03-16T08:51:34.121Z</lastmod>
     
@@ -702,14 +709,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/12/Cplus5-md/</loc>
-    
-    <lastmod>2017-03-16T08:51:34.121Z</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>http://luodw.cc/2015/10/26/Calloc/</loc>
+    <loc>http://luodw.cc/2015/10/06/Cplus1/</loc>
     
     <lastmod>2017-03-16T08:51:34.117Z</lastmod>
     
@@ -730,14 +730,14 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/11/Cplus3-1/</loc>
+    <loc>http://luodw.cc/2015/10/08/Cplus3/</loc>
     
     <lastmod>2017-03-16T08:51:34.117Z</lastmod>
     
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/08/Cplus3/</loc>
+    <loc>http://luodw.cc/2015/10/11/Cplus3-1/</loc>
     
     <lastmod>2017-03-16T08:51:34.117Z</lastmod>
     
@@ -751,7 +751,7 @@
   </url>
   
   <url>
-    <loc>http://luodw.cc/2015/10/06/Cplus1/</loc>
+    <loc>http://luodw.cc/2015/10/26/Calloc/</loc>
     
     <lastmod>2017-03-16T08:51:34.117Z</lastmod>
     
