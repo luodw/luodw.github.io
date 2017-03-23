@@ -5470,9 +5470,9 @@ insert(pos, first, last, iterator_category(first));
         
         <tags>
             
-            <tag> STL </tag>
-            
             <tag> C/C++ </tag>
+            
+            <tag> STL </tag>
             
             <tag> list </tag>
             
