@@ -289,6 +289,138 @@
             
               
                 
+                <a class="post-title-link" href="/2015/09/28/cmemory/" itemprop="url">
+                  C/C++运行时内存环境
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-09-28T20:59:07+08:00" content="2015-09-28">
+              2015-09-28
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/C-C/" itemprop="url" rel="index">
+                    <span itemprop="name">C/C++</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/09/28/cmemory/" class="leancloud_visitors" data-flag-title="C/C++运行时内存环境">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          在学习C/C++的过程中,熟悉程序在内存的布局环境是很有必要的,也体现着一个合格C/C++程序员必备的素质.例如运行时申请的内存在哪了?共享内存在进程哪块内存中?全局变量为何在所有函数都要效等等...
+&lt;!--more--&gt;
+C程序内存布局
+C程序在内存中由栈,堆,BSS段,数据段,代码段组成,如下图所示:
+
+Linux将虚拟内存分为内核态和用户态,内核态为1GB,用户态为3G,每个程序都各自占有自己的3GB内存,不同的进程不能互相访问变量,除非使用Linxu进程间通信机制,有时间把
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/09/28/cmemory/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/09/26/vim-md/" itemprop="url">
                   vim配置markdown语法高亮
                 </a>
@@ -817,137 +949,6 @@ github下载: https://github.com/plasticboy/vim-markdown
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/09/24/cppp2/" itemprop="url">
-                  C++智能指针
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-09-24T14:57:07+08:00" content="2015-09-24">
-              2015-09-24
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/C-C/" itemprop="url" rel="index">
-                    <span itemprop="name">C/C++</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/09/24/cppp2/" class="leancloud_visitors" data-flag-title="C++智能指针">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          最近楼主在深入学习C++，发现智能指针和句柄类挺有意思的，而且也有点难度，所以就写下来，日后可以回顾．
-这篇博文先介绍智能指针，下篇介绍句柄类．
-C++中，如果类中有指针类型的数据成员，则很容易出现悬垂指针，即一个指向无效内存的地址．如下：
-&lt;!--more--&gt;
-1234567891011121314151617181920#include &lt;iostream&gt;class HasPtr&#123;public:    HasPtr(int *p):ptr(p)&#123
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/09/24/cppp2/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -993,7 +994,7 @@ C++中，如果类中有指针类型的数据成员，则很容易出现悬垂�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -1001,7 +1002,7 @@ C++中，如果类中有指针类型的数据成员，则很容易出现悬垂�
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -1010,7 +1011,7 @@ C++中，如果类中有指针类型的数据成员，则很容易出现悬垂�
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

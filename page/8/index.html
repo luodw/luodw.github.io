@@ -289,6 +289,135 @@
             
               
                 
+                <a class="post-title-link" href="/2016/02/01/redis-startup/" itemprop="url">
+                  redis源码分析之启动过程
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-01T10:52:23+08:00" content="2016-02-01">
+              2016-02-01
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/01/redis-startup/" class="leancloud_visitors" data-flag-title="redis源码分析之启动过程">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          今天这篇文章主要是分析下redis的启动流程，作为一个完整的软件，分析开启过程主要是分析main函数，当然，这主要还是在对redis有一定的了解，否则很难读懂redis的各个函数。
+redis服务器所有属性都保存在struct redisServer这个结构体中，所以服务器一开始时，首先是先初始化服务器属性，然后在建立事件驱动，将listenfd可读事件添加进EventLoop事件驱动中，等待客户端连接，然后服务器处于事件驱动的无限循环中。
+在main函数中，首先做的就是为改服务器进程标题做好初
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/02/01/redis-startup/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/01/24/epoll/" itemprop="url">
                   谈谈epoll实现原理
                 </a>
@@ -788,134 +917,6 @@ SO_KEEPALIVE选项
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/01/18/memcache-slabs-rebalance/" itemprop="url">
-                  memcache源码分析之slabs平衡线程
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-01-18T18:47:26+08:00" content="2016-01-18">
-              2016-01-18
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/memcache/" itemprop="url" rel="index">
-                    <span itemprop="name">memcache</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/01/18/memcache-slabs-rebalance/" class="leancloud_visitors" data-flag-title="memcache源码分析之slabs平衡线程">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          上篇文章分析了memcache哈希表维护线程，其实就是哈希表的扩容线程。这篇文章分析memcache第二个辅助线程slabs平衡线程。先说下这个线程的由来。
-在一开始，由于业务原因向memcached存储大量长度为1KB的数据，也就是说memcached服务器进程里面有很多大小为1KB的item。现在由于业务调整需要存储大量10KB的数据，并且很少使用1KB的那些数据了。由于数据越来越多，内存开始吃紧。大小为10KB的那些item频繁访问，并且由于内存不够需要使用LRU淘汰一些10KB的item
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/01/18/memcache-slabs-rebalance/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -961,7 +962,7 @@ SO_KEEPALIVE选项
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -969,7 +970,7 @@ SO_KEEPALIVE选项
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -978,7 +979,7 @@ SO_KEEPALIVE选项
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

@@ -289,6 +289,134 @@
             
               
                 
+                <a class="post-title-link" href="/2015/10/24/leveldb-11/" itemprop="url">
+                  leveldb源码分析之Cache
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-24T14:14:45+08:00" content="2015-10-24">
+              2015-10-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/24/leveldb-11/" class="leancloud_visitors" data-flag-title="leveldb源码分析之Cache">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          缓存对于一个系统的性能有着重要的影响。试想，如果leveldb每次查询数据时，都要从磁盘获取数据，那么磁盘多次的磁盘IO将严重影响leveldb的性能。所以levledb就在内存设计了一个缓存区，当查询数据时，先到缓存查询，如果缓存有需要的数据，即可直接返回数据即可，无需到磁盘获取数据；如果缓存没有，则到磁盘将数据取出放到缓存，下次再查询相同数据时，即可直接从缓存获取，大大减少了磁盘IO。
+缓存在操作系统中更常见。例如，如果要读取文件，也是要先到操作系统内核缓存获取数据，内核缓存是以page为单
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/10/24/leveldb-11/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/10/22/Cplus6/" itemprop="url">
                   C++之柔性数组
                 </a>
@@ -785,135 +913,6 @@ log文件按块划分，默认每块为32768kb=32M。这么大有个好处，就
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/17/leveldb-06/" itemprop="url">
-                  leveldb源码分析之memtable
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-17T10:15:49+08:00" content="2015-10-17">
-              2015-10-17
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/leveldb/" itemprop="url" rel="index">
-                    <span itemprop="name">leveldb</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/17/leveldb-06/" class="leancloud_visitors" data-flag-title="leveldb源码分析之memtable">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          在讲memtable之前，有必要先讲讲leveldb模型,当向leveldb写入数据时，首先将数据写入log文件，然后在写入memtable内存中。log文件主要是用在当断电时，内存中数据会丢失，数据可以从log文件中恢复。当memtable数据达到一定大小即（options属性write_buffer_size大小，默认4&lt;&lt;20)，会变为immemtable，然后log文件也生成一个新的log文件.immemtable数据将会被持久化到磁盘中。模型图如下：
-
-取自博客“spark
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/17/leveldb-06/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -959,7 +958,7 @@ log文件按块划分，默认每块为32768kb=32M。这么大有个好处，就
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -967,7 +966,7 @@ log文件按块划分，默认每块为32768kb=32M。这么大有个好处，就
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -976,7 +975,7 @@ log文件按块划分，默认每块为32768kb=32M。这么大有个好处，就
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

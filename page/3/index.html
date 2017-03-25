@@ -289,6 +289,136 @@
             
               
                 
+                <a class="post-title-link" href="/2016/08/23/golang01/" itemprop="url">
+                  golang语言之groupcache
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-08-23T20:53:55+08:00" content="2016-08-23">
+              2016-08-23
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/08/23/golang01/" class="leancloud_visitors" data-flag-title="golang语言之groupcache">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          实习期间一直在用golang，今天想写篇博客，聊聊我对golang的一些思考，以及分析下groupcache的实现；
+
+在没接触golang之前，在我的印象里，服务器开发就是常见的nginx多进程，memcache多线程，redis单线程；后来，golang这种多协程，一个连接对应一个协程的模式深深吸引了我，相比进程，线程，协程粒度相对较小，协程切换代价与进程和线程相比是非常小的，因此一个连接对应一个协程才得以行得通；
+golang很适合写服务，首先是语言层面支持高并发，其次是对http和rpc
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/08/23/golang01/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/08/13/linux-cache/" itemprop="url">
                   linux内存分配与回收
                 </a>
@@ -791,134 +921,6 @@ libtask的channel模块，理解起来没有task模块轻松，逻辑比较复�
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/06/21/libtask/" itemprop="url">
-                  聊聊golang的前身libtask
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-06-21T19:43:13+08:00" content="2016-06-21">
-              2016-06-21
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/libtask/" itemprop="url" rel="index">
-                    <span itemprop="name">libtask</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/06/21/libtask/" class="leancloud_visitors" data-flag-title="聊聊golang的前身libtask">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          在实习期间，由于项目需要，接触了golang这门语言；经过一段时间的学习使用，我发现golang语言语法简单，有C/C++基础的同学，一个星期即可上手，当然要深入理解golang，还是要多使用，多学习底层机制；goroutine的引入，使得golang非常适合并发程序的开发；而我了，在学习一门语言或技术的时候，是一定要理解底层的实现原理，否则我会用的很盲目或者说难受．所以有了这篇文章．
-之前，在没接触golang时，在我的认知范围内，服务器开发架构大体就是类似redis的单线程，memcache
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/06/21/libtask/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -964,7 +966,7 @@ libtask的channel模块，理解起来没有task模块轻松，逻辑比较复�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -972,7 +974,7 @@ libtask的channel模块，理解起来没有task模块轻松，逻辑比较复�
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -981,7 +983,7 @@ libtask的channel模块，理解起来没有task模块轻松，逻辑比较复�
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

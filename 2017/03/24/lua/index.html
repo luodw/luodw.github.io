@@ -1,0 +1,1070 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next pisces use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Lato:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.0.2" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="lua," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="罗道文的私房菜" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=5.0.2" />
+
+
+
+
+
+
+<meta name="description" content="今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。
+我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Lua杂谈">
+<meta property="og:url" content="http://luodw.cc/2017/03/24/lua/index.html">
+<meta property="og:site_name" content="罗道文的私房菜">
+<meta property="og:description" content="今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。
+我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者">
+<meta property="og:updated_time" content="2017-03-25T10:45:43.812Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Lua杂谈">
+<meta name="twitter:description" content="今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。
+我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Pisces',
+    sidebar: {"position":"left","display":"always"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: '0',
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="http://luodw.cc/2017/03/24/lua/"/>
+
+
+  <title> Lua杂谈 | 罗道文的私房菜 </title>
+</head>
+
+<body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
+
+  
+
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?c8bfd43d39ee97fe670b76fe06d38c03";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="//schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">罗道文的私房菜</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">分享知识，分享快乐</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-2017-reading">
+          <a href="/2017-reading" rel="section">
+            
+            阅读
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-bookmark">
+          <a href="/bookmark" rel="section">
+            
+            书签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+            关于
+          </a>
+        </li>
+      
+
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="st-search-show-outputs">
+          
+            
+            搜索
+          </a>
+        </li>
+      
+    </ul>
+  
+
+  
+    <div class="site-search">
+      
+  <form class="site-search-form">
+  <input type="text" id="st-search-input" class="st-search-input st-default-search-input" />
+</form>
+
+<script type="text/javascript">
+  (function(w,d,t,u,n,s,e){w['SwiftypeObject']=n;w[n]=w[n]||function(){
+    (w[n].q=w[n].q||[]).push(arguments);};s=d.createElement(t);
+    e=d.getElementsByTagName(t)[0];s.async=1;s.src=u;e.parentNode.insertBefore(s,e);
+  })(window,document,'script','//s.swiftypecdn.com/install/v2/st.js','_st');
+
+  _st('install', 'chcHaQRahdwMUNbzMpw5','2.0.0');
+</script>
+
+
+
+    </div>
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                Lua杂谈
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-03-24T20:34:22+08:00" content="2017-03-24">
+              2017-03-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/lua/" itemprop="url" rel="index">
+                    <span itemprop="name">lua</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/03/24/lua/" class="leancloud_visitors" data-flag-title="Lua杂谈">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。</p>
+<p>我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者，nginx+lua+redis构建高性能应用。lua+nginx可以使nginx不需要重新编译的情况下添加功能，特别是，如果只是修改lua文件，nginx都不需要重新加载配置文件，极大便利了nginx开发；而redis内嵌lua，让redis服务器有了计算能力，而且减小带宽传输（多个命令）以及原子执行多个命令达到cas效果。</p>
+<p>下面就说说最近的一些内容和心得，主要以下三部分：</p>
+<ol>
+<li>通过lua脚本操作redis；</li>
+<li>nginx+lua示例；</li>
+<li>lua面向对象实现；</li>
+<li>总结；</li>
+</ol>
+<h1>通过lua脚本操作redis</h1>
+<hr>
+<p>之前在学习redis以及看源码时，由于不懂lua，所以redis内嵌Lua模块就跳过去了，如今学了Lua，因此想把这块知识补上。redis对Lua的支持，主要有以下以下７个命令，</p>
+<ol>
+<li>EVAL</li>
+<li>EVALSHA</li>
+<li>SCRIPT DEBUG</li>
+<li>SCRIPT EXISTS</li>
+<li>SCRIPT FLUSH</li>
+<li>SCRIPT KILL</li>
+<li>SCRIPT LOAD
+具体这些命令怎么使用，以及实现原理如何，可以看链接<a href="http://redisbook.readthedocs.io/en/latest/feature/scripting.html" target="_blank" rel="external">Lua脚本-Redis设计与实现</a>和<a href="https://redis.io/commands/eval" target="_blank" rel="external">redis官网</a>。这里主要介绍下EVAL命令。</li>
+</ol>
+<p>EVAL命令格式为</p>
+<blockquote>
+<p>EVAL script numkeys key [key ...] arg [arg ...]</p>
+</blockquote>
+<p>这里的</p>
+<ol>
+<li>script即为lua脚本或lua脚本文件;</li>
+<li>key一般指lua脚本操作的键，在lua脚本文件中，通过KEYS[i]获取;</li>
+<li>arg指外部传递给lua脚本的参数，可以通过ARGV[i]获取；</li>
+</ol>
+<p>下面通过两个简单的示例展示eval命令的用法。首先是脚本语句，来自redis官网，如下
+<figure class="highlight maxima"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="number">127.0</span>.0.1:<span class="number">6379</span>&gt;  <span class="built_in">eval</span> <span class="string">"return &#123;KEYS[1],KEYS[2],ARGV[1],ARGV[2]&#125;"</span> <span class="number">2</span> key1 key2 <span class="built_in">first</span> <span class="built_in">second</span></div><div class="line"><span class="number">1</span>) <span class="string">"key1"</span></div><div class="line"><span class="number">2</span>) <span class="string">"key2"</span></div><div class="line"><span class="number">3</span>) <span class="string">"first"</span></div><div class="line"><span class="number">4</span>) <span class="string">"second"</span></div></pre></td></tr></table></figure></p>
+<p>这个示例中lua脚本为一个return语句，返回了lua一个数组，这个数组四个元素分别是通过外部传入lua脚本。因为redis内嵌了Lua虚拟机，因此redis接收到这个lua脚本之后，然后交给lua虚拟机执行。当lua虚拟机执行结束，即将执行结果返回给redis，redis将结果按自己的协议转换为返回给客户端的回复，最后再通过TCP将回复发回给客户端。</p>
+<p>通过这个例子也可以看出，在lua脚本中可以通过KEYS[i]来获取外部传入的键值，通过ARGV[i]来获取外部传入的参数。</p>
+<p>下面给出一个复杂点的lua脚本，在给出脚本之前，先看下redis中有哪些需要的数据
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">127.0.0.1:6379&gt; zrange people 0 3</div><div class="line">1) &quot;jom&quot;</div><div class="line">2) &quot;lily&quot;</div><div class="line">3) &quot;tom&quot;</div><div class="line">127.0.0.1:6379&gt; hgetall jom</div><div class="line">1) &quot;sex&quot;</div><div class="line">2) &quot;boy&quot;</div><div class="line">3) &quot;age&quot;</div><div class="line">4) &quot;12&quot;</div><div class="line">127.0.0.1:6379&gt; hgetall lily</div><div class="line">1) &quot;age&quot;</div><div class="line">2) &quot;15&quot;</div><div class="line">3) &quot;sex&quot;</div><div class="line">4) &quot;girl&quot;</div><div class="line">127.0.0.1:6379&gt; hgetall tom</div><div class="line">1) &quot;sex&quot;</div><div class="line">2) &quot;boy&quot;</div><div class="line">3) &quot;girl&quot;</div><div class="line">4) &quot;13&quot;</div></pre></td></tr></table></figure></p>
+<p>下面lua脚本的作用就是通过一次网络请求获取'jom'，'lily'，'tom'三个人的个人信息
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div></pre></td><td class="code"><pre><div class="line"><span class="comment">--[[</span></div><div class="line">--Keys[1] is the key</div><div class="line">--argv[1] is the offset</div><div class="line">--argv[2] is the limit</div><div class="line">--]]</div><div class="line"></div><div class="line"><span class="comment">-- 获取外部传入的命令</span></div><div class="line"><span class="keyword">local</span> key,offset,limit = KEYS[<span class="number">1</span>], ARGV[<span class="number">1</span>], ARGV[<span class="number">2</span>]</div><div class="line"><span class="comment">-- 通过ZRANGE获取键为key的有序集合元素，偏移量为offset，个数为limit，即所有人名字</span></div><div class="line"><span class="keyword">local</span> names = redis.call(<span class="string">'ZRANGE'</span>, key, offset, limit)</div><div class="line"><span class="comment">-- infos存储所有个人信息</span></div><div class="line"><span class="keyword">local</span> infos = &#123;&#125;</div><div class="line"><span class="comment">-- 遍历所有名字</span></div><div class="line"><span class="keyword">for</span> i=<span class="number">1</span>,#names <span class="keyword">do</span></div><div class="line">	<span class="keyword">local</span> ck = names[i]</div><div class="line">    <span class="comment">-- 通过HGETALL命令获取每个人的个人信息</span></div><div class="line">	<span class="keyword">local</span> info = redis.call(<span class="string">'HGETALL'</span>,ck)</div><div class="line">    <span class="comment">-- 并且在个人信息中插入姓名</span></div><div class="line">	table.insert(info,<span class="string">'name'</span>)</div><div class="line">	table.insert(info,names[i])</div><div class="line"></div><div class="line">    <span class="comment">-- 插入infos中</span></div><div class="line">	infos[i] = info</div><div class="line"><span class="keyword">end</span></div><div class="line"><span class="comment">-- 将结果返回给redis</span></div><div class="line"><span class="keyword">return</span> infos</div></pre></td></tr></table></figure></p>
+<p>在命令行上执行eval命令，即可以得到结果，如下：
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div></pre></td><td class="code"><pre><div class="line">$ ../redis/src/redis-cli --eval redlua.lua people , 0 2</div><div class="line">1) 1) &quot;sex&quot;</div><div class="line">   2) &quot;boy&quot;</div><div class="line">   3) &quot;age&quot;</div><div class="line">   4) &quot;12&quot;</div><div class="line">   5) &quot;name&quot;</div><div class="line">   6) &quot;jom&quot;</div><div class="line">2) 1) &quot;age&quot;</div><div class="line">   2) &quot;15&quot;</div><div class="line">   3) &quot;sex&quot;</div><div class="line">   4) &quot;girl&quot;</div><div class="line">   5) &quot;name&quot;</div><div class="line">   6) &quot;lily&quot;</div><div class="line">3) 1) &quot;sex&quot;</div><div class="line">   2) &quot;boy&quot;</div><div class="line">   3) &quot;girl&quot;</div><div class="line">   4) &quot;13&quot;</div><div class="line">   5) &quot;name&quot;</div><div class="line">   6) &quot;tom&quot;</div></pre></td></tr></table></figure></p>
+<p>试想，如果没有使用lua脚本，那么上述功能需要在应用程序中先发送ZRANGE命令，获取所有姓名；获取到所有姓名之后，在遍历所有姓名，针对每个姓名访问redis获取给人信息，至少四次网络IO。而管道在这种场景上也派不上用场。由此可知，lua脚本在这种场景下提高redis性能是有多大的帮助了。</p>
+<blockquote>
+<p>需要特别注意的是people（键）后面的逗号左右都要留空格，不然会报错！</p>
+</blockquote>
+<h1>ngx+lua示例</h1>
+<hr>
+<p>ngx+lua是我最近非常感兴趣的一门技术，因为在带来高性能的同时，并没有提高编程的复杂性。如果是用c语言开发nginx第三方模块，需要了解nginx内部的数据结构以及接口，难度和心智上都有挑战。本小节也是通过简单的ngx+lua示例来展示在lua是如何在nginx中使用的。</p>
+<p>开发环境可以通过<a href="http://wiki.jikexueyuan.com/project/nginx-lua/development-environment.html" target="_blank" rel="external">极客学院教程</a>安装。即安装OpenResty框架。安装的目录在/usr/servers，测试目录在/usr/example。</p>
+<p>第一个示例展示如何获在lua脚本中获取http请求所有信息，这个示例来自<a href="http://jinnianshilongnian.iteye.com/blog/2186448" target="_blank" rel="external">开涛的博客</a>，可以很好理解在lua中如何获取nginx请求信息。在example.conf中添加如下路径映射
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line">location ~/lua_test/(\d+)/(\d+)$ &#123;</div><div class="line">   set $a $1;</div><div class="line">   set $b $host;</div><div class="line">   default_type &apos;text/html&apos;;</div><div class="line">   lua_code_cache on;</div><div class="line">   content_by_lua_file /usr/example/lua/lua_test.lua;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>然后在/usr/example/lua/文件下新建lua_test.lua文件，复制如下代码
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div></pre></td><td class="code"><pre><div class="line"><span class="comment">-- nginx变量</span></div><div class="line"><span class="keyword">local</span> var = ngx.var</div><div class="line">ngx.say(<span class="string">"ngx.var.a :"</span>,var.a,<span class="string">"&lt;br/&gt;"</span>)</div><div class="line">ngx.say(<span class="string">"ngx.var.b :"</span>,var.b,<span class="string">"&lt;br/&gt;"</span>)</div><div class="line">ngx.say(<span class="string">"ngx.var[2] :"</span>,var[<span class="number">2</span>],<span class="string">"&lt;br/&gt;"</span>)</div><div class="line"></div><div class="line"><span class="comment">-- 请求头</span></div><div class="line"><span class="keyword">local</span> headers = ngx.req.get_headers()</div><div class="line">ngx.say(<span class="string">"headers begin"</span>, <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">ngx.say(<span class="string">"Host : "</span>, headers[<span class="string">"Host"</span>], <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">ngx.say(<span class="string">"user-agent : "</span>, headers[<span class="string">"user-agent"</span>], <span class="string">"&lt;br/&gt;"</span>)</div><div class="line"><span class="keyword">for</span> k,v <span class="keyword">in</span> <span class="built_in">pairs</span>(headers) <span class="keyword">do</span></div><div class="line">    <span class="keyword">if</span> <span class="built_in">type</span>(v) == <span class="string">"table"</span> <span class="keyword">then</span></div><div class="line">                ngx.say(k, <span class="string">" : "</span>, table.concat(v, <span class="string">","</span>), <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">        <span class="keyword">else</span></div><div class="line">                        ngx.say(k, <span class="string">" : "</span>, v, <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">        <span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">ngx.say(<span class="string">"headers end"</span>, <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">ngx.say(<span class="string">"&lt;br/&gt;"</span>)</div><div class="line"></div><div class="line"><span class="comment">--get请求uri参数  </span></div><div class="line">ngx.say(<span class="string">"uri args begin"</span>, <span class="string">"&lt;br/&gt;"</span>)</div><div class="line"><span class="keyword">local</span> uri_args = ngx.req.get_uri_args()</div><div class="line"></div><div class="line"><span class="keyword">for</span> k,v <span class="keyword">in</span> <span class="built_in">pairs</span>(uri_args) <span class="keyword">do</span></div><div class="line">        <span class="keyword">if</span> <span class="built_in">type</span>(v) == <span class="string">"table"</span> <span class="keyword">then</span></div><div class="line">                ngx_say(k, <span class="string">" : "</span>, table.concat(v, <span class="string">". "</span>),<span class="string">"&lt;br/&gt;"</span>)</div><div class="line">        <span class="keyword">else</span></div><div class="line">                ngx.say(k, <span class="string">": "</span>, v, <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">        <span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"><span class="comment">--post请求参数  </span></div><div class="line">ngx.req.read_body()</div><div class="line">ngx.say(<span class="string">"post args begin"</span>, <span class="string">"&lt;br/&gt;"</span>)</div><div class="line"><span class="keyword">local</span> post_args = ngx.req.get_post_args()</div><div class="line"><span class="keyword">for</span> k, v <span class="keyword">in</span> <span class="built_in">pairs</span>(post_args) <span class="keyword">do</span></div><div class="line">    <span class="keyword">if</span> <span class="built_in">type</span>(v) == <span class="string">"table"</span> <span class="keyword">then</span></div><div class="line">                ngx.say(k, <span class="string">" : "</span>, table.concat(v, <span class="string">", "</span>), <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">        <span class="keyword">else</span></div><div class="line">                ngx.say(k, <span class="string">": "</span>, v, <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">        <span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">ngx.say(<span class="string">"post args end"</span>, <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">ngx.say(<span class="string">"&lt;br/&gt;"</span>)</div><div class="line"><span class="comment">--请求的http协议版本  </span></div><div class="line">ngx.say(<span class="string">"ngx.req.http_version : "</span>, ngx.req.http_version(), <span class="string">"&lt;br/&gt;"</span>)</div><div class="line"><span class="comment">--请求方法  </span></div><div class="line">ngx.say(<span class="string">"ngx.req.get_method : "</span>, ngx.req.get_method(), <span class="string">"&lt;br/&gt;"</span>)</div><div class="line"><span class="comment">--原始的请求头内容  </span></div><div class="line">ngx.say(<span class="string">"ngx.req.raw_header : "</span>,  ngx.req.raw_header(), <span class="string">"&lt;br/&gt;"</span>)</div><div class="line"><span class="comment">--请求的body内容体  </span></div><div class="line">ngx.say(<span class="string">"ngx.req.get_body_data() : "</span>, ngx.req.get_body_data(), <span class="string">"&lt;br/&gt;"</span>)</div><div class="line">ngx.say(<span class="string">"&lt;br/&gt;"</span>)</div></pre></td></tr></table></figure></p>
+<p>由代码可以看出，lua脚本中主要信息来自于ngx.var和ngx.req这两个属性。在执行程序之前，先nginx需要先reload一次，最后我们就可以通过curl命令来访问nginx
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div></pre></td><td class="code"><pre><div class="line">$curl -XPOST -d &apos;name=json&amp;age=26&apos; &apos;http://127.0.0.1:80/lua_test/1/2?token=ds43klk54fd&apos;</div><div class="line">ngx.var.a :1&lt;br/&gt;</div><div class="line">ngx.var.b :127.0.0.1&lt;br/&gt;</div><div class="line">ngx.var[2] :2&lt;br/&gt;</div><div class="line">headers begin&lt;br/&gt;</div><div class="line">Host : 127.0.0.1&lt;br/&gt;</div><div class="line">user-agent : curl/7.35.0&lt;br/&gt;</div><div class="line">host : 127.0.0.1&lt;br/&gt;</div><div class="line">content-type : application/x-www-form-urlencoded&lt;br/&gt;</div><div class="line">accept : */*&lt;br/&gt;</div><div class="line">content-length : 16&lt;br/&gt;</div><div class="line">user-agent : curl/7.35.0&lt;br/&gt;</div><div class="line">headers end&lt;br/&gt;</div><div class="line">&lt;br/&gt;</div><div class="line">uri args begin&lt;br/&gt;</div><div class="line">token: ds43klk54fd&lt;br/&gt;</div><div class="line">post args begin&lt;br/&gt;</div><div class="line">age: 26&lt;br/&gt;</div><div class="line">name: json&lt;br/&gt;</div><div class="line">post args end&lt;br/&gt;</div><div class="line">&lt;br/&gt;</div><div class="line">ngx.req.http_version : 1.1&lt;br/&gt;</div><div class="line">ngx.req.get_method : POST&lt;br/&gt;</div><div class="line">ngx.req.raw_header : POST /lua_test/1/2?token=ds43klk54fd HTTP/1.1</div><div class="line">User-Agent: curl/7.35.0</div><div class="line">Host: 127.0.0.1</div><div class="line">Accept: */*</div><div class="line">Content-Length: 16</div><div class="line">Content-Type: application/x-www-form-urlencoded</div><div class="line"></div><div class="line">&lt;br/&gt;</div><div class="line">ngx.req.get_body_data() : name=json&amp;age=26&lt;br/&gt;</div><div class="line">&lt;br/&gt;</div></pre></td></tr></table></figure></p>
+<p>通过代码和结果一一比对，可以看出已经正确获取请求信息。我觉得这是一个很好的入门示例，因为处理http请求，获取http请求头信息是非常有必要的，而上述例子则展示接口信息。</p>
+<p>下面另一个示例是展示ngx+lua存取redis。同样在example.conf添加路径映射
+<figure class="highlight nginx"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"> <span class="attribute">location</span> ~/redis_test/(\d+)$ &#123;</div><div class="line">        <span class="attribute">default_type</span> <span class="string">'text/html'</span>;</div><div class="line">        <span class="attribute">charset</span> utf-<span class="number">8</span>;</div><div class="line">        <span class="attribute">lua_code_cache</span> <span class="literal">on</span>;</div><div class="line">        <span class="attribute">content_by_lua_file</span> /usr/example/lua/redis.lua;</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>然后在/usr/example/lua/文件夹下新建redis.lua，复制如下代码:
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">local</span> json = <span class="built_in">require</span>(<span class="string">"cjson"</span>)</div><div class="line"><span class="keyword">local</span> redis = <span class="built_in">require</span>(<span class="string">"resty.redis"</span>)</div><div class="line"></div><div class="line"><span class="keyword">local</span> red = redis:new()</div><div class="line">red:set_timeout(<span class="number">1000</span>)</div><div class="line"></div><div class="line"><span class="keyword">local</span> ip = <span class="string">"127.0.0.1"</span></div><div class="line"><span class="keyword">local</span> port = <span class="number">6379</span></div><div class="line"></div><div class="line"><span class="keyword">local</span> ok, err = red:connect(ip, port)</div><div class="line"><span class="keyword">if</span> <span class="keyword">not</span> ok <span class="keyword">then</span></div><div class="line">        ngx.say(<span class="string">"connect to redis error : "</span>, err)</div><div class="line">        <span class="keyword">return</span> ngx.exit(<span class="number">500</span>)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line"></div><div class="line"><span class="keyword">local</span> id = ngx.var[<span class="number">1</span>]</div><div class="line"><span class="keyword">local</span> value = <span class="string">"value-"</span>..id</div><div class="line"></div><div class="line">red:set(id,value)</div><div class="line"></div><div class="line"><span class="keyword">local</span> resp, err = red:get(id)</div><div class="line"><span class="keyword">if</span> <span class="keyword">not</span> resp <span class="keyword">then</span></div><div class="line">        ngx.say(<span class="string">"get from redis error : "</span>, err)</div><div class="line">        <span class="keyword">return</span> ngx.exit(<span class="number">500</span>)</div><div class="line"><span class="keyword">end</span></div><div class="line"></div><div class="line">red:<span class="built_in">close</span>()</div><div class="line"></div><div class="line">ngx.say(json.encode(&#123;content=resp&#125;))</div></pre></td></tr></table></figure></p>
+<p>OpenResty将常用的lua包都已经打包好，包括redis客户端，memcache客户端，mysql客户端以及cjson等等，非常方便ngx+lua的开发。在执行程序之前，先reload一次配置文件，执行结果如下：
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">$ curl http://127.0.0.1:80/redis_test/1</div><div class="line">&#123;&quot;content&quot;:&quot;value-1&quot;&#125;</div><div class="line">$ curl http://127.0.0.1:80/redis_test/2</div><div class="line">&#123;&quot;content&quot;:&quot;value-2&quot;&#125;</div><div class="line">$ curl http://127.0.0.1:80/redis_test/3</div><div class="line">&#123;&quot;content&quot;:&quot;value-3&quot;&#125;</div></pre></td></tr></table></figure></p>
+<p>最后可以通过redis-cli客户端验证上述三个键值对是否插入成功。由这个例子可以展开讨论，如下</p>
+<ol>
+<li>因为OpenResty提供了redis，mysql以及模板渲染，因此利用ngx+lua可以直接部署一个小型网站；</li>
+<li>可以在nginx本地搭一个redis缓存；当数据请求时，先访问本地的redis缓存，如果redis缓存需要的数据，直接直接在nginx层返回；如果redis没有缓存需要的数据，则转向web服务器。这样可以减轻后端服务器和数据库的压力，以及缩短请求时间。</li>
+</ol>
+<p>#　lua面向对象实现</p>
+<hr>
+<p>lua没有提供面像对象的实现，但是可以通过table来模拟。所以可知table在lua中是多么核心的数据结构。这里，我用redis客户端来说明lua是如何模拟面像对象的实现。
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="comment">----引入table.new函数，兼容版本恩体</span></div><div class="line"><span class="keyword">local</span> ok, new_tab = <span class="built_in">pcall</span>(<span class="built_in">require</span>, <span class="string">"table.new"</span>)</div><div class="line"><span class="keyword">if</span> <span class="keyword">not</span> ok <span class="keyword">or</span> <span class="built_in">type</span>(new_tab) ~= <span class="string">"function"</span> <span class="keyword">then</span></div><div class="line"><span class="comment">----如果还没有table.new接口，则自定义一个函数，返回一个空表格</span></div><div class="line">    new_tab = <span class="function"><span class="keyword">function</span> <span class="params">(narr, nrec)</span></span> <span class="keyword">return</span> &#123;&#125; <span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div><div class="line"><span class="comment">-----------------------------------------------------</span></div><div class="line"><span class="comment">--新建一个表格</span></div><div class="line"> <span class="keyword">local</span> _M = new_tab(<span class="number">0</span>, <span class="number">155</span>)</div><div class="line"> _M.<span class="built_in">_VERSION</span> = <span class="string">'0.24'</span></div><div class="line"><span class="comment">-----------------------------------------------------</span></div><div class="line"><span class="keyword">local</span> mt = &#123; <span class="built_in">__index</span> = _M &#125;</div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">_M.new</span><span class="params">(self)</span></span></div><div class="line">    <span class="keyword">local</span> sock, err = tcp()</div><div class="line">    <span class="keyword">if</span> <span class="keyword">not</span> sock <span class="keyword">then</span></div><div class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</div><div class="line">    <span class="keyword">end</span></div><div class="line">    <span class="comment">--设置返回表的元表</span></div><div class="line">    <span class="keyword">return</span> <span class="built_in">setmetatable</span>(&#123; sock = sock &#125;, mt)</div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure></p>
+<p>上述new方法即相当于类的构造函数，因此，我们可以通过如下方式新建一个对象
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"><span class="comment">-----此时require返回的redis即为模块中的_M</span></div><div class="line"><span class="keyword">local</span> redis = <span class="built_in">require</span>(<span class="string">"resty.redis"</span>)</div><div class="line"><span class="keyword">local</span> red = redis:new()</div></pre></td></tr></table></figure></p>
+<p>通过redis:new()方法返回一个{sock=sock}表格，然后设置这个表格的元表为resty.redis模块中的_M表格；__index元表格的意思就是当在red中访问一个不存在的属性时，则可以到元表中查询；因此当red调用下述函数时:
+<figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">red:connect(<span class="string">'127.0.0.1'</span>,<span class="number">9999</span>)</div><div class="line"><span class="comment">--------------------------------------------------</span></div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">_M.connect</span><span class="params">(self, ...)</span></span></div><div class="line"><span class="comment">----如果是red调用改方法，则self即为red</span></div><div class="line">    <span class="keyword">local</span> sock = self.sock</div><div class="line">    <span class="keyword">if</span> <span class="keyword">not</span> sock <span class="keyword">then</span></div><div class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, <span class="string">"not initialized"</span></div><div class="line">    <span class="keyword">end</span></div><div class="line"></div><div class="line">    self.subscribed = <span class="literal">nil</span></div><div class="line"></div><div class="line">    <span class="keyword">return</span> sock:connect(...)</div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure></p>
+<p>因为red中并不存在connect方法，因此red到它的_M中查找connect方法，并执行；其实_M和red在lua中是两个不同的对象，就是因为red的元表为_M，因此可以把_M当作是对象red的模板，也就是类的概念。</p>
+<h1>总结</h1>
+<hr>
+<p>本文主要介绍了lua在redis和nginx的应用，以及lua面向对象的实现。多了解一些编程语言，可以更好对编程语言的理解。后面还是深入再看看ngx+lua的开发。</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <div>
+      
+        
+
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/lua/" rel="tag">#lua</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/03/17/nginx01/" rel="next" title="Nginx是这么运行的">
+                <i class="fa fa-chevron-left"></i> Nginx是这么运行的
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+<div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
+<script src="https://img1.cache.netease.com/f2e/tie/yun/sdk/loader.js"></script>
+<script>
+var cloudTieConfig = {
+  url: document.location.href, 
+  sourceId: "",
+  productKey: "5f86fe3bc07e4e31adb4a20c48cbf8f2",
+  target: "cloud-tie-wrapper"
+};
+var yunManualLoad = true;
+Tie.loader("aHR0cHM6Ly9hcGkuZ2VudGllLjE2My5jb20vcGMvbGl2ZXNjcmlwdC5odG1s", true);
+</script>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="//schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/uploads/psb.jpg"
+               alt="罗道文" />
+          <p class="site-author-name" itemprop="name">罗道文</p>
+          <p class="site-description motion-element" itemprop="description">分享知识，分享快乐</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-name">日志</span>
+            </a>
+          </div>
+
+          
+            <div class="site-state-item site-state-categories">
+              
+                <span class="site-state-item-count">32</span>
+                <span class="site-state-item-name">分类</span>
+              
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              
+                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-name">标签</span>
+              
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+            
+              <span class="links-of-author-item">
+                <a href="https://github.com/luodw" target="_blank" title="github">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  github
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://weibo.com/1699355617/profile?rightmod=1&wvr=6&mod=personinfo" target="_blank" title="weibo">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  weibo
+                </a>
+              </span>
+            
+              <span class="links-of-author-item">
+                <a href="http://www.zhihu.com/people/tao-tao-tao-tao-wen" target="_blank" title="zhihu">
+                  
+                    <i class="fa fa-fw fa-globe"></i>
+                  
+                  zhihu
+                </a>
+              </span>
+            
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        
+        
+          <div class="links-of-blogroll motion-element links-of-blogroll-block">
+            <div class="links-of-blogroll-title">
+              <i class="fa  fa-fw fa-globe"></i>
+              Links
+            </div>
+            <ul class="links-of-blogroll-list">
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://mingxinglai.com/" title="赖明星" target="_blank">赖明星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://www.powerxing.com/" title="蔡珉星" target="_blank">蔡珉星</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://dblab.xmu.edu.cn/" title="厦门大学数据库实验室" target="_blank">厦门大学数据库实验室</a>
+                </li>
+              
+            </ul>
+          </div>
+        
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+            
+              
+            
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">通过lua脚本操作redis</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">ngx+lua示例</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+            
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <script async src="https://dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js">
+</script>
+
+<div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">罗道文</span>
+</div>
+
+<div class="powered-by">
+  由 <a class="theme-link" href="https://hexo.io">Hexo</a> 强力驱动
+</div>
+
+<span id="busuanzi_container_site_pv">
+    本站总访问量<span id="busuanzi_value_site_pv"></span>次 |
+</span>
+
+<div class="theme-info">
+  主题 -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Pisces
+  </a>
+</div>
+
+        
+
+        
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  
+  <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  
+  <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.0.2"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.0.2"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.0.2"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.0.2"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.0.2"></script>
+
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.0.2"></script>
+
+
+
+  
+
+
+
+  
+
+
+
+
+  
+  
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = false;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = decodeURIComponent(data.url);
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title >= 0 || index_content >= 0 ){
+                                isMatch = true;
+								if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            } 
+							
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+
+  
+
+  
+
+  
+  <script src="https://cdn1.lncld.net/static/js/av-core-mini-0.6.1.js"></script>
+  <script>AV.initialize("d4M77Uwmt5bMmtRK3JC3pw6h-gzGzoHsz", "aSDV89NgDrUbl8iqhvmdOiEU");</script>
+  <script>
+    function showTime(Counter) {
+      var query = new AV.Query(Counter);
+      var entries = [];
+      var $visitors = $(".leancloud_visitors");
+
+      $visitors.each(function () {
+        entries.push( $(this).attr("id").trim() );
+      });
+
+      query.containedIn('url', entries);
+      query.find()
+        .done(function (results) {
+          var COUNT_CONTAINER_REF = '.leancloud-visitors-count';
+
+          if (results.length === 0) {
+            $visitors.find(COUNT_CONTAINER_REF).text(0);
+            return;
+          }
+
+          for (var i = 0; i < results.length; i++) {
+            var item = results[i];
+            var url = item.get('url');
+            var time = item.get('time');
+            var element = document.getElementById(url);
+
+            $(element).find(COUNT_CONTAINER_REF).text(time);
+          }
+          for(var i = 0; i < entries.length; i++) {
+            var url = entries[i];
+            var element = document.getElementById(url);
+            var countSpan = $(element).find(COUNT_CONTAINER_REF);
+            if( countSpan.text() == '') {
+              countSpan.text(0);
+            }
+          }
+        })
+        .fail(function (object, error) {
+          console.log("Error: " + error.code + " " + error.message);
+        });
+    }
+
+    function addCount(Counter) {
+      var $visitors = $(".leancloud_visitors");
+      var url = $visitors.attr('id').trim();
+      var title = $visitors.attr('data-flag-title').trim();
+      var query = new AV.Query(Counter);
+
+      query.equalTo("url", url);
+      query.find({
+        success: function(results) {
+          if (results.length > 0) {
+            var counter = results[0];
+            counter.fetchWhenSave(true);
+            counter.increment("time");
+            counter.save(null, {
+              success: function(counter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(counter.get('time'));
+              },
+              error: function(counter, error) {
+                console.log('Failed to save Visitor num, with error message: ' + error.message);
+              }
+            });
+          } else {
+            var newcounter = new Counter();
+            /* Set ACL */
+            var acl = new AV.ACL();
+            acl.setPublicReadAccess(true);
+            acl.setPublicWriteAccess(true);
+            newcounter.setACL(acl);
+            /* End Set ACL */
+            newcounter.set("title", title);
+            newcounter.set("url", url);
+            newcounter.set("time", 1);
+            newcounter.save(null, {
+              success: function(newcounter) {
+                var $element = $(document.getElementById(url));
+                $element.find('.leancloud-visitors-count').text(newcounter.get('time'));
+              },
+              error: function(newcounter, error) {
+                console.log('Failed to create');
+              }
+            });
+          }
+        },
+        error: function(error) {
+          console.log('Error:' + error.code + " " + error.message);
+        }
+      });
+    }
+
+    $(function() {
+      var Counter = AV.Object.extend("Counter");
+      if ($('.leancloud_visitors').length == 1) {
+        addCount(Counter);
+      } else if ($('.post-title-link').length > 1) {
+        showTime(Counter);
+      }
+    });
+  </script>
+
+
+
+  
+<script>
+(function(){
+    var bp = document.createElement('script');
+    var curProtocol = window.location.protocol.split(':')[0];
+    if (curProtocol === 'https') {
+        bp.src = 'https://zz.bdstatic.com/linksubmit/push.js';        
+    }
+    else {
+        bp.src = 'http://push.zhanzhang.baidu.com/push.js';
+    }
+    var s = document.getElementsByTagName("script")[0];
+    s.parentNode.insertBefore(bp, s);
+})();
+</script>
+
+
+  
+
+
+</body>
+</html>

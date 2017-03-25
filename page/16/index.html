@@ -289,6 +289,135 @@
             
               
                 
+                <a class="post-title-link" href="/2015/10/17/leveldb-06/" itemprop="url">
+                  leveldb源码分析之memtable
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-17T10:15:49+08:00" content="2015-10-17">
+              2015-10-17
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/17/leveldb-06/" class="leancloud_visitors" data-flag-title="leveldb源码分析之memtable">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          在讲memtable之前，有必要先讲讲leveldb模型,当向leveldb写入数据时，首先将数据写入log文件，然后在写入memtable内存中。log文件主要是用在当断电时，内存中数据会丢失，数据可以从log文件中恢复。当memtable数据达到一定大小即（options属性write_buffer_size大小，默认4&lt;&lt;20)，会变为immemtable，然后log文件也生成一个新的log文件.immemtable数据将会被持久化到磁盘中。模型图如下：
+
+取自博客“spark
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/10/17/leveldb-06/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/10/16/leveldb-05/" itemprop="url">
                   leveldb源码分析之Skiplist
                 </a>
@@ -789,137 +918,6 @@ enum类型本质是上一种int类型，4个字节
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/14/leveldb-01/" itemprop="url">
-                  leveldb安装和使用
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-14T21:00:01+08:00" content="2015-10-14">
-              2015-10-14
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/leveldb/" itemprop="url" rel="index">
-                    <span itemprop="name">leveldb</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/14/leveldb-01/" class="leancloud_visitors" data-flag-title="leveldb安装和使用">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          我研一时就给自己定义了学习路线，系统-&gt;语言-&gt;开源框架。研一的时候，我学习了linux系统命令，系统调用，内核一些原理，研二刚看了C++对象模型，所以接下来我要学习下leveldb源码。研一暑假时，我看了redis源码，这个leveldb源码分析结束之后，再把那个整理下发上来。
-分析开源优秀框架的源码是非常有价值，有意义的。
-
-首先分了某个框架，那么你就对这个框架从底层上的了解。
-其次，可以了解到某个语言是怎么用的。我看了leveldb，某种目的上，就是想看看C++面向对象是怎么使
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/14/leveldb-01/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -965,7 +963,7 @@ enum类型本质是上一种int类型，4个字节
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -973,7 +971,7 @@ enum类型本质是上一种int类型，4个字节
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -982,7 +980,7 @@ enum类型本质是上一种int类型，4个字节
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

@@ -289,6 +289,138 @@
             
               
                 
+                <a class="post-title-link" href="/2016/03/15/innodb02/" itemprop="url">
+                  innodb_ruby工具分析innob表空间文件Part-02
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-03-15T10:53:16+08:00" content="2016-03-15">
+              2016-03-15
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/innodb/" itemprop="url" rel="index">
+                    <span itemprop="name">innodb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/03/15/innodb02/" class="leancloud_visitors" data-flag-title="innodb_ruby工具分析innob表空间文件Part-02">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          上篇文章分析了系统表空间和单独表空间的文件结构，这篇文章主要分析单独表空间各个页具体的结构，以及InnoDB是如何管理这些页，区和段信息．在看这篇文章之前，必须有上篇文章的基础，否则很难理解这篇文章．
+Extent和extent描述符
+
+上篇文章有说到，一个表空间被被分成了一个个16KB的页，然后64个连续页(1MB)又分为一组．InnoDB在固定的位置分配FSP_HDR和XDES来跟踪extents的使用情况以及extents内部页的使用情况．这些页的结构如下图所示:
+
+该页有常规的FTL h
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/03/15/innodb02/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/03/14/innodb01/" itemprop="url">
                   innodb_ruby工具分析innodb表空间文件Part-01
                 </a>
@@ -783,115 +915,6 @@ l1 cache有32kb，８路组相连，总
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/02/25/cache/" itemprop="url">
-                  CPU访问物理内存
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-02-25T19:34:42+08:00" content="2016-02-25">
-              2016-02-25
-            </time>
-          </span>
-
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/02/25/cache/" class="leancloud_visitors" data-flag-title="CPU访问物理内存">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          有了之前linux内核对内存管理这块知识后,接下来,我想通过这篇文章分析下cpu如何获取内存数据以及如何缓存数据.在这里要感谢国外的一位大神Gustavo Duarte,我在一次偶然之间遇到了他的博客,然后学到了很多关于linux内核以及架构的知识,包括这篇文章.
-我们在计算机体系结构课上有学过cpu在获取数据时,是先在cpu内的缓存中查找,如果缓存有,则无需到主存中获取数据;如果缓存没有数据,则需要先到主存获取数据,并存入cpu缓存中,然后从cpu缓存中将数据返回.这篇文章主要想说说这这个过程
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/02/25/cache/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -937,7 +960,7 @@ l1 cache有32kb，８路组相连，总
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -945,7 +968,7 @@ l1 cache有32kb，８路组相连，总
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -954,7 +977,7 @@ l1 cache有32kb，８路组相连，总
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

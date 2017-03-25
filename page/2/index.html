@@ -289,6 +289,133 @@
             
               
                 
+                <a class="post-title-link" href="/2016/12/08/nsq01/" itemprop="url">
+                  NSQ源码分析之概述
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-12-08T15:03:29+08:00" content="2016-12-08">
+              2016-12-08
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/nsq/" itemprop="url" rel="index">
+                    <span itemprop="name">nsq</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/12/08/nsq01/" class="leancloud_visitors" data-flag-title="NSQ源码分析之概述">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，NSQ等等；之前原本打算看kafka，但是处于学习成本(kafka是scala编写，之前scala接触的比较少)，所以就先不看kafka，选择了NSQ；NSQ主要是golang编写，本人刚好非常喜欢golang这门语言，因此在学习NSQ的同时，也可以学
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/12/08/nsq01/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/11/12/python-wsgi/" itemprop="url">
                   python之wsgiref模块
                 </a>
@@ -782,136 +909,6 @@ redigo相对较小，看起来比较容易，但是必须好好学习下redis的
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/08/23/golang01/" itemprop="url">
-                  golang语言之groupcache
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-08-23T20:53:55+08:00" content="2016-08-23">
-              2016-08-23
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/golang/" itemprop="url" rel="index">
-                    <span itemprop="name">golang</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/08/23/golang01/" class="leancloud_visitors" data-flag-title="golang语言之groupcache">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          实习期间一直在用golang，今天想写篇博客，聊聊我对golang的一些思考，以及分析下groupcache的实现；
-
-在没接触golang之前，在我的印象里，服务器开发就是常见的nginx多进程，memcache多线程，redis单线程；后来，golang这种多协程，一个连接对应一个协程的模式深深吸引了我，相比进程，线程，协程粒度相对较小，协程切换代价与进程和线程相比是非常小的，因此一个连接对应一个协程才得以行得通；
-golang很适合写服务，首先是语言层面支持高并发，其次是对http和rpc
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/08/23/golang01/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -957,7 +954,7 @@ golang很适合写服务，首先是语言层面支持高并发，其次是对ht
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -965,7 +962,7 @@ golang很适合写服务，首先是语言层面支持高并发，其次是对ht
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -974,7 +971,7 @@ golang很适合写服务，首先是语言层面支持高并发，其次是对ht
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

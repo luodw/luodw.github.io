@@ -289,6 +289,141 @@
             
               
                 
+                <a class="post-title-link" href="/2015/11/01/leveldb-18/" itemprop="url">
+                  leveldb阅读源码总结
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-11-01T14:48:00+08:00" content="2015-11-01">
+              2015-11-01
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/11/01/leveldb-18/" class="leancloud_visitors" data-flag-title="leveldb阅读源码总结">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          经过一个多月的源码阅读,总算是把leveldb的源码几乎阅读完了.leveldb不愧是一款非常优秀的数据库存储引擎框架,优秀的架构设计,优雅的代码编写,清晰的类与类之间的逻辑关系以及较高的执行效率等等.不敢想象leveldb是两个人编写出来的,真心膜拜谷歌两位大神.今天就把之前看的总结下~
+leveldb整体框架
+
+leveldb总体上是由memtable,immemtable和sst文件组成,如下图所示,图片来自网络:
+;
+插入数据
+
+
+插入数据时,先是将数据插入日志文件,然后插入memtab
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/11/01/leveldb-18/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/11/01/leveldb-17/" itemprop="url">
                   leveldb源码分析之leveldb执行过程
                 </a>
@@ -786,136 +921,6 @@ WriteBatch类
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/28/STL-list/" itemprop="url">
-                  STL源码分析之list
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-28T19:13:23+08:00" content="2015-10-28">
-              2015-10-28
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/STL/" itemprop="url" rel="index">
-                    <span itemprop="name">STL</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/28/STL-list/" class="leancloud_visitors" data-flag-title="STL源码分析之list">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          上篇文章分析了vector的实现原理，今天就来来看看list的源码实现。STL用环状双向链表来实现list，方法和leveldb的缓存环状链表一样，链表持有一个傀儡节点，不存储数据，只为这个链表的入口。迭代链表时，首先通过链表获得这个这个傀儡节点，然后通过next迭代所有数据。
-STL将链表的傀儡节点作为链表的end节点，傀儡节点的next为begin节点，这样以来，就可以用[begin,end)这种左闭右开的形式来表示迭代器范围，和其他容器保持一致。
-list节点结构
-1234567templ
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/28/STL-list/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -961,7 +966,7 @@ list节点结构
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -969,7 +974,7 @@ list节点结构
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -978,7 +983,7 @@ list节点结构
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

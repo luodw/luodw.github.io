@@ -289,6 +289,115 @@
             
               
                 
+                <a class="post-title-link" href="/2016/02/25/cache/" itemprop="url">
+                  CPU访问物理内存
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-25T19:34:42+08:00" content="2016-02-25">
+              2016-02-25
+            </time>
+          </span>
+
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/25/cache/" class="leancloud_visitors" data-flag-title="CPU访问物理内存">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          有了之前linux内核对内存管理这块知识后,接下来,我想通过这篇文章分析下cpu如何获取内存数据以及如何缓存数据.在这里要感谢国外的一位大神Gustavo Duarte,我在一次偶然之间遇到了他的博客,然后学到了很多关于linux内核以及架构的知识,包括这篇文章.
+我们在计算机体系结构课上有学过cpu在获取数据时,是先在cpu内的缓存中查找,如果缓存有,则无需到主存中获取数据;如果缓存没有数据,则需要先到主存获取数据,并存入cpu缓存中,然后从cpu缓存中将数据返回.这篇文章主要想说说这这个过程
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/02/25/cache/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/02/17/malloc/" itemprop="url">
                   malloc实现原理
                 </a>
@@ -789,136 +898,6 @@ CPU发展从寻址物理地址；寻址段地址到物理地址转换；寻址�
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/02/16/limit/" itemprop="url">
-                  linux下资源设置
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-02-16T11:07:49+08:00" content="2016-02-16">
-              2016-02-16
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/linux/" itemprop="url" rel="index">
-                    <span itemprop="name">linux</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/02/16/limit/" class="leancloud_visitors" data-flag-title="linux下资源设置">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          linux下ulimit和sysctl设置原理和区别
-在linux下网络编程开发过程中，如果服务器用户量很大，就会开启很多连接，这时可能就会导致服务器进程文件描述符不够的情况。经常，我们会关闭服务器进程，然后在进程中调用setrlimit函数或者ulimit来设置服务器进程描述符的数量。那么ulimit设置原理是怎么样的了？以及sysctl设置原理了？这票文章主要分析下二者的设置原理以及区别。
-ulimit设置
-在linux下面，每个进程都有一个进程描述符struct_task，该结构体含有大量
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/02/16/limit/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -964,7 +943,7 @@ ulimit设置
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -972,7 +951,7 @@ ulimit设置
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -981,7 +960,7 @@ ulimit设置
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

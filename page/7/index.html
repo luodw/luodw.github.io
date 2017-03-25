@@ -289,6 +289,136 @@
             
               
                 
+                <a class="post-title-link" href="/2016/02/16/limit/" itemprop="url">
+                  linux下资源设置
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-16T11:07:49+08:00" content="2016-02-16">
+              2016-02-16
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/16/limit/" class="leancloud_visitors" data-flag-title="linux下资源设置">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          linux下ulimit和sysctl设置原理和区别
+在linux下网络编程开发过程中，如果服务器用户量很大，就会开启很多连接，这时可能就会导致服务器进程文件描述符不够的情况。经常，我们会关闭服务器进程，然后在进程中调用setrlimit函数或者ulimit来设置服务器进程描述符的数量。那么ulimit设置原理是怎么样的了？以及sysctl设置原理了？这票文章主要分析下二者的设置原理以及区别。
+ulimit设置
+在linux下面，每个进程都有一个进程描述符struct_task，该结构体含有大量
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/02/16/limit/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/02/15/redis-msgpub/" itemprop="url">
                   redis源码分析之广播订阅机制
                 </a>
@@ -796,135 +926,6 @@ redis链表支持前后插入以及前后取出，所以如果往尾部插入元
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/02/01/redis-startup/" itemprop="url">
-                  redis源码分析之启动过程
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-02-01T10:52:23+08:00" content="2016-02-01">
-              2016-02-01
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/02/01/redis-startup/" class="leancloud_visitors" data-flag-title="redis源码分析之启动过程">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          今天这篇文章主要是分析下redis的启动流程，作为一个完整的软件，分析开启过程主要是分析main函数，当然，这主要还是在对redis有一定的了解，否则很难读懂redis的各个函数。
-redis服务器所有属性都保存在struct redisServer这个结构体中，所以服务器一开始时，首先是先初始化服务器属性，然后在建立事件驱动，将listenfd可读事件添加进EventLoop事件驱动中，等待客户端连接，然后服务器处于事件驱动的无限循环中。
-在main函数中，首先做的就是为改服务器进程标题做好初
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/02/01/redis-startup/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -970,7 +971,7 @@ redis服务器所有属性都保存在struct redisServer这个结构体中，所
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -978,7 +979,7 @@ redis服务器所有属性都保存在struct redisServer这个结构体中，所
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -987,7 +988,7 @@ redis服务器所有属性都保存在struct redisServer这个结构体中，所
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

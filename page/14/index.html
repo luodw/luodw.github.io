@@ -289,6 +289,136 @@
             
               
                 
+                <a class="post-title-link" href="/2015/10/28/STL-list/" itemprop="url">
+                  STL源码分析之list
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-28T19:13:23+08:00" content="2015-10-28">
+              2015-10-28
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/STL/" itemprop="url" rel="index">
+                    <span itemprop="name">STL</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/28/STL-list/" class="leancloud_visitors" data-flag-title="STL源码分析之list">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          上篇文章分析了vector的实现原理，今天就来来看看list的源码实现。STL用环状双向链表来实现list，方法和leveldb的缓存环状链表一样，链表持有一个傀儡节点，不存储数据，只为这个链表的入口。迭代链表时，首先通过链表获得这个这个傀儡节点，然后通过next迭代所有数据。
+STL将链表的傀儡节点作为链表的end节点，傀儡节点的next为begin节点，这样以来，就可以用[begin,end)这种左闭右开的形式来表示迭代器范围，和其他容器保持一致。
+list节点结构
+1234567templ
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/10/28/STL-list/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/10/27/STL-vec/" itemprop="url">
                   STL源码分析之vector
                 </a>
@@ -782,134 +912,6 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/24/leveldb-11/" itemprop="url">
-                  leveldb源码分析之Cache
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-24T14:14:45+08:00" content="2015-10-24">
-              2015-10-24
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/leveldb/" itemprop="url" rel="index">
-                    <span itemprop="name">leveldb</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/24/leveldb-11/" class="leancloud_visitors" data-flag-title="leveldb源码分析之Cache">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          缓存对于一个系统的性能有着重要的影响。试想，如果leveldb每次查询数据时，都要从磁盘获取数据，那么磁盘多次的磁盘IO将严重影响leveldb的性能。所以levledb就在内存设计了一个缓存区，当查询数据时，先到缓存查询，如果缓存有需要的数据，即可直接返回数据即可，无需到磁盘获取数据；如果缓存没有，则到磁盘将数据取出放到缓存，下次再查询相同数据时，即可直接从缓存获取，大大减少了磁盘IO。
-缓存在操作系统中更常见。例如，如果要读取文件，也是要先到操作系统内核缓存获取数据，内核缓存是以page为单
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/24/leveldb-11/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -955,7 +957,7 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">102</span>
+              <span class="site-state-item-count">103</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -963,7 +965,7 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">31</span>
+                <span class="site-state-item-count">32</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -972,7 +974,7 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">113</span>
+                <span class="site-state-item-count">114</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>
