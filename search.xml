@@ -4,7 +4,7 @@
   
     
     <entry>
-      <title><![CDATA[Lua杂谈]]></title>
+      <title><![CDATA[Lua原来这么好用]]></title>
       <url>http://luodw.cc/2017/03/24/lua/</url>
       <content type="html"><![CDATA[<p>今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。</p>
 <p>我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者，nginx+lua+redis构建高性能应用。lua+nginx可以使nginx不需要重新编译的情况下添加功能，特别是，如果只是修改lua文件，nginx都不需要重新加载配置文件，极大便利了nginx开发；而redis内嵌lua，让redis服务器有了计算能力，而且减小带宽传输（多个命令）以及原子执行多个命令达到cas效果。</p>
@@ -74,7 +74,7 @@
 <li>因为OpenResty提供了redis，mysql以及模板渲染，因此利用ngx+lua可以直接部署一个小型网站；</li>
 <li>可以在nginx本地搭一个redis缓存；当数据请求时，先访问本地的redis缓存，如果redis缓存需要的数据，直接直接在nginx层返回；如果redis没有缓存需要的数据，则转向web服务器。这样可以减轻后端服务器和数据库的压力，以及缩短请求时间。</li>
 </ol>
-<p>#　lua面向对象实现</p>
+<h1>lua面向对象实现</h1>
 <hr>
 <p>lua没有提供面像对象的实现，但是可以通过table来模拟。所以可知table在lua中是多么核心的数据结构。这里，我用redis客户端来说明lua是如何模拟面像对象的实现。
 <figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="comment">----引入table.new函数，兼容版本恩体</span></div><div class="line"><span class="keyword">local</span> ok, new_tab = <span class="built_in">pcall</span>(<span class="built_in">require</span>, <span class="string">"table.new"</span>)</div><div class="line"><span class="keyword">if</span> <span class="keyword">not</span> ok <span class="keyword">or</span> <span class="built_in">type</span>(new_tab) ~= <span class="string">"function"</span> <span class="keyword">then</span></div><div class="line"><span class="comment">----如果还没有table.new接口，则自定义一个函数，返回一个空表格</span></div><div class="line">    new_tab = <span class="function"><span class="keyword">function</span> <span class="params">(narr, nrec)</span></span> <span class="keyword">return</span> &#123;&#125; <span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div><div class="line"><span class="comment">-----------------------------------------------------</span></div><div class="line"><span class="comment">--新建一个表格</span></div><div class="line"> <span class="keyword">local</span> _M = new_tab(<span class="number">0</span>, <span class="number">155</span>)</div><div class="line"> _M.<span class="built_in">_VERSION</span> = <span class="string">'0.24'</span></div><div class="line"><span class="comment">-----------------------------------------------------</span></div><div class="line"><span class="keyword">local</span> mt = &#123; <span class="built_in">__index</span> = _M &#125;</div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">_M.new</span><span class="params">(self)</span></span></div><div class="line">    <span class="keyword">local</span> sock, err = tcp()</div><div class="line">    <span class="keyword">if</span> <span class="keyword">not</span> sock <span class="keyword">then</span></div><div class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</div><div class="line">    <span class="keyword">end</span></div><div class="line">    <span class="comment">--设置返回表的元表</span></div><div class="line">    <span class="keyword">return</span> <span class="built_in">setmetatable</span>(&#123; sock = sock &#125;, mt)</div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure></p>
@@ -5570,9 +5570,9 @@ insert(pos, first, last, iterator_category(first));
         
         <tags>
             
-            <tag> C/C++ </tag>
-            
             <tag> STL </tag>
+            
+            <tag> C/C++ </tag>
             
             <tag> list </tag>
             

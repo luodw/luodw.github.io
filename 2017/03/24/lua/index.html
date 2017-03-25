@@ -89,14 +89,14 @@
 <meta name="description" content="今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。
 我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Lua杂谈">
+<meta property="og:title" content="Lua原来这么好用">
 <meta property="og:url" content="http://luodw.cc/2017/03/24/lua/index.html">
 <meta property="og:site_name" content="罗道文的私房菜">
 <meta property="og:description" content="今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。
 我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者">
-<meta property="og:updated_time" content="2017-03-25T10:45:43.812Z">
+<meta property="og:updated_time" content="2017-03-25T10:54:24.489Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Lua杂谈">
+<meta name="twitter:title" content="Lua原来这么好用">
 <meta name="twitter:description" content="今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。
 我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者">
 
@@ -122,7 +122,7 @@
   <link rel="canonical" href="http://luodw.cc/2017/03/24/lua/"/>
 
 
-  <title> Lua杂谈 | 罗道文的私房菜 </title>
+  <title> Lua原来这么好用 | 罗道文的私房菜 </title>
 </head>
 
 <body itemscope itemtype="//schema.org/WebPage" lang="zh-Hans">
@@ -290,7 +290,7 @@
             
             
               
-                Lua杂谈
+                Lua原来这么好用
               
             
           </h1>
@@ -336,7 +336,7 @@
 
           
           
-             <span id="/2017/03/24/lua/" class="leancloud_visitors" data-flag-title="Lua杂谈">
+             <span id="/2017/03/24/lua/" class="leancloud_visitors" data-flag-title="Lua原来这么好用">
                &nbsp; | &nbsp;
                <span class="post-meta-item-icon">
                  <i class="fa fa-eye"></i>
@@ -426,7 +426,7 @@
 <li>因为OpenResty提供了redis，mysql以及模板渲染，因此利用ngx+lua可以直接部署一个小型网站；</li>
 <li>可以在nginx本地搭一个redis缓存；当数据请求时，先访问本地的redis缓存，如果redis缓存需要的数据，直接直接在nginx层返回；如果redis没有缓存需要的数据，则转向web服务器。这样可以减轻后端服务器和数据库的压力，以及缩短请求时间。</li>
 </ol>
-<p>#　lua面向对象实现</p>
+<h1>lua面向对象实现</h1>
 <hr>
 <p>lua没有提供面像对象的实现，但是可以通过table来模拟。所以可知table在lua中是多么核心的数据结构。这里，我用redis客户端来说明lua是如何模拟面像对象的实现。
 <figure class="highlight lua"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div></pre></td><td class="code"><pre><div class="line"><span class="comment">----引入table.new函数，兼容版本恩体</span></div><div class="line"><span class="keyword">local</span> ok, new_tab = <span class="built_in">pcall</span>(<span class="built_in">require</span>, <span class="string">"table.new"</span>)</div><div class="line"><span class="keyword">if</span> <span class="keyword">not</span> ok <span class="keyword">or</span> <span class="built_in">type</span>(new_tab) ~= <span class="string">"function"</span> <span class="keyword">then</span></div><div class="line"><span class="comment">----如果还没有table.new接口，则自定义一个函数，返回一个空表格</span></div><div class="line">    new_tab = <span class="function"><span class="keyword">function</span> <span class="params">(narr, nrec)</span></span> <span class="keyword">return</span> &#123;&#125; <span class="keyword">end</span></div><div class="line"><span class="keyword">end</span></div><div class="line"><span class="comment">-----------------------------------------------------</span></div><div class="line"><span class="comment">--新建一个表格</span></div><div class="line"> <span class="keyword">local</span> _M = new_tab(<span class="number">0</span>, <span class="number">155</span>)</div><div class="line"> _M.<span class="built_in">_VERSION</span> = <span class="string">'0.24'</span></div><div class="line"><span class="comment">-----------------------------------------------------</span></div><div class="line"><span class="keyword">local</span> mt = &#123; <span class="built_in">__index</span> = _M &#125;</div><div class="line"><span class="function"><span class="keyword">function</span> <span class="title">_M.new</span><span class="params">(self)</span></span></div><div class="line">    <span class="keyword">local</span> sock, err = tcp()</div><div class="line">    <span class="keyword">if</span> <span class="keyword">not</span> sock <span class="keyword">then</span></div><div class="line">        <span class="keyword">return</span> <span class="literal">nil</span>, err</div><div class="line">    <span class="keyword">end</span></div><div class="line">    <span class="comment">--设置返回表的元表</span></div><div class="line">    <span class="keyword">return</span> <span class="built_in">setmetatable</span>(&#123; sock = sock &#125;, mt)</div><div class="line"><span class="keyword">end</span></div></pre></td></tr></table></figure></p>
@@ -670,7 +670,7 @@ Tie.loader("aHR0cHM6Ly9hcGkuZ2VudGllLjE2My5jb20vcGMvbGl2ZXNjcmlwdC5odG1s", true)
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">通过lua脚本操作redis</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">ngx+lua示例</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">通过lua脚本操作redis</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">ngx+lua示例</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">lua面向对象实现</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
             
           </div>
         </section>
