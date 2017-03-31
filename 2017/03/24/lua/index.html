@@ -86,19 +86,19 @@
 
 
 
-<meta name="description" content="今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。
-我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者">
+<meta name="description" content="【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接http://luodw.cc/2017/03/24/lua/#more！
+今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是tab">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Lua原来这么好用">
 <meta property="og:url" content="http://luodw.cc/2017/03/24/lua/index.html">
 <meta property="og:site_name" content="罗道文的私房菜">
-<meta property="og:description" content="今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。
-我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者">
-<meta property="og:updated_time" content="2017-03-25T10:54:24.489Z">
+<meta property="og:description" content="【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接http://luodw.cc/2017/03/24/lua/#more！
+今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是tab">
+<meta property="og:updated_time" content="2017-03-31T01:55:18.089Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Lua原来这么好用">
-<meta name="twitter:description" content="今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。
-我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者">
+<meta name="twitter:description" content="【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接http://luodw.cc/2017/03/24/lua/#more！
+今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是tab">
 
 
 
@@ -358,7 +358,8 @@
       
 
       
-        <p>今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。</p>
+        <p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2017/03/24/lua/#more">http://luodw.cc/2017/03/24/lua/#more</a>！</p>
+<p>今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。</p>
 <p>我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者，nginx+lua+redis构建高性能应用。lua+nginx可以使nginx不需要重新编译的情况下添加功能，特别是，如果只是修改lua文件，nginx都不需要重新加载配置文件，极大便利了nginx开发；而redis内嵌lua，让redis服务器有了计算能力，而且减小带宽传输（多个命令）以及原子执行多个命令达到cas效果。</p>
 <p>下面就说说最近的一些内容和心得，主要以下三部分：</p>
 <ol>

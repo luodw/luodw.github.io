@@ -86,19 +86,22 @@
 
 
 
-<meta name="description" content="消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，NSQ等等；之前原本打算看kafka，但是处于学习成本(kafka是scala编写，之前scala接触的比较少)，所以就先不看kafka，选择了NSQ；">
+<meta name="description" content="【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接http://luodw.cc/2016/12/08/nsq01/#more！
+消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，">
 <meta property="og:type" content="article">
 <meta property="og:title" content="NSQ源码分析之概述">
 <meta property="og:url" content="http://luodw.cc/2016/12/08/nsq01/index.html">
 <meta property="og:site_name" content="罗道文的私房菜">
-<meta property="og:description" content="消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，NSQ等等；之前原本打算看kafka，但是处于学习成本(kafka是scala编写，之前scala接触的比较少)，所以就先不看kafka，选择了NSQ；">
+<meta property="og:description" content="【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接http://luodw.cc/2016/12/08/nsq01/#more！
+消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，">
 <meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1802933924.jpg">
 <meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-3139862022.jpg">
 <meta property="og:image" content="https://f.cloud.github.com/assets/187441/1700696/f1434dc8-6029-11e3-8a66-18ca4ea10aca.gif">
-<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta property="og:updated_time" content="2017-03-31T01:59:23.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="NSQ源码分析之概述">
-<meta name="twitter:description" content="消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，NSQ等等；之前原本打算看kafka，但是处于学习成本(kafka是scala编写，之前scala接触的比较少)，所以就先不看kafka，选择了NSQ；">
+<meta name="twitter:description" content="【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接http://luodw.cc/2016/12/08/nsq01/#more！
+消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，">
 <meta name="twitter:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1802933924.jpg">
 
 
@@ -359,7 +362,8 @@
       
 
       
-        <p>消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，NSQ等等；之前原本打算看kafka，但是处于学习成本(kafka是scala编写，之前scala接触的比较少)，所以就先不看kafka，选择了NSQ；NSQ主要是golang编写，本人刚好非常喜欢golang这门语言，因此在学习NSQ的同时，也可以学习NSQ是如何优雅地使用golang;</p>
+        <p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2016/12/08/nsq01/#more">http://luodw.cc/2016/12/08/nsq01/#more</a>！</p>
+<p>消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，NSQ等等；之前原本打算看kafka，但是处于学习成本(kafka是scala编写，之前scala接触的比较少)，所以就先不看kafka，选择了NSQ；NSQ主要是golang编写，本人刚好非常喜欢golang这门语言，因此在学习NSQ的同时，也可以学习NSQ是如何优雅地使用golang;</p>
 <p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1802933924.jpg" alt="厦门飞机场"></p>
 <p>目前，看了nsqlookupd的代码，写的真的很精美，我觉得代码可以和redis相媲美，这等后续分析代码时再详说；关于NSQ的特性，可以查看<a href="http://nsq.io/overview/features_and_guarantees.html" target="_blank" rel="external">NSQ官网</a>；这篇文章主要分析以下几点:</p>
 <ol>
