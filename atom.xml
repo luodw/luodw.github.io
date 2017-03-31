@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://luodw.cc/"/>
-  <updated>2017-03-31T01:55:18.089Z</updated>
+  <updated>2017-03-31T02:05:08.000Z</updated>
   <id>http://luodw.cc/</id>
   
   <author>
@@ -20,10 +20,9 @@
     <link href="http://luodw.cc/2017/03/24/lua/"/>
     <id>http://luodw.cc/2017/03/24/lua/</id>
     <published>2017-03-24T12:34:22.000Z</published>
-    <updated>2017-03-31T01:55:18.089Z</updated>
+    <updated>2017-03-31T02:05:08.000Z</updated>
     
-    <content type="html"><![CDATA[<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2017/03/24/lua/#more">http://luodw.cc/2017/03/24/lua/#more</a>！</p>
-<p>今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。</p>
+    <content type="html"><![CDATA[<p>今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去记那么多的语法以及黑魔法，简直大快人心。</p>
 <p>我现在对Lua使用感兴趣部分就是nginx+lua和redis内嵌lua；特别是前者，nginx+lua+redis构建高性能应用。lua+nginx可以使nginx不需要重新编译的情况下添加功能，特别是，如果只是修改lua文件，nginx都不需要重新加载配置文件，极大便利了nginx开发；而redis内嵌lua，让redis服务器有了计算能力，而且减小带宽传输（多个命令）以及原子执行多个命令达到cas效果。</p>
 <p>下面就说说最近的一些内容和心得，主要以下三部分：</p>
 <ol>
@@ -32,6 +31,7 @@
 <li>lua面向对象实现；</li>
 <li>总结；</li>
 </ol>
+<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2017/03/24/lua/#more">http://luodw.cc/2017/03/24/lua/#more</a></p>
 <h1>通过lua脚本操作redis</h1>
 <hr>
 <p>之前在学习redis以及看源码时，由于不懂lua，所以redis内嵌Lua模块就跳过去了，如今学了Lua，因此想把这块知识补上。redis对Lua的支持，主要有以下以下７个命令，</p>
@@ -107,8 +107,7 @@
     
     <summary type="html">
     
-      &lt;p&gt;【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接&lt;a href=&quot;http://luodw.cc/2017/03/24/lua/#more&quot;&gt;http://luodw.cc/2017/03/24/lua/#more&lt;/a&gt;！&lt;/p&gt;
-&lt;p&gt;今天这篇文
+      &lt;p&gt;今天这篇文章就随意谈谈lua。最近在看nginx+lua，刚好学了lua，就被这门语言的简练给吸引了。lua语言可以大大减轻一个人的心智负担，除了变量，操作符，语句以及函数这些最基础的语言功能外，剩下最重要的就是数据结构table（数组本质上也是table的特例）了。不用去
     
     </summary>
     
@@ -124,10 +123,9 @@
     <link href="http://luodw.cc/2017/03/17/nginx01/"/>
     <id>http://luodw.cc/2017/03/17/nginx01/</id>
     <published>2017-03-17T03:19:36.000Z</published>
-    <updated>2017-03-31T01:52:51.808Z</updated>
+    <updated>2017-03-31T02:04:54.951Z</updated>
     
-    <content type="html"><![CDATA[<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2017/03/17/nginx01/#more">http://luodw.cc/2017/03/17/nginx01/#more</a>！</p>
-<p>很早之前就有看nginx的冲动，但是一直被一些事耽搁着，最近在繁忙之中，抽出点时间，看了下nginx代码，发现整体上并不是很难看懂，而且刚好想学习nginx+lua开发，因此，决定在今后一段时间内，对技术的时间投入都放在nginx+lua了。nginx在互联网公司使用很广，最重要的功能当属反向代理和负载均衡了吧，当然还有缓存；所以对nginx的熟悉使用和深入了解，对于一名后台开发人员，至关重要。</p>
+    <content type="html"><![CDATA[<p>很早之前就有看nginx的冲动，但是一直被一些事耽搁着，最近在繁忙之中，抽出点时间，看了下nginx代码，发现整体上并不是很难看懂，而且刚好想学习nginx+lua开发，因此，决定在今后一段时间内，对技术的时间投入都放在nginx+lua了。nginx在互联网公司使用很广，最重要的功能当属反向代理和负载均衡了吧，当然还有缓存；所以对nginx的熟悉使用和深入了解，对于一名后台开发人员，至关重要。</p>
 <p>记得我之前在很多文章有提到，后台组件框架主要有三种：redis单进程单线程，memcache单进程多线程，nginx多进程；等看了nginx之后，我也算集齐了；nginx以模块化方式开发，比如核心模块，event模块，http模块，然后为了支持多平台，event模块下又有对各大平台的封装支持，例如linux平台epoll，mac平台kqueue等等；然后http模块也被拆分成了很多子模块。</p>
 <p>这篇文章算是我自己做的笔记吧，把之前研究的东西记录下。也许是之前看过redis和golang以及python的http框架，nginx整体框架比较容易就看懂了，当然很多细节还需后面慢慢看；这篇文章主要介绍nginx是如何开启，以及请求是怎么执行的，所以这篇文章主要就是以下两点：</p>
 <ol>
@@ -136,6 +134,7 @@
 <li>nginx处理http请求；</li>
 <li>总结</li>
 </ol>
+<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2017/03/17/nginx01/#more">http://luodw.cc/2017/03/17/nginx01/#more</a></p>
 <h1>1. nginx开启流程</h1>
 <hr>
 <p>nginx体量很大，想要在较短时间内看完所有代码很难，而且我看得时间也不是很多，所以，这里主要站在宏观角度，对nginx做个整体剖析；其实如果直接从main函数直接开始看，其实也是可以看懂大部分，但是nginx回调函数太多了，看着看着，突然跑出一个回调函数，经常就懵逼了；因此，就需要用gdb来定点调试；</p>
@@ -232,8 +231,7 @@
     
     <summary type="html">
     
-      &lt;p&gt;【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接&lt;a href=&quot;http://luodw.cc/2017/03/17/nginx01/#more&quot;&gt;http://luodw.cc/2017/03/17/nginx01/#more&lt;/a&gt;！&lt;/p&gt;
-
+      &lt;p&gt;很早之前就有看nginx的冲动，但是一直被一些事耽搁着，最近在繁忙之中，抽出点时间，看了下nginx代码，发现整体上并不是很难看懂，而且刚好想学习nginx+lua开发，因此，决定在今后一段时间内，对技术的时间投入都放在nginx+lua了。nginx在互联网公司使用很广，
     
     </summary>
     
@@ -562,10 +560,9 @@
     <link href="http://luodw.cc/2016/12/08/nsq01/"/>
     <id>http://luodw.cc/2016/12/08/nsq01/</id>
     <published>2016-12-08T07:03:29.000Z</published>
-    <updated>2017-03-31T01:59:23.000Z</updated>
+    <updated>2017-03-31T02:04:39.215Z</updated>
     
-    <content type="html"><![CDATA[<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2016/12/08/nsq01/#more">http://luodw.cc/2016/12/08/nsq01/#more</a>！</p>
-<p>消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，NSQ等等；之前原本打算看kafka，但是处于学习成本(kafka是scala编写，之前scala接触的比较少)，所以就先不看kafka，选择了NSQ；NSQ主要是golang编写，本人刚好非常喜欢golang这门语言，因此在学习NSQ的同时，也可以学习NSQ是如何优雅地使用golang;</p>
+    <content type="html"><![CDATA[<p>消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，NSQ等等；之前原本打算看kafka，但是处于学习成本(kafka是scala编写，之前scala接触的比较少)，所以就先不看kafka，选择了NSQ；NSQ主要是golang编写，本人刚好非常喜欢golang这门语言，因此在学习NSQ的同时，也可以学习NSQ是如何优雅地使用golang;</p>
 <p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-1802933924.jpg" alt="厦门飞机场"></p>
 <p>目前，看了nsqlookupd的代码，写的真的很精美，我觉得代码可以和redis相媲美，这等后续分析代码时再详说；关于NSQ的特性，可以查看<a href="http://nsq.io/overview/features_and_guarantees.html" target="_blank" rel="external">NSQ官网</a>；这篇文章主要分析以下几点:</p>
 <ol>
@@ -573,6 +570,7 @@
 <li>python操作NSQ;</li>
 <li>总结;</li>
 </ol>
+<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2016/12/08/nsq01/#more">http://luodw.cc/2016/12/08/nsq01/#more</a></p>
 <h1>NSQ概述</h1>
 <hr>
 <p>NSQ提供了三大组件以及一些工具，三大组件为:</p>
@@ -624,8 +622,7 @@
     
     <summary type="html">
     
-      &lt;p&gt;【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接&lt;a href=&quot;http://luodw.cc/2016/12/08/nsq01/#more&quot;&gt;http://luodw.cc/2016/12/08/nsq01/#more&lt;/a&gt;！&lt;/p&gt;
-&lt;p&gt;消
+      &lt;p&gt;消息队列在互联网公司使用非常普遍，因此也促使我去学习研究消息队列的原理以及细节问题；之前也有接触过消息队列，最主要就是在异步处理方面，当然消息队列还解耦，流量削峰等功能；目前消息队列产品也比较多，例如kafka，ActiveMQ，RabbitMQ，NSQ等等；之前原本打算看
     
     </summary>
     
