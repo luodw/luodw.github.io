@@ -1016,7 +1016,7 @@
     <link href="http://luodw.cc/2016/08/23/golang01/"/>
     <id>http://luodw.cc/2016/08/23/golang01/</id>
     <published>2016-08-23T12:53:55.000Z</published>
-    <updated>2017-03-16T08:51:34.125Z</updated>
+    <updated>2017-03-31T02:11:34.962Z</updated>
     
     <content type="html"><![CDATA[<p>实习期间一直在用golang，今天想写篇博客，聊聊我对golang的一些思考，以及分析下groupcache的实现；</p>
 <p><img src="http://7xjnip.com1.z0.glb.clouddn.com/1356594941.jpg" alt="厦大美景"></p>
@@ -1027,6 +1027,7 @@
 <li><a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/index.html" target="_blank" rel="external">深入理解Go</a></li>
 <li><a href="https://tracymacding.gitbooks.io/implementation-of-golang/content/" target="_blank" rel="external">Implemention of golang</a></li>
 </ul>
+<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2016/08/23/golang01/">http://luodw.cc/2016/08/23/golang01/</a></p>
 <p>在了解基础于语法以及一些底层原理之后，我觉得可以看看golang自带的框架，写的非常棒，很适合学习，特别是http和rpc，因为学习这两个框架可以了解到一次http请求是如何实现的，以及一次rpc过程是怎么实现的；当然还有一些第三方开源框架也写得很好；</p>
 <p>ok，下面就来看看缓存库groupcache是怎么实现的。</p>
 <h1>groupcache</h1>
@@ -1081,7 +1082,7 @@
     <link href="http://luodw.cc/2016/08/13/linux-cache/"/>
     <id>http://luodw.cc/2016/08/13/linux-cache/</id>
     <published>2016-08-13T11:32:11.000Z</published>
-    <updated>2017-03-16T08:51:34.129Z</updated>
+    <updated>2017-03-31T02:14:31.000Z</updated>
     
     <content type="html"><![CDATA[<p>之前在实习时，听了OOM的分享之后，就对linux内核内存管理充满兴趣；但是这块知识非常庞大，没有一定积累，不敢写下，担心误人子弟；所以经过一个一段时间的积累，对内核内存有一定了解之后，今天才写下这篇博客，记录以及分享；</p>
 <p>之前也有写过linux内存管理，那篇文章主要是<a href="http://luodw.cc/2016/02/17/linux-memory/">linux内存管理</a>，这篇文章主要是分析了单个进程空间的内存布局与分配，今天这篇博客主要是从全局的视角分析下内核对内存的管理;
@@ -1093,6 +1094,7 @@
 <li>申请的内存都在哪？</li>
 <li>系统回收内存</li>
 </ul>
+<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2016/08/13/linux-cache/">http://luodw.cc/2016/08/13/linux-cache/</a></p>
 <h1>进程的内存申请与分配</h1>
 <hr>
 <p>之前有篇文章介绍hello world程序是如何载入内存以及是如何申请内存的；我在这，再次说明下；同样，还是先给出进程的地址空间，我觉得对于任何开发人员这张图是必须记住的，还有一张就是操作disk,memory以及cpu cache的时间图；
@@ -1417,7 +1419,7 @@
     <link href="http://luodw.cc/2016/07/02/helloworld/"/>
     <id>http://luodw.cc/2016/07/02/helloworld/</id>
     <published>2016-07-02T01:38:49.000Z</published>
-    <updated>2017-03-16T08:51:34.125Z</updated>
+    <updated>2017-03-31T02:15:30.000Z</updated>
     
     <content type="html"><![CDATA[<p>对于程序员来说，hello world的含义，可能并不只是一句简单的打招呼，更多的是学习一门编程语言的第一个示例．和编程接触了这么多年，如果要学习一门编程语言，我也会情不自禁地敲下hello world程序，看下程序的的输出．如今回过头的来重新看hello world，就会发现hello world背后隐藏的许多秘密；</p>
 <p><img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-fpic1574.jpg" alt="首页显示"></p>
@@ -1430,6 +1432,7 @@
 <li>进程是怎么执行的?</li>
 <li>进程怎么退出?</li>
 </ol>
+<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2016/07/02/helloworld/">http://luodw.cc/2016/07/02/helloworld/</a></p>
 <p>其实就是hello world的一生；都是我自己的理解，有误的地方，希望看者能提出来，互相进步；这里就是做个引子，介绍下，希望可以帮助大家更好的理解进程的运行,如果想深入学习，需要看相关书籍；</p>
 <h1>什么是程序</h1>
 <hr>

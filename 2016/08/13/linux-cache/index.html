@@ -100,7 +100,7 @@
 下面">
 <meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/29381f30e924b899045823b46e061d950b7bf6d2.jpg">
 <meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-%E9%80%89%E5%8C%BA_015.png">
-<meta property="og:updated_time" content="2017-03-16T08:51:34.129Z">
+<meta property="og:updated_time" content="2017-03-31T02:14:31.000Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="linux内存分配与回收">
 <meta name="twitter:description" content="之前在实习时，听了OOM的分享之后，就对linux内核内存管理充满兴趣；但是这块知识非常庞大，没有一定积累，不敢写下，担心误人子弟；所以经过一个一段时间的积累，对内核内存有一定了解之后，今天才写下这篇博客，记录以及分享；
@@ -377,6 +377,7 @@
 <li>申请的内存都在哪？</li>
 <li>系统回收内存</li>
 </ul>
+<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2016/08/13/linux-cache/">http://luodw.cc/2016/08/13/linux-cache/</a></p>
 <h1>进程的内存申请与分配</h1>
 <hr>
 <p>之前有篇文章介绍hello world程序是如何载入内存以及是如何申请内存的；我在这，再次说明下；同样，还是先给出进程的地址空间，我觉得对于任何开发人员这张图是必须记住的，还有一张就是操作disk,memory以及cpu cache的时间图；
@@ -592,11 +593,12 @@
     </div>
   </div>
 
+
 <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
 <script src="https://img1.cache.netease.com/f2e/tie/yun/sdk/loader.js"></script>
 <script>
 var cloudTieConfig = {
-  url: document.location.href, 
+  url: document.location.href,
   sourceId: "",
   productKey: "5f86fe3bc07e4e31adb4a20c48cbf8f2",
   target: "cloud-tie-wrapper"
@@ -750,6 +752,14 @@ Tie.loader("aHR0cHM6Ly9hcGkuZ2VudGllLjE2My5jb20vcGMvbGl2ZXNjcmlwdC5odG1s", true)
               
                 <li class="links-of-blogroll-item">
                   <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://youbingchenyoubing.leanote.com/" title="陈友兵" target="_blank">陈友兵</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://zhengjianglong.leanote.com/" title="郑江龙" target="_blank">郑江龙</a>
                 </li>
               
                 <li class="links-of-blogroll-item">

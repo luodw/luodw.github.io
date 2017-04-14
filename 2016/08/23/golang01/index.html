@@ -98,7 +98,7 @@
 在没接触golang之前，在我的印象里，服务器开发就是常见的nginx多进程，memcache多线程，redis单线程；后来，golang这种多协程，一个连接对应一个协程的模式深深吸引了我，相比进程，线程，协程粒度相对较小，协程切换代价与进程和线程相比是非常小的，因此一个连接对应">
 <meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/1356594941.jpg">
 <meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-topology.png">
-<meta property="og:updated_time" content="2017-03-16T08:51:34.125Z">
+<meta property="og:updated_time" content="2017-03-31T02:11:34.962Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="golang语言之groupcache">
 <meta name="twitter:description" content="实习期间一直在用golang，今天想写篇博客，聊聊我对golang的一些思考，以及分析下groupcache的实现；
@@ -373,6 +373,7 @@
 <li><a href="https://tiancaiamao.gitbooks.io/go-internals/content/zh/index.html" target="_blank" rel="external">深入理解Go</a></li>
 <li><a href="https://tracymacding.gitbooks.io/implementation-of-golang/content/" target="_blank" rel="external">Implemention of golang</a></li>
 </ul>
+<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2016/08/23/golang01/">http://luodw.cc/2016/08/23/golang01/</a></p>
 <p>在了解基础于语法以及一些底层原理之后，我觉得可以看看golang自带的框架，写的非常棒，很适合学习，特别是http和rpc，因为学习这两个框架可以了解到一次http请求是如何实现的，以及一次rpc过程是怎么实现的；当然还有一些第三方开源框架也写得很好；</p>
 <p>ok，下面就来看看缓存库groupcache是怎么实现的。</p>
 <h1>groupcache</h1>
@@ -465,11 +466,12 @@
     </div>
   </div>
 
+
 <div id="cloud-tie-wrapper" class="cloud-tie-wrapper"></div>
 <script src="https://img1.cache.netease.com/f2e/tie/yun/sdk/loader.js"></script>
 <script>
 var cloudTieConfig = {
-  url: document.location.href, 
+  url: document.location.href,
   sourceId: "",
   productKey: "5f86fe3bc07e4e31adb4a20c48cbf8f2",
   target: "cloud-tie-wrapper"
@@ -623,6 +625,14 @@ Tie.loader("aHR0cHM6Ly9hcGkuZ2VudGllLjE2My5jb20vcGMvbGl2ZXNjcmlwdC5odG1s", true)
               
                 <li class="links-of-blogroll-item">
                   <a href="http://nekomiao.me/" title="阮榕城" target="_blank">阮榕城</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://youbingchenyoubing.leanote.com/" title="陈友兵" target="_blank">陈友兵</a>
+                </li>
+              
+                <li class="links-of-blogroll-item">
+                  <a href="http://zhengjianglong.leanote.com/" title="郑江龙" target="_blank">郑江龙</a>
                 </li>
               
                 <li class="links-of-blogroll-item">
