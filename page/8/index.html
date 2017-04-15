@@ -289,6 +289,137 @@
             
               
                 
+                <a class="post-title-link" href="/2016/02/05/redis-procCom/" itemprop="url">
+                  redis源码分析之命令处理过程
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-05T10:55:46+08:00" content="2016-02-05">
+              2016-02-05
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/05/redis-procCom/" class="leancloud_visitors" data-flag-title="redis源码分析之命令处理过程">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          命令执行过程
+这篇文章分析下客户端连接redis服务器，并且输入命令之后，redis服务器做了什么。这里以最基础的set命令为例。
+客户端连接服务器
+要分析客户端是如何连接服务器，即客户端调用connect之后，服务器做了啥，首先就是看下监听listenfd可读事件(listenfd永远为可读事件，等有客户端connect之后，此时产生可读事件)的回调函数acceptTcpHandler
+123456789101112131415161718192021//networking.c/* ----
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/02/05/redis-procCom/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/02/01/redis-startup/" itemprop="url">
                   redis源码分析之启动过程
                 </a>
@@ -787,136 +918,6 @@ SO_KEEPALIVE选项
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/01/19/memcache-lru-maintenance/" itemprop="url">
-                  memcache源码分析之lru维护线程
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-01-19T19:54:09+08:00" content="2016-01-19">
-              2016-01-19
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/memcache/" itemprop="url" rel="index">
-                    <span itemprop="name">memcache</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/01/19/memcache-lru-maintenance/" class="leancloud_visitors" data-flag-title="memcache源码分析之lru维护线程">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          memcache和数据有关的数据结构有三个slab,lru和哈希表,所以在memcache运行过程中,需要不断维护这三个数据结构,以免降低性能.之前两篇文章,分析维护哈希表的扩容线程和维护slab的平衡线程.今天这篇文章主要分析了维护lru,即清除lru队列中不恰当的item.这部分较难,因为这部分在版本1.2.23版本开始,重写了实现,网上源码分析较少,所以看得有点吃力,今天把知识点好好整理下.
-真实的lru队列
-
-直到看了这部分内容,我才真正认识了lru,虽然叫lru,但是这个真正的lru是
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/01/19/memcache-lru-maintenance/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -962,7 +963,7 @@ SO_KEEPALIVE选项
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -979,7 +980,7 @@ SO_KEEPALIVE选项
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

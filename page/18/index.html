@@ -289,6 +289,138 @@
             
               
                 
+                <a class="post-title-link" href="/2015/10/10/ptr/" itemprop="url">
+                  C++成员变量指针和成员函数指针
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-10T19:12:08+08:00" content="2015-10-10">
+              2015-10-10
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/C-C/" itemprop="url" rel="index">
+                    <span itemprop="name">C/C++</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/10/ptr/" class="leancloud_visitors" data-flag-title="C++成员变量指针和成员函数指针">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          深度探索C++对象模型这本书还有提到C++类的成员变量指针和成员函数指针，虽然在实际开发中用的不多，但是还是需要理解下。
+成员变量指针
+非静态成员指针
+类成员变量指针，实际上并不是真正意义上的指针，即它并不是指向内存中某个地址，而是该成员变量与对象指针的偏移量。该偏移量只有附着在某个具体对象，才能指向对象成员变量的具体地址。
+如下程序:
+1234567891011121314151617181920212223242526272829#include &lt;cstdio&gt;#include
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/10/10/ptr/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/10/09/duotai/" itemprop="url">
                   C++多态实现原理
                 </a>
@@ -833,137 +965,6 @@ st
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/07/Cplus2/" itemprop="url">
-                  C++对象模型之内存布局二
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-07T09:49:00+08:00" content="2015-10-07">
-              2015-10-07
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/C-C/" itemprop="url" rel="index">
-                    <span itemprop="name">C/C++</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/07/Cplus2/" class="leancloud_visitors" data-flag-title="C++对象模型之内存布局二">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          上篇文章讲了无多态和有多态下的单继承的对象内存布局，这篇文章将深入讲解多重继承和多继承．
-多重继承
-理论讲解
-多重继承，顾名思义，就是继承关系大于２，即至少有父类，子类，孙子类三代关系，先定义以下三个类：
-123456789101112131415161718192021222324252627282930313233class A&#123;public:	A(int a1=0,int a2=0)&#123;&#125;	virtual void A1()&#123;cout&lt;&lt;"
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/07/Cplus2/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -1009,7 +1010,7 @@ st
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -1026,7 +1027,7 @@ st
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

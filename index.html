@@ -289,6 +289,134 @@
             
               
                 
+                <a class="post-title-link" href="/2017/04/14/nsqd/" itemprop="url">
+                  nsqd执行解析
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-04-14T20:11:45+08:00" content="2017-04-14">
+              2017-04-14
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/nsq/" itemprop="url" rel="index">
+                    <span itemprop="name">nsq</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/04/14/nsqd/" class="leancloud_visitors" data-flag-title="nsqd执行解析">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          这几天因为实验室原因，接触了kafka，又因为这个kafka，我就记起来早在去年看NSQ消息队列，而且之前也忘了写篇关于nsqd的原理介绍，因此这两天看了下nsqd代码，也就有了这篇文章。nsqd用golang语言编写，整体的框架以及代码都写得很棒，很好发挥了golang中goroutine和channel的结合使用，看nsq代码可以学习如何更优雅的使用golang，就如看redis可以学习原来c语言还可以写的那么优雅。
+nsqd是NSQ中最重要的组件，接收生产者的消息以及给消费者发送消息都由n
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2017/04/14/nsqd/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2017/03/24/lua/" itemprop="url">
                   Lua原来这么好用
                 </a>
@@ -779,135 +907,6 @@
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/12/13/nsqlookupd/" itemprop="url">
-                  NSQ源码分析之nsqlookupd
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-12-13T10:58:30+08:00" content="2016-12-13">
-              2016-12-13
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/nsq/" itemprop="url" rel="index">
-                    <span itemprop="name">nsq</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/12/13/nsqlookupd/" class="leancloud_visitors" data-flag-title="NSQ源码分析之nsqlookupd">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          上篇文章介绍了NSQ整体概述以及拓扑结构；这篇文章开始分析下NSQ源码；NSQ主要由三个部分nsqd,nsqlookupd,nsqadmin以及一些工具组成，我们从简单的nsqlookupd开始分析源码；nsqlookupd是nsq管理集群拓扑信息以及用于注册和发现nsqd服务；所以，也可以把nsqlookupd理解为注册发现服务；当nsq集群中有多个nsqlookupd服务时，因为每个nsqd都会向所有的nsqlookupd上报本地信息，因此nsqlookupd具有最终一致性；
-
-这篇文章主要
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/12/13/nsqlookupd/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -953,7 +952,7 @@
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -970,7 +969,7 @@
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

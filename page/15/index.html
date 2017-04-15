@@ -289,6 +289,134 @@
             
               
                 
+                <a class="post-title-link" href="/2015/10/24/leveldb-12/" itemprop="url">
+                  leveldb源码分析之读sst文件
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-24T20:20:16+08:00" content="2015-10-24">
+              2015-10-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/24/leveldb-12/" class="leancloud_visitors" data-flag-title="leveldb源码分析之读sst文件">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          上篇文章介绍了leveldb缓冲池，这篇文章主要来分析leveldb是如何读取磁盘的数据。这里先要说明下，leveldb有两种缓冲池，一个是block_cache,另一个是table_cache。block_cache缓冲的是data block，table_cache缓冲的是每个sst文件的文件指针(RandomAccessFile指针)和这个文件对应的Table指针。
+当leveldb要获取键值对时，首先检测键值对是否在缓冲池中，如果在，直接从缓冲池中获取；如果不在缓冲池中，则先从磁盘中获取
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/10/24/leveldb-12/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/10/24/leveldb-11/" itemprop="url">
                   leveldb源码分析之Cache
                 </a>
@@ -783,136 +911,6 @@ leveldb插入数据时，首先将数据插入memtable，当memtable数据量达
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/18/leveldb-08/" itemprop="url">
-                  leveldb源码分析之读写log文件
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-18T17:16:38+08:00" content="2015-10-18">
-              2015-10-18
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/leveldb/" itemprop="url" rel="index">
-                    <span itemprop="name">leveldb</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/18/leveldb-08/" class="leancloud_visitors" data-flag-title="leveldb源码分析之读写log文件">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          这篇文章讲讲leveldb第二大组件log文件的读写。log文件也可以称为恢复日志。当leveldb插入数据时，先插入log日志文件中，接着再插入内存memtable中。这样以来，万一在使用过程中，突然断电，memtable还来不及把数据持久化到磁盘时，内存数据就不会丢失，这时就可以从log文件中恢复。redis也有类似文件。
-log文件按块划分，默认每块为32768kb=32M。这么大有个好处，就是减少从磁盘读取数据的次数，减少磁盘IO。可以看如下图：
-;
-这个图中有3个block。然后每一条
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/18/leveldb-08/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -958,7 +956,7 @@ log文件按块划分，默认每块为32768kb=32M。这么大有个好处，就
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -975,7 +973,7 @@ log文件按块划分，默认每块为32768kb=32M。这么大有个好处，就
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

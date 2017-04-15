@@ -289,6 +289,137 @@
             
               
                 
+                <a class="post-title-link" href="/2015/10/30/leveldb-14/" itemprop="url">
+                  leveldb源码分析之WriteBatch
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-30T19:22:37+08:00" content="2015-10-30">
+              2015-10-30
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/30/leveldb-14/" class="leancloud_visitors" data-flag-title="leveldb源码分析之WriteBatch">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          leveldb提供的接口除了针对一条记录的插入和删除操作之外，还提供了批量更新的操作，即writebatch类。writebatch类只有一个成员变量，存储的是若干条记录的序列号字符串，这个字符串是按照一定格式生成，当要取出这些记录时，也要按照格式一条一条解析出来。
+&lt;!--more--&gt;
+WriteBatch类
+先介绍下这个类的成员变量rep_，这个字符串用来存储这次批操作的所有记录，格式如下:
+123456789WriteBatch::rep_:=	sequence: fixed
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/10/30/leveldb-14/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/10/28/STL-list/" itemprop="url">
                   STL源码分析之list
                 </a>
@@ -784,134 +915,6 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/24/leveldb-12/" itemprop="url">
-                  leveldb源码分析之读sst文件
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-24T20:20:16+08:00" content="2015-10-24">
-              2015-10-24
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/leveldb/" itemprop="url" rel="index">
-                    <span itemprop="name">leveldb</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/24/leveldb-12/" class="leancloud_visitors" data-flag-title="leveldb源码分析之读sst文件">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          上篇文章介绍了leveldb缓冲池，这篇文章主要来分析leveldb是如何读取磁盘的数据。这里先要说明下，leveldb有两种缓冲池，一个是block_cache,另一个是table_cache。block_cache缓冲的是data block，table_cache缓冲的是每个sst文件的文件指针(RandomAccessFile指针)和这个文件对应的Table指针。
-当leveldb要获取键值对时，首先检测键值对是否在缓冲池中，如果在，直接从缓冲池中获取；如果不在缓冲池中，则先从磁盘中获取
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/24/leveldb-12/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -957,7 +960,7 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -974,7 +977,7 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

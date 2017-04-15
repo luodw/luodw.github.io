@@ -289,6 +289,136 @@
             
               
                 
+                <a class="post-title-link" href="/2015/10/15/leveldb-02/" itemprop="url">
+                  leveldb源码分析之Slice
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-15T13:51:52+08:00" content="2015-10-15">
+              2015-10-15
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/15/leveldb-02/" class="leancloud_visitors" data-flag-title="leveldb源码分析之Slice">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          leveldb和redis这样的优秀开源框架都没有使用C++自带的字符串string，redis自己写了个sds，leveldb写了slice，本质上这三个实现原理都是一样的(当然sds是用C实现的)，都有成员属性指向字符串的指针和这个字符串的长度。方法无非就是取字符串取字符串长度，字符串拼接等等。
+我把slice作为leveldb源码部分的第一个讲解，主要是slice是这个源码最基础的部分，都是别人使用它，它不使用别人。而且相对简单。
+我这先上class slice源码，我一一注释：
+1234
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/10/15/leveldb-02/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/10/14/leveldb-01/" itemprop="url">
                   leveldb安装和使用
                 </a>
@@ -798,138 +928,6 @@ C++有分Bitwise Copy Semantics和Memberwise Copy Semantics。默认情况下，
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/10/ptr/" itemprop="url">
-                  C++成员变量指针和成员函数指针
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-10T19:12:08+08:00" content="2015-10-10">
-              2015-10-10
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/C-C/" itemprop="url" rel="index">
-                    <span itemprop="name">C/C++</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/10/ptr/" class="leancloud_visitors" data-flag-title="C++成员变量指针和成员函数指针">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          深度探索C++对象模型这本书还有提到C++类的成员变量指针和成员函数指针，虽然在实际开发中用的不多，但是还是需要理解下。
-成员变量指针
-非静态成员指针
-类成员变量指针，实际上并不是真正意义上的指针，即它并不是指向内存中某个地址，而是该成员变量与对象指针的偏移量。该偏移量只有附着在某个具体对象，才能指向对象成员变量的具体地址。
-如下程序:
-1234567891011121314151617181920212223242526272829#include &lt;cstdio&gt;#include
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/10/ptr/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -975,7 +973,7 @@ C++有分Bitwise Copy Semantics和Memberwise Copy Semantics。默认情况下，
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -992,7 +990,7 @@ C++有分Bitwise Copy Semantics和Memberwise Copy Semantics。默认情况下，
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

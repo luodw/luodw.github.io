@@ -289,6 +289,135 @@
             
               
                 
+                <a class="post-title-link" href="/2016/08/28/golang02/" itemprop="url">
+                  golang之database/sql与go-sql-driver
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-08-28T10:38:43+08:00" content="2016-08-28">
+              2016-08-28
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/golang/" itemprop="url" rel="index">
+                    <span itemprop="name">golang</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/08/28/golang02/" class="leancloud_visitors" data-flag-title="golang之database/sql与go-sql-driver">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          上篇文章也有说道，golang的http,rpc,以及第三方的redigo,go-sql-driver是开发一个服务常见的四大组件，因此我是很推荐有时间可以看下上述四大组件，而且golang自带的http和rpc框架本身就是http和rpc很好的教程，而且第三方框架miekg/dns也是采用http框架的形式，所以看懂http，对快速看懂miekg/dns是很有帮助的；
+
+redigo相对较小，看起来比较容易，但是必须好好学习下redis的网络传输协议；http协议看懂整体流程相对较简单，但是要
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/08/28/golang02/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/08/23/golang01/" itemprop="url">
                   golang语言之groupcache
                 </a>
@@ -793,134 +922,6 @@ golang很适合写服务，首先是语言层面支持高并发，其次是对ht
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/06/26/libtask01/" itemprop="url">
-                  libtask之channel实现机制
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-06-26T17:19:33+08:00" content="2016-06-26">
-              2016-06-26
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/libtask/" itemprop="url" rel="index">
-                    <span itemprop="name">libtask</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/06/26/libtask01/" class="leancloud_visitors" data-flag-title="libtask之channel实现机制">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          用过golang语言，都知道golang最吸引人的特性就是goroutine和channel．goroutine可以称呼为go程，其实就是go语言协程；channel即为通道，用于goroutine之间进行通信；比较直观的理解，channel实现可以认为生产者和消费者模型，即一个goroutine写入消息，另一个协程读取消息；当然，具体如何实现，可以看libtask的channel实现，即可略知一二．
-libtask的channel模块，理解起来没有task模块轻松，逻辑比较复杂，我在计划写这篇
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/06/26/libtask01/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -966,7 +967,7 @@ libtask的channel模块，理解起来没有task模块轻松，逻辑比较复�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -983,7 +984,7 @@ libtask的channel模块，理解起来没有task模块轻松，逻辑比较复�
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

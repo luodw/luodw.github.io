@@ -289,6 +289,137 @@
             
               
                 
+                <a class="post-title-link" href="/2016/01/10/memcache-item/" itemprop="url">
+                  memcache源码分析之item
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-01-10T12:43:06+08:00" content="2016-01-10">
+              2016-01-10
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/memcache/" itemprop="url" rel="index">
+                    <span itemprop="name">memcache</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/01/10/memcache-item/" class="leancloud_visitors" data-flag-title="memcache源码分析之item">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          上篇文章分析了memcache的内存管理模块，作为一个内存数据库，内存的管理是至关重要的，例如内存的分配，内存的回收，内存重复利用等等。有了内存之后，这篇文章主要分析下item的一些操作。item.c文件还有几个和维护LRU队列的线程函数相关，最后在统一整理。
+item定义
+
+先来看下item是如何定义的，在memcached.h文件中
+1234567891011121314151617181920212223typedef struct _stritem &#123;    /* 受LRU l
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/01/10/memcache-item/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/01/09/memcache-slab/" itemprop="url">
                   memcache源码分析之slab内存分配
                 </a>
@@ -785,138 +916,6 @@ netstat命令主要是用于显示各种网络相关信息，如网络连接，�
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/12/27/dns03/" itemprop="url">
-                  域名解析之dig,host,nslookup命令
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-12-27T18:30:04+08:00" content="2015-12-27">
-              2015-12-27
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/linux/" itemprop="url" rel="index">
-                    <span itemprop="name">linux</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/12/27/dns03/" class="leancloud_visitors" data-flag-title="域名解析之dig,host,nslookup命令">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          上篇博客稍微介绍了域名服务器和和getaddrinfo等函数,这篇文章想好好总结下关于域名解析命令的使用,主要有以下三个命令:dig,host和nslookup。这三个命令主要是用于本地域名查询。原理就是当调用这个三个命令时，内核会向本地域名服务器查询，即dnsmasq这个守护进程。当dnsmasq有缓存所需要查询的域名时，直接返回，如果没有，则递归向外界的域名服务器查询。
-dig命令
-
-dig命令的使用方法很简单,主要就是dig +域名.
-
-dig baidu.com即可输出baidu.com
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/12/27/dns03/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -962,7 +961,7 @@ dig baidu.com即可输出baidu.com
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -979,7 +978,7 @@ dig baidu.com即可输出baidu.com
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

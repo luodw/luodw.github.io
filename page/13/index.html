@@ -289,6 +289,138 @@
             
               
                 
+                <a class="post-title-link" href="/2015/11/02/leveldb-19/" itemprop="url">
+                  leveldb源码分析补充之布隆过滤器
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-11-02T21:37:22+08:00" content="2015-11-02">
+              2015-11-02
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/11/02/leveldb-19/" class="leancloud_visitors" data-flag-title="leveldb源码分析补充之布隆过滤器">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          之前分析leveldb时,忘了分析过滤器.简单的说,leveldb的过滤器主要作用是当从磁盘数据时,可以通过过滤器先判断读取的键值是否在读取的data block中,如果在,则读取,如果不在,则直接空值返回,在一定程度上较少了磁盘IO.
+再介绍布隆过滤器之前,先介绍下位开关,很有意思的位运算.
+位运算
+
+假如有20个开关,控制着20掌灯.我们可以通过输入序号,来控制灯的开关,这就是位运算.编程时,最关键的操作就是要找到设置的位在哪,先看下这个小程序:
+1234567891011121314151
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/11/02/leveldb-19/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/11/01/leveldb-18/" itemprop="url">
                   leveldb阅读源码总结
                 </a>
@@ -790,137 +922,6 @@ version_edit这个类主要是两个版本之间的差量。形象点说，就�
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/30/leveldb-14/" itemprop="url">
-                  leveldb源码分析之WriteBatch
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-30T19:22:37+08:00" content="2015-10-30">
-              2015-10-30
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/leveldb/" itemprop="url" rel="index">
-                    <span itemprop="name">leveldb</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/30/leveldb-14/" class="leancloud_visitors" data-flag-title="leveldb源码分析之WriteBatch">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          leveldb提供的接口除了针对一条记录的插入和删除操作之外，还提供了批量更新的操作，即writebatch类。writebatch类只有一个成员变量，存储的是若干条记录的序列号字符串，这个字符串是按照一定格式生成，当要取出这些记录时，也要按照格式一条一条解析出来。
-&lt;!--more--&gt;
-WriteBatch类
-先介绍下这个类的成员变量rep_，这个字符串用来存储这次批操作的所有记录，格式如下:
-123456789WriteBatch::rep_:=	sequence: fixed
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/30/leveldb-14/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -966,7 +967,7 @@ WriteBatch类
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -983,7 +984,7 @@ WriteBatch类
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

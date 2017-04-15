@@ -289,6 +289,136 @@
             
               
                 
+                <a class="post-title-link" href="/2016/02/27/cpu-cache/" itemprop="url">
+                  CPU缓存L1和L2
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-27T18:36:12+08:00" content="2016-02-27">
+              2016-02-27
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/27/cpu-cache/" class="leancloud_visitors" data-flag-title="CPU缓存L1和L2">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          上篇文章分析了CPU如何向内存请求数据，我们也知道cpu请求的数据是先放到L1和L2缓存中，那么这篇文章来分析下cpu内部是如何组织访问缓存的．本科计算机体系结构课上有学过缓存的三种方式，全相连，直接相连，组相连．组相连是全相连和直接相连的折中，了解了组相连，其他两个也就很好理解了．这个博客分析的是36位地址总线，虽然现在是32位地址总线，但是不影响分析．
+我还是以大神Gustavo Duarte为基础，再加上一些自己的想法来写这篇文章．我们先上图:
+
+l1 cache有32kb，８路组相连，总
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/02/27/cpu-cache/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/02/25/cache/" itemprop="url">
                   CPU访问物理内存
                 </a>
@@ -769,135 +899,6 @@ CPU发展从寻址物理地址；寻址段地址到物理地址转换；寻址�
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/02/17/register/" itemprop="url">
-                  linux寄存器简介
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-02-17T11:09:57+08:00" content="2016-02-17">
-              2016-02-17
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/linux/" itemprop="url" rel="index">
-                    <span itemprop="name">linux</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/02/17/register/" class="leancloud_visitors" data-flag-title="linux寄存器简介">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          80386常用寄存器
-最近在看书的过程中，发现好多都需要汇编寄存器的知识。例如，在gdb调试反汇编调试程序时需要会看懂汇编代码；在通过汇编了解系统调用原理时，也需要知道汇编寄存器知识；在了解linux内核内存管理时，需要知道段描述符寄存器GDTR/LDTR等等。本科学过汇编，有点基础，所以这篇文章想总结下80386各个寄存器的作用。
-80386寄存器共有34个寄存器，可分为7类，它们是通用寄存器，指令指针和标志寄存器，段寄存器，系统地址寄存器，控制寄存器、调试和测试寄存器。我们经常碰到的是前四类
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/02/17/register/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -943,7 +944,7 @@ CPU发展从寻址物理地址；寻址段地址到物理地址转换；寻址�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -960,7 +961,7 @@ CPU发展从寻址物理地址；寻址段地址到物理地址转换；寻址�
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

@@ -289,6 +289,136 @@
             
               
                 
+                <a class="post-title-link" href="/2016/01/19/memcache-lru-maintenance/" itemprop="url">
+                  memcache源码分析之lru维护线程
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-01-19T19:54:09+08:00" content="2016-01-19">
+              2016-01-19
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/memcache/" itemprop="url" rel="index">
+                    <span itemprop="name">memcache</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/01/19/memcache-lru-maintenance/" class="leancloud_visitors" data-flag-title="memcache源码分析之lru维护线程">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          memcache和数据有关的数据结构有三个slab,lru和哈希表,所以在memcache运行过程中,需要不断维护这三个数据结构,以免降低性能.之前两篇文章,分析维护哈希表的扩容线程和维护slab的平衡线程.今天这篇文章主要分析了维护lru,即清除lru队列中不恰当的item.这部分较难,因为这部分在版本1.2.23版本开始,重写了实现,网上源码分析较少,所以看得有点吃力,今天把知识点好好整理下.
+真实的lru队列
+
+直到看了这部分内容,我才真正认识了lru,虽然叫lru,但是这个真正的lru是
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/01/19/memcache-lru-maintenance/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/01/18/memcache-slabs-rebalance/" itemprop="url">
                   memcache源码分析之slabs平衡线程
                 </a>
@@ -788,137 +918,6 @@ memcache是用纯c语言开发的，所以要查看启动过程，首先要找�
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/01/10/memcache-item/" itemprop="url">
-                  memcache源码分析之item
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-01-10T12:43:06+08:00" content="2016-01-10">
-              2016-01-10
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/memcache/" itemprop="url" rel="index">
-                    <span itemprop="name">memcache</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/01/10/memcache-item/" class="leancloud_visitors" data-flag-title="memcache源码分析之item">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          上篇文章分析了memcache的内存管理模块，作为一个内存数据库，内存的管理是至关重要的，例如内存的分配，内存的回收，内存重复利用等等。有了内存之后，这篇文章主要分析下item的一些操作。item.c文件还有几个和维护LRU队列的线程函数相关，最后在统一整理。
-item定义
-
-先来看下item是如何定义的，在memcached.h文件中
-1234567891011121314151617181920212223typedef struct _stritem &#123;    /* 受LRU l
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/01/10/memcache-item/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -964,7 +963,7 @@ item定义
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">103</span>
+              <span class="site-state-item-count">104</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -981,7 +980,7 @@ item定义
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">114</span>
+                <span class="site-state-item-count">115</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>
