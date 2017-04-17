@@ -224,7 +224,7 @@
     <entry>
       <title><![CDATA[Nginx是这么运行的]]></title>
       <url>http://luodw.cc/2017/03/17/nginx01/</url>
-      <content type="html"><![CDATA[<p>很早之前就有看nginx的冲动，但是一直被一些事耽搁着，最近在繁忙之中，抽出点时间，看了下nginx代码，发现整体上并不是很难看懂，而且刚好想学习nginx+lua开发，因此，决定在今后一段时间内，对技术的时间投入都放在nginx+lua了。nginx在互联网公司使用很广，最重要的功能当属反向代理和负载均衡了吧，当然还有缓存；所以对nginx的熟悉使用和深入了解，对于一名后台开发人员，至关重要。</p>
+      <content type="html"><![CDATA[<p>很早之前就有看nginx的冲动，但是一直被一些事耽搁着，最近在繁忙之中，抽出点时间，看了下nginx代码，发现整体上并不是很难看懂，而且刚好想学习nginx+lua开发。nginx在互联网公司使用很广，最重要的功能当属反向代理和负载均衡了吧，当然还有缓存。所以有必要对nginx熟悉使用和深入了解。</p>
 <p>记得我之前在很多文章有提到，后台组件框架主要有三种：redis单进程单线程，memcache单进程多线程，nginx多进程；等看了nginx之后，我也算集齐了；nginx以模块化方式开发，比如核心模块，event模块，http模块，然后为了支持多平台，event模块下又有对各大平台的封装支持，例如linux平台epoll，mac平台kqueue等等；然后http模块也被拆分成了很多子模块。</p>
 <p>这篇文章算是我自己做的笔记吧，把之前研究的东西记录下。也许是之前看过redis和golang以及python的http框架，nginx整体框架比较容易就看懂了，当然很多细节还需后面慢慢看；这篇文章主要介绍nginx是如何开启，以及请求是怎么执行的，所以这篇文章主要就是以下两点：</p>
 <ol>
@@ -5693,9 +5693,9 @@ insert(pos, first, last, iterator_category(first));
         
         <tags>
             
-            <tag> STL </tag>
-            
             <tag> C/C++ </tag>
+            
+            <tag> STL </tag>
             
             <tag> list </tag>
             
@@ -6244,11 +6244,11 @@ insert(pos, first, last, iterator_category(first));
             
             <tag> leveldb </tag>
             
-            <tag> sst </tag>
-            
             <tag> block </tag>
             
             <tag> filterpolicy </tag>
+            
+            <tag> sst </tag>
             
         </tags>
         
