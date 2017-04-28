@@ -21,7 +21,7 @@
 <li>Python操作Kafka；</li>
 <li>总结；</li>
 </ol>
-<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2017/04/14/nsqd/#more">http://luodw.cc/2017/04/14/nsqd/#more</a></p>
+<p>【版权声明】博客内容由罗道文的私房菜拥有版权，允许转载，但请标明原文链接<a href="http://luodw.cc/2017/04/24/kafka01/#more">http://luodw.cc/2017/04/24/kafka01/#more</a></p>
 <h1>Kafka整体架构</h1>
 <hr>
 <p>Kafka相对于NSQ架构更加的复杂，但也提供更丰富的功能，下面根据我的理解列出二者的不同点:</p>
@@ -49,7 +49,7 @@
 <li>Producer向某个topic发送消息时，需要先连接上与这个topic相关的一台或者多台broker，因为broker之间会相互通信，最后通过一台broker，就可以找到所有与该topic相关的broker。当Producer在发布消息时，根据消息提供的key进行分区（最简单的方式就是哈稀求余），因此一条消息并将属于一个分区；如果分区函数设计得当，所有消息将会被均衡的发送到所有分区，实现负载均衡。在早期版本的Producer，有同步和异步的方式，而在最新的版本中只提供异步的方式，即将所有消息先存入一个队列，然后开启一个后台线不断从队列读取消息并发送给Kafka Sever。</li>
 <li>Consumer消费消息时，需要先连接zookeeper获取与topic相关的broker，然后再连接；等Consumer连上Kafka Server之后，然后发送FetchRequest请求，带上topic,partition和offset从相应的分区读取消息；</li>
 </ol>
-<p>下面通过官网提供的图，简单说明下消费者模式
+<p>下面通过官网提供的图，简单说明下消费者组模式
 <img src="http://7xjnip.com1.z0.glb.clouddn.com/ldw-consumer-groups.png" alt="Kafka消费者组"></p>
 <p>如图，假设有一个topic，四个partition；两个Kafka Server，每个Kafka Server分别有两个分区；有两个消费者组A和B。由图可知，ConsumerGroup A和ConsumerGroup B都可以消费同一个topic下的所有消息，而同一个消费者组内的消费者则消费topic下的不同分区；例如，ConsumerGroup A的C1消费分区0和3，而C2消费分区1和2。ConsumerGroup B下的四个Consumer则分别消费一个分区。</p>
 <blockquote>
@@ -5777,9 +5777,9 @@ insert(pos, first, last, iterator_category(first));
         
         <tags>
             
-            <tag> C/C++ </tag>
-            
             <tag> STL </tag>
+            
+            <tag> C/C++ </tag>
             
             <tag> list </tag>
             
