@@ -289,6 +289,138 @@
             
               
                 
+                <a class="post-title-link" href="/2016/02/17/address/" itemprop="url">
+                  linux虚拟地址转物理地址
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-02-17T11:11:45+08:00" content="2016-02-17">
+              2016-02-17
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/linux/" itemprop="url" rel="index">
+                    <span itemprop="name">linux</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/02/17/address/" class="leancloud_visitors" data-flag-title="linux虚拟地址转物理地址">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          80386虚拟地址和物理地址转换
+CPU的发展
+之前在看malloc内存分配函数的原理时，有涉及到分配虚拟内存，然后再映射到物理内存，当初也是看得一头雾水，因为对虚拟内存和物理内存不是很了解。所以这篇文章总结下我在学习虚拟内存和物理内存的一些收获。
+首先给出CPU的进化表，图片来自博客wjlkoorey的博客
+
+CPU发展从寻址物理地址；寻址段地址到物理地址转换；寻址逻辑地址转换为线性地址，再转换为物理地址。在8086之前的CPU，寻址都为物理地址，是并没有段的概念。当程序要访问内存时都是要给出
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/02/17/address/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/02/17/register/" itemprop="url">
                   linux寄存器简介
                 </a>
@@ -789,141 +921,6 @@ slowlog-log-slower-than 选项指定执行时间超过多少微秒（1 秒等于
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/02/13/redis-msglist/" itemprop="url">
-                  redis消息队列之链表实现
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-02-13T11:03:45+08:00" content="2016-02-13">
-              2016-02-13
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/redis/" itemprop="url" rel="index">
-                    <span itemprop="name">redis</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/02/13/redis-msglist/" class="leancloud_visitors" data-flag-title="redis消息队列之链表实现">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          redis消息队列之链表实现
-之前在知乎上看到用redis来实现消息队列，其实消息队列，linux在进程间通信有提到过，以及在memcache主线程和工作线程之间通信也是通过消息队列，但是我认为redis消息队列有一个好处，就是可以实现分布式和共享，就和memcache作为mysql的缓存和mysql自带的缓存一样。
-redis有两种方式实现消息队列
-
-用redis自带的链表数据结构
-用redis发布/订阅模式
-
-链表实现消息队列
-redis链表支持前后插入以及前后取出，所以如果往尾部插入元素，
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/02/13/redis-msglist/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -969,7 +966,7 @@ redis链表支持前后插入以及前后取出，所以如果往尾部插入元
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">104</span>
+              <span class="site-state-item-count">105</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -977,7 +974,7 @@ redis链表支持前后插入以及前后取出，所以如果往尾部插入元
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">32</span>
+                <span class="site-state-item-count">33</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -986,7 +983,7 @@ redis链表支持前后插入以及前后取出，所以如果往尾部插入元
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">115</span>
+                <span class="site-state-item-count">116</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

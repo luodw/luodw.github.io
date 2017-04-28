@@ -289,6 +289,136 @@
             
               
                 
+                <a class="post-title-link" href="/2016/01/21/memcache-socket/" itemprop="url">
+                  memcache源码中一些网络设置
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2016-01-21T20:29:29+08:00" content="2016-01-21">
+              2016-01-21
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/memcache/" itemprop="url" rel="index">
+                    <span itemprop="name">memcache</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2016/01/21/memcache-socket/" class="leancloud_visitors" data-flag-title="memcache源码中一些网络设置">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          memcache网络这一块内容，其实就是调用linux下的网络接口，看过apue和unp，这些接口都听熟悉的，今天主要是分析下，在一个完整的服务器端软件，需要对socket设置些什么．
+SO_KEEPALIVE选项
+
+对于高并发的服务器，服务器会有很多客户端连接，如果有些客户端突然断电，因为没有给服务器发送数据，所以服务器也不知道这个客户端已＂死＂，这样会占着服务器一个文件描述符，如果有很多这样的客户端，这样必然会降低服务器端的并发性．还好tcp套接字有一个保持存活的选项．即如果在２小时(/pr
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2016/01/21/memcache-socket/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2016/01/19/memcache-lru-maintenance/" itemprop="url">
                   memcache源码分析之lru维护线程
                 </a>
@@ -785,139 +915,6 @@ start_lru_maintainer_thread
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2016/01/11/memcache-startup/" itemprop="url">
-                  memcache启动过程以及线程模型
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2016-01-11T10:56:43+08:00" content="2016-01-11">
-              2016-01-11
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/memcache/" itemprop="url" rel="index">
-                    <span itemprop="name">memcache</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2016/01/11/memcache-startup/" class="leancloud_visitors" data-flag-title="memcache启动过程以及线程模型">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          前两篇文章，我分析了slab内存分配和item数据存储。接下来这篇文章，先分析下memcache的启动流程，这也是一个软件的整体框架。然后主要分析下memcache的线程模型。
-memcache的启动过程
-
-memcache是用纯c语言开发的，所以要查看启动过程，首先要找到main函数，然后一步一步往下执行。memcache的启动过程大致如下：
-
-初始化全局变量setting。memcache没有配置文件，所有的设置都是通过启动时跟在memcache后面的参数设置的。
-设置系统的参数信息，例如设
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2016/01/11/memcache-startup/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -963,7 +960,7 @@ memcache是用纯c语言开发的，所以要查看启动过程，首先要找�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">104</span>
+              <span class="site-state-item-count">105</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -971,7 +968,7 @@ memcache是用纯c语言开发的，所以要查看启动过程，首先要找�
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">32</span>
+                <span class="site-state-item-count">33</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -980,7 +977,7 @@ memcache是用纯c语言开发的，所以要查看启动过程，首先要找�
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">115</span>
+                <span class="site-state-item-count">116</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

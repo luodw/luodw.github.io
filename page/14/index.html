@@ -289,6 +289,133 @@
             
               
                 
+                <a class="post-title-link" href="/2015/10/31/leveldb-15/" itemprop="url">
+                  leveldb源码分析之快照SnapShots
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2015-10-31T13:59:46+08:00" content="2015-10-31">
+              2015-10-31
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/leveldb/" itemprop="url" rel="index">
+                    <span itemprop="name">leveldb</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2015/10/31/leveldb-15/" class="leancloud_visitors" data-flag-title="leveldb源码分析之快照SnapShots">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          之前在学习过程中，也有听过快照这个概念，但是根本不知为何物，更不要说实现原理了。看了leveldb快照实现之后，我对快照这个概念有个简单的认识，因为我百度之后，发现大型数据库的快照的实现和leveldb的快照实现是有区别的。我的理解是，leveldb的快照主要功能是用来读取某个时间点之前的数据，因为leveldb在插入数据时，键值是可以一样的，所以当查询这个键值时，系统返回的是最新的数据，也就是后面插入的数据。但是如果在第二次插入相同键值数据之前，建立一个快照，那么读取这个快照时，读取的就是这个
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2015/10/31/leveldb-15/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2015/10/30/leveldb-14/" itemprop="url">
                   leveldb源码分析之WriteBatch
                 </a>
@@ -785,136 +912,6 @@ C++ STL配置器分为两层配置器，当请求的内存大于128b时，就用
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2015/10/25/leveldb-13/" itemprop="url">
-                  leveldb源码分析之Table_cache
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2015-10-25T21:11:43+08:00" content="2015-10-25">
-              2015-10-25
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/leveldb/" itemprop="url" rel="index">
-                    <span itemprop="name">leveldb</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2015/10/25/leveldb-13/" class="leancloud_visitors" data-flag-title="leveldb源码分析之Table_cache">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          上篇文章有说到过，leveldb有分为block_cache和table_cache。block_cache主要是用来缓存data_block，减少磁盘IO次数。那table_cache是用来干啥了？
-先介绍table_cache的键值对形式，如下图所示：
-;
-key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构体指针，然后这个TableAndFile是由RandomAccessFile指针和Table指针组成。所以从这个TableAndFile指针，就可以获
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2015/10/25/leveldb-13/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -960,7 +957,7 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">104</span>
+              <span class="site-state-item-count">105</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -968,7 +965,7 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">32</span>
+                <span class="site-state-item-count">33</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -977,7 +974,7 @@ key值为sst文件的文件编号，value为这个sst文件的TableAndFile结构
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">115</span>
+                <span class="site-state-item-count">116</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>

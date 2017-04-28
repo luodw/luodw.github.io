@@ -289,6 +289,139 @@
             
               
                 
+                <a class="post-title-link" href="/2017/04/24/kafka01/" itemprop="url">
+                  kafka源码分析之概述
+                </a>
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">发表于</span>
+            <time itemprop="dateCreated" datetime="2017-04-24T20:10:32+08:00" content="2017-04-24">
+              2017-04-24
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/kafka/" itemprop="url" rel="index">
+                    <span itemprop="name">kafka</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+
+          
+          
+             <span id="/2017/04/24/kafka01/" class="leancloud_visitors" data-flag-title="kafka源码分析之概述">
+               &nbsp; | &nbsp;
+               <span class="post-meta-item-icon">
+                 <i class="fa fa-eye"></i>
+               </span>
+               <span class="post-meta-item-text">阅读次数 </span>
+               <span class="leancloud-visitors-count"></span>
+              </span>
+          
+
+          
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+          最近帮实验室写了一个Spark+kafka实时处理日志的监控系统案例，大概流程为：
+
+用户购物日志发送给Kafka；
+Spark实时从Kafka接收购物日志，利用Spark Streaming实时处理，最后将结果发送给Kafka；
+用Flask构建一个web程序接收Kafka处理后的数据，用Flask-SocketIO实时将每秒的数据发送给客户端浏览器；
+浏览器利用socket.io.js实时接收web发送来的数据，利用highcharts.js展示出来。
+这个案例很好的展示了利用Spark+K
+          ...
+
+          <div class="post-more-link text-center">
+            <a class="btn" href="/2017/04/24/kafka01/#more" rel="contents">
+              阅读全文 &raquo;
+            </a>
+          </div>
+        
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <div>
+      
+    </div>
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </article>
+
+
+    
+      
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                
                 <a class="post-title-link" href="/2017/04/14/nsqd/" itemprop="url">
                   nsqd执行解析
                 </a>
@@ -780,133 +913,6 @@ nsqd是NSQ中最重要的组件，接收生产者的消息以及给消费者发�
 
 
     
-      
-
-  
-  
-
-  
-  
-  
-
-  <article class="post post-type-normal " itemscope itemtype="//schema.org/Article">
-
-    
-      <header class="post-header">
-
-        
-        
-          <h1 class="post-title" itemprop="name headline">
-            
-            
-              
-                
-                <a class="post-title-link" href="/2017/01/05/weedfs/" itemprop="url">
-                  SeaweedFS概述
-                </a>
-              
-            
-          </h1>
-        
-
-        <div class="post-meta">
-          <span class="post-time">
-            <span class="post-meta-item-icon">
-              <i class="fa fa-calendar-o"></i>
-            </span>
-            <span class="post-meta-item-text">发表于</span>
-            <time itemprop="dateCreated" datetime="2017-01-05T14:46:43+08:00" content="2017-01-05">
-              2017-01-05
-            </time>
-          </span>
-
-          
-            <span class="post-category" >
-              &nbsp; | &nbsp;
-              <span class="post-meta-item-icon">
-                <i class="fa fa-folder-o"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-              
-                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
-                  <a href="/categories/weedfs/" itemprop="url" rel="index">
-                    <span itemprop="name">weedfs</span>
-                  </a>
-                </span>
-
-                
-                
-
-              
-            </span>
-          
-
-          
-            
-          
-
-          
-
-          
-          
-             <span id="/2017/01/05/weedfs/" class="leancloud_visitors" data-flag-title="SeaweedFS概述">
-               &nbsp; | &nbsp;
-               <span class="post-meta-item-icon">
-                 <i class="fa fa-eye"></i>
-               </span>
-               <span class="post-meta-item-text">阅读次数 </span>
-               <span class="leancloud-visitors-count"></span>
-              </span>
-          
-
-          
-        </div>
-      </header>
-    
-
-
-    <div class="post-body" itemprop="articleBody">
-
-      
-      
-
-      
-        
-          
-          文件系统在后端开发中，是非常重要的组件，当有存储图片或者视频的时候，文件系统就派上用场了；例如阿里为淘宝上的大量图片存储开发了分布式文件系统TFS和FastDFS，有些直播软件上视频也是存储在文件系统上等等；因此如果是从事后端开发或者分布式存储开发，也必须好好学习研究下文件系统；seaweedfs文件系统实现了Facebook's Haystack文件系统设计论文，它并不支持Linux操作系统中POSIX文件系统语义，而是选择实现了key-&gt;file存储形式，类似于NoSQL，我们也可以称
-          ...
-
-          <div class="post-more-link text-center">
-            <a class="btn" href="/2017/01/05/weedfs/#more" rel="contents">
-              阅读全文 &raquo;
-            </a>
-          </div>
-        
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <div>
-      
-    </div>
-
-    <footer class="post-footer">
-      
-
-      
-
-      
-      
-        <div class="post-eof"></div>
-      
-    </footer>
-  </article>
-
-
-    
   </section>
 
   
@@ -952,7 +958,7 @@ nsqd是NSQ中最重要的组件，接收生产者的消息以及给消费者发�
         <nav class="site-state motion-element">
           <div class="site-state-item site-state-posts">
             <a href="/archives">
-              <span class="site-state-item-count">104</span>
+              <span class="site-state-item-count">105</span>
               <span class="site-state-item-name">日志</span>
             </a>
           </div>
@@ -960,7 +966,7 @@ nsqd是NSQ中最重要的组件，接收生产者的消息以及给消费者发�
           
             <div class="site-state-item site-state-categories">
               
-                <span class="site-state-item-count">32</span>
+                <span class="site-state-item-count">33</span>
                 <span class="site-state-item-name">分类</span>
               
             </div>
@@ -969,7 +975,7 @@ nsqd是NSQ中最重要的组件，接收生产者的消息以及给消费者发�
           
             <div class="site-state-item site-state-tags">
               
-                <span class="site-state-item-count">115</span>
+                <span class="site-state-item-count">116</span>
                 <span class="site-state-item-name">标签</span>
               
             </div>
