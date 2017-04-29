@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://luodw.cc/"/>
-  <updated>2017-04-29T12:01:25.174Z</updated>
+  <updated>2017-04-29T12:05:40.998Z</updated>
   <id>http://luodw.cc/</id>
   
   <author>
@@ -20,7 +20,7 @@
     <link href="http://luodw.cc/2017/04/24/kafka01/"/>
     <id>http://luodw.cc/2017/04/24/kafka01/</id>
     <published>2017-04-24T12:10:32.000Z</published>
-    <updated>2017-04-29T12:01:25.174Z</updated>
+    <updated>2017-04-29T12:05:40.998Z</updated>
     
     <content type="html"><![CDATA[<p>最近帮实验室写了一个Spark+kafka实时处理日志的监控系统案例，大概流程为：</p>
 <ol>
@@ -75,7 +75,7 @@
 <blockquote>
 <p>消费者组内的多个消费者主要就是为了实现负载均衡。</p>
 </blockquote>
-<h1>Ｐython操作Kafka</h1>
+<h1>Python操作Kafka</h1>
 <hr>
 <p>这里用Python操作Kafka作为演示，只需要几行代码就可以实现生产者和消费者。生产者代码如下:
 <figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># coding: utf-8</span></div><div class="line"><span class="keyword">import</span> time</div><div class="line"><span class="keyword">from</span> kafka <span class="keyword">import</span> KafkaProducer</div><div class="line"></div><div class="line">producer = KafkaProducer(bootstrap_servers=<span class="string">'localhost:9092'</span>)</div><div class="line"><span class="keyword">while</span> <span class="keyword">True</span>:</div><div class="line">    producer.send(<span class="string">'test'</span>, <span class="string">"Hello World!"</span>.encode(<span class="string">'utf8'</span>))</div><div class="line">    time.sleep(<span class="number">3</span>)</div></pre></td></tr></table></figure></p>

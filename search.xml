@@ -59,7 +59,7 @@
 <blockquote>
 <p>消费者组内的多个消费者主要就是为了实现负载均衡。</p>
 </blockquote>
-<h1>Ｐython操作Kafka</h1>
+<h1>Python操作Kafka</h1>
 <hr>
 <p>这里用Python操作Kafka作为演示，只需要几行代码就可以实现生产者和消费者。生产者代码如下:
 <figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># coding: utf-8</span></div><div class="line"><span class="keyword">import</span> time</div><div class="line"><span class="keyword">from</span> kafka <span class="keyword">import</span> KafkaProducer</div><div class="line"></div><div class="line">producer = KafkaProducer(bootstrap_servers=<span class="string">'localhost:9092'</span>)</div><div class="line"><span class="keyword">while</span> <span class="keyword">True</span>:</div><div class="line">    producer.send(<span class="string">'test'</span>, <span class="string">"Hello World!"</span>.encode(<span class="string">'utf8'</span>))</div><div class="line">    time.sleep(<span class="number">3</span>)</div></pre></td></tr></table></figure></p>
@@ -2255,9 +2255,9 @@
         
         <tags>
             
-            <tag> innodb_ruby </tag>
-            
             <tag> innodb </tag>
+            
+            <tag> innodb_ruby </tag>
             
         </tags>
         
@@ -2355,9 +2355,9 @@ Space id指向这个表空间的id,这个Page Number和Offset指向这个file se
         
         <tags>
             
-            <tag> innodb_ruby </tag>
-            
             <tag> innodb </tag>
+            
+            <tag> innodb_ruby </tag>
             
         </tags>
         
@@ -2435,9 +2435,9 @@ Space id指向这个表空间的id,这个Page Number和Offset指向这个file se
         
         <tags>
             
-            <tag> innodb_ruby </tag>
-            
             <tag> innodb </tag>
+            
+            <tag> innodb_ruby </tag>
             
         </tags>
         
@@ -5786,9 +5786,9 @@ insert(pos, first, last, iterator_category(first));
         
         <tags>
             
-            <tag> C/C++ </tag>
-            
             <tag> STL </tag>
+            
+            <tag> C/C++ </tag>
             
             <tag> list </tag>
             
@@ -6904,9 +6904,9 @@ C++有三种情况会用到C++复制构造函数</p>
             
             <tag> C++ </tag>
             
-            <tag> 构造函数 </tag>
-            
             <tag> 对象模型 </tag>
+            
+            <tag> 构造函数 </tag>
             
         </tags>
         

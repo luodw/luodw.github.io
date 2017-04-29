@@ -104,7 +104,7 @@ Spark实时从Kafka接收购物日志，利用Spark Streaming实时处理，最�
 浏览器利用socket.io.js实时接收">
 <meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-kafka.JPG">
 <meta property="og:image" content="http://7xjnip.com1.z0.glb.clouddn.com/ldw-consumer-groups.png">
-<meta property="og:updated_time" content="2017-04-29T12:01:25.174Z">
+<meta property="og:updated_time" content="2017-04-29T12:05:40.998Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="kafka源码分析之概述">
 <meta name="twitter:description" content="最近帮实验室写了一个Spark+kafka实时处理日志的监控系统案例，大概流程为：
@@ -426,7 +426,7 @@ Spark实时从Kafka接收购物日志，利用Spark Streaming实时处理，最�
 <blockquote>
 <p>消费者组内的多个消费者主要就是为了实现负载均衡。</p>
 </blockquote>
-<h1>Ｐython操作Kafka</h1>
+<h1>Python操作Kafka</h1>
 <hr>
 <p>这里用Python操作Kafka作为演示，只需要几行代码就可以实现生产者和消费者。生产者代码如下:
 <figure class="highlight python"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="comment"># coding: utf-8</span></div><div class="line"><span class="keyword">import</span> time</div><div class="line"><span class="keyword">from</span> kafka <span class="keyword">import</span> KafkaProducer</div><div class="line"></div><div class="line">producer = KafkaProducer(bootstrap_servers=<span class="string">'localhost:9092'</span>)</div><div class="line"><span class="keyword">while</span> <span class="keyword">True</span>:</div><div class="line">    producer.send(<span class="string">'test'</span>, <span class="string">"Hello World!"</span>.encode(<span class="string">'utf8'</span>))</div><div class="line">    time.sleep(<span class="number">3</span>)</div></pre></td></tr></table></figure></p>
@@ -687,7 +687,7 @@ Tie.loader("aHR0cHM6Ly9hcGkuZ2VudGllLjE2My5jb20vcGMvbGl2ZXNjcmlwdC5odG1s", true)
               
             
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">Kafka整体架构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">Ｐython操作Kafka</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">Java操作Kafka</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">1.</span> <span class="nav-text">Kafka整体架构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">2.</span> <span class="nav-text">Python操作Kafka</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">3.</span> <span class="nav-text">Java操作Kafka</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#undefined"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li></ol></div>
             
           </div>
         </section>
