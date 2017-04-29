@@ -5,7 +5,7 @@
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://luodw.cc/"/>
-  <updated>2017-04-28T14:48:42.000Z</updated>
+  <updated>2017-04-29T05:21:54.415Z</updated>
   <id>http://luodw.cc/</id>
   
   <author>
@@ -20,16 +20,16 @@
     <link href="http://luodw.cc/2017/04/24/kafka01/"/>
     <id>http://luodw.cc/2017/04/24/kafka01/</id>
     <published>2017-04-24T12:10:32.000Z</published>
-    <updated>2017-04-28T14:48:42.000Z</updated>
+    <updated>2017-04-29T05:21:54.415Z</updated>
     
     <content type="html"><![CDATA[<p>最近帮实验室写了一个Spark+kafka实时处理日志的监控系统案例，大概流程为：</p>
 <ol>
 <li>用户购物日志发送给Kafka；</li>
 <li>Spark实时从Kafka接收购物日志，利用Spark Streaming实时处理，最后将结果发送给Kafka；</li>
 <li>用Flask构建一个web程序接收Kafka处理后的数据，用Flask-SocketIO实时将每秒的数据发送给客户端浏览器；</li>
-<li>浏览器利用socket.io.js实时接收web发送来的数据，利用highcharts.js展示出来。
-这个案例很好的展示了利用Spark+Kafka实时处理数据的开发模式。Spark在实时处理和批量处理都有很高的性能，Kafka消息队列在异步解耦，冗余处理和削峰等方面有很高的性能。</li>
+<li>浏览器利用socket.io.js实时接收web发送来的数据，利用highcharts.js展示出来。</li>
 </ol>
+<p>这个案例很好的展示了利用Spark+Kafka实时处理数据的开发模式。Spark在实时处理和批量处理都有很高的性能，Kafka消息队列在异步解耦，冗余处理和削峰等方面有很高的性能。</p>
 <p>Kafka在互联网各大公司都有很广泛的应用，主要在于Kakfa性能出众，又有很好的扩展性和稳定性。而之前看过NSQ消息队列，对消息队列的分布式架构都有一定的了解，所以想最近这段时间看看kafka源码，熟悉下Kafka的整体架构，以及学习Scala和Java是如何写基础组件的。</p>
 <p>这篇文章先介绍下Kafka的整体架构，在通过一个简单的实例展示Python是如何操作Kafka消息队列，如下：</p>
 <ol>
