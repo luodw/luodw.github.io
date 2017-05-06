@@ -361,7 +361,7 @@
       
         
           
-          最近在kafka的代码，着实有点吃力，因为这是我第一次看java类代码，没有当时看redis（c语言）和NSQ（golang语言）那种享受，第一是kafka代码量非常大，第二是kafka代码封装较多。我们知道数据库或者文件戏系统的客户端一般都是当需要获取数据时，发送请求和等待回复。然而消息队列的客户端比上述复杂，例如，kafka一般是用在分布式架构下，因此kafka server都不止一台，所以kafka消息队列的Producer就需要一个IO多路复用进行每个连接是否可写以及可读；而且kafka
+          最近在kafka的代码，着实有点吃力，因为这是我第一次看java类代码，没有当时看redis(c语言)和NSQ(golang语言)那种享受，第一是kafka代码量非常大，第二是kafka代码封装较多。我们知道数据库或者文件戏系统的客户端一般都是当需要获取数据时，发送请求和等待回复。然而消息队列的客户端比上述复杂，例如，kafka一般是用在分布式架构下，因此kafka server都不止一台，所以kafka消息队列的Producer就需要一个IO多路复用进行每个连接是否可写以及可读；而且kafka
           ...
 
           <div class="post-more-link text-center">
